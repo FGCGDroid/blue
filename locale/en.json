@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Blue Team Mode",
+    "description": "CTF blue-team defense: asset inventory, alert triage, threat hunting, incident response, forensics and hardening, with a dedicated right-sidebar console, a local SQLite fact base and an autonomous dispatch queue."
+  }
+}

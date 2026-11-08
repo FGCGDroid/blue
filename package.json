@@ -1,0 +1,64 @@
+{
+  "name": "dsh-blue-team-mode",
+  "version": "1.0.0",
+  "description": "CTF 网络攻防蓝队防御模式：资产盘点、告警研判、威胁狩猎、应急响应、取证分析与加固修复，内置 SQLite 事实库、独立右侧栏控制台与自主任务派发队列。",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./lib/index.js",
+    "./store": "./lib/store.js",
+    "./tools": "./lib/tools.js",
+    "./ui": "./lib/ui.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "lib",
+    "presets",
+    "skills",
+    "scripts",
+    "docs",
+    "locale",
+    "icon.svg",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE",
+    "DISCLOSURE"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "validate": "node scripts/validate.mjs",
+    "test": "node scripts/test-tools.mjs && node scripts/test-ui.mjs"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "blue-team",
+    "ctf",
+    "defense",
+    "incident-response",
+    "threat-hunting",
+    "dfir"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-sidebar-right",
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-session"
+      ]
+    }
+  },
+  "engines": {
+    "node": ">=22.13",
+    "dsh": ">=0.1.7"
+  }
+}

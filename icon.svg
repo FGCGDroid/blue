@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Blue Team Mode">
+  <defs>
+    <linearGradient id="shield" x1="8" y1="4" x2="56" y2="60" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2f6fed"/>
+      <stop offset="1" stop-color="#0b2a66"/>
+    </linearGradient>
+    <radialGradient id="radar" cx="32" cy="30" r="17" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8fd3ff" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#8fd3ff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <path d="M32 3.5 55 12v18.5c0 14.2-9.2 25.4-23 30-13.8-4.6-23-15.8-23-30V12L32 3.5Z"
+        fill="url(#shield)" stroke="#9cc4ff" stroke-width="2.2"/>
+  <circle cx="32" cy="30" r="15" fill="none" stroke="#9cc4ff" stroke-opacity="0.55" stroke-width="1.4"/>
+  <circle cx="32" cy="30" r="9" fill="none" stroke="#9cc4ff" stroke-opacity="0.8" stroke-width="1.4"/>
+  <path d="M32 30 44 20" stroke="#d7ecff" stroke-width="2.4" stroke-linecap="round"/>
+  <circle cx="32" cy="30" r="3.6" fill="#d7ecff"/>
+  <circle cx="44" cy="20" r="2.6" fill="#8fd3ff"/>
+  <path d="M22 41.5 32 46l10-4.5" fill="none" stroke="#d7ecff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="32" cy="30" r="15" fill="url(#radar)" opacity="0.35"/>
+</svg>
