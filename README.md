@@ -329,6 +329,25 @@ node scripts/check-compliance.mjs --selftest
 
 ---
 
+## 控制台 E2E
+
+`scripts/test-ui-e2e.mjs` 用本机 Chrome + CDP 真实点击控制台「批准」按钮，验证：
+
+1. 点击确实发出 `approveTask` 请求；
+2. Host API 把任务从 `pending_approval` 改成 `queued`；
+3. `approved_by/approved_at` 落库；
+4. UI 任务行不再显示批准按钮，并显示 queued/审批人。
+
+前置：DSH Web 已加载最新插件并保持运行。
+
+```sh
+BLUE_E2E_URL='http://127.0.0.1:PORT/?token=...' npm run test:e2e
+```
+
+需要本机 Chrome/Chromium；可用 `CHROME_PATH` 指定路径。脚本不依赖 Playwright，不会下载浏览器，测试结束会关闭自己启动的 Chrome 并清理临时 profile。
+
+---
+
 ## 配置
 
 `cordis.patch.yml` 中事实库默认根目录：
