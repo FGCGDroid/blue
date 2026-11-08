@@ -400,3 +400,4 @@ CI 工作流：`.github/workflows/ci.yml`，在 Linux + Node 24 上跑工具测�
 ## License
 
 MIT。见 `LICENSE`（如未随包提供，按 MIT 使用）。使用前请阅读 `DISCLOSURE`。
+
