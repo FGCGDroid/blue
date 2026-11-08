@@ -1,16 +1,16 @@
-# AGENTS.md — 蓝队插件 P0 风险闸任务清单
+# AGENTS.md — 蓝队插件风险闸任务清单
 
-> 目标：把“自主规划”和“自主动手”切开。  
-> 范围：只做 P0。P1/P2/P3 不在本清单的完成标准内。  
+> 状态：P0 已完成（commit `6989941`）；P1/P2/P3 也已落地（commit `929052d`），细节见 `README.md`。  
+> 范围：以下保留为 P0 验收基线；P1/P2/P3 的实现不再受本清单“非目标”约束。  
 > 前提：本项目是授权防守场景工具；不要对真实主机执行隔离、删除、防火墙修改等动作，测试只用临时 SQLite 和假数据。
 
-## 0. 当前事实（实现前先读）
+## 0. 实现前事实（历史，已过时）
 
-- 任务表当前没有风险字段，见 `lib/store.js` 的 `CREATE TABLE tasks`。
-- `blue_autopilot` 的 `plan/cycle` 会把 `planCandidates()` 生成的任务直接写成 `queued`，`next/cycle` 再直接改成 `dispatched`，见 `lib/tools.js`。
-- 任务书由 `buildTaskPrompt()` 生成；`dispatch` 参数里目前只有 `description/prompt/agent_preset`。
-- 任务状态目前只有 `queued/dispatched/running/done/blocked/cancelled`。
-- 当前工具数 28；新增审批工具后要同步 `README.md`、`scripts/test-tools.mjs` 和角色工具白名单。
+- 任务表已具备 `risk_level`、`requires_approval`、`approved_by/at`、`scope/constraints/expected_output`。
+- `blue_autopilot` 的 high 任务只进入 `pending_approval`，审批后才可派发。
+- 任务书由 `lib/taskspec.js` 的 TaskSpec 统一渲染。
+- 任务状态包含 `pending_approval`；合法迁移见 `lib/judge.js`。
+- 当前工具数 29；角色白名单与测试已同步。
 
 ## 1. 必须实现的语义
 
