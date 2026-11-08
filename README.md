@@ -282,14 +282,42 @@ Host 半侧通过 `POST /blue/api` 提供同源 JSON 桥接（Origin/Host 校验
 | --- | --- |
 | `engagements` | 防守目标、范围、状态 |
 | `assets` | 资产（kind/address/port/service/criticality/owner/tags/evidence） |
-| `alerts` | 告警（severity/source/status/assignee/note/raw，指纹去重） |
-| `findings` | 发现（severity/category/cve/evidence/recommendation/status） |
-| `iocs` | IOC（type/value/confidence/source/note） |
-| `tasks` | 任务（role/priority/status/risk_level/requires_approval/approved_by/approved_at/brief/acceptance/result/时间戳） |
+| `alerts` | 告警（severity/source/confidence/task_id/status/assignee/note/raw，指纹去重） |
+| `findings` | 发现（severity/category/confidence/source/task_id/cve/evidence/recommendation/status） |
+| `iocs` | IOC（type/value/confidence/source/note/first_seen/last_seen，(engagement,type,value) 唯一） |
+| `tasks` | 任务（role/priority/status/risk_level/requires_approval/approved_by/approved_at/scope/constraints/expected_output/brief/acceptance/result/时间戳） |
 | `timeline` | 时间线（at/actor/action/target/detail） |
 | `meta` | 并发上限等运行配置 |
 
 所有写入都通过 `blue_*` 工具；智能体不直接写 SQL。
+
+### 判定层
+
+`lib/judge.js` 是唯一状态机与未闭环判定来源：
+
+- 任务合法迁移表：`queued / pending_approval / dispatched / running / done / blocked / cancelled`；
+- 告警未闭环：`open / investigating`；
+- 发现未闭环：`open`；
+- `postureOf()` 统一输出 `stable / warning / critical`；
+- store、plan、控制台统计都读同一套枚举，不在各角色里散写 if。
+
+### TaskSpec
+
+`lib/taskspec.js` 定义 `TASK_SPEC_SCHEMA` 与统一渲染：
+
+- `markdown`：控制台「领取」/ autopilot 的 `prompt`；
+- `json`：dispatch 里的 `task_spec`，供子智能体/审计消费；
+- 字段：`task_id/role/title/priority/risk_level/requires_approval/approved_by/scope/constraints/expected_output/acceptance/brief`；
+- `TaskSpec` 的 `scope/constraints/expected_output` 同时写进 tasks 表，避免只存在于 prompt。
+
+### 合规闸门
+
+```sh
+node scripts/install-hooks.mjs
+node scripts/check-compliance.mjs --selftest
+```
+
+`pre-commit` 会扫描暂存区中的 GitHub token、AWS key、私钥等模式，并检查 `DISCLOSURE` 存在；`--selftest` 会同时确认 hook 文件与 `core.hooksPath` 确实接在提交路径上。
 
 ---
 

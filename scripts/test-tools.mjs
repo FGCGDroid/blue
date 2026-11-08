@@ -7,6 +7,7 @@ import { rmSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { apply } from '../lib/tools.js'
 import { BlueStore } from '../lib/store.js'
+import { TASK_SPEC_SCHEMA, buildTaskSpec } from '../lib/taskspec.js'
 
 const root = fileURLToPath(new URL('../.tmp/tools-test', import.meta.url))
 rmSync(root, { recursive: true, force: true })
@@ -55,21 +56,37 @@ if (!asset.ok) throw new Error('asset_add 失败')
 await call('blue_asset_add', { name: 'web01', address: '10.10.0.5', kind: 'web', port: 80 })
 const assets = await call('blue_asset_query', { q: 'web01' })
 if (assets.assets[0].criticality !== 'critical') throw new Error('资产重复登记时丢失关键级别')
-const alert = await call('blue_alert_ingest', { title: 'WebShell 上传', severity: 'critical', source: 'waf', raw: 'POST /upload' })
+const alert = await call('blue_alert_ingest', { title: 'WebShell 上传', severity: 'critical', source: 'waf', confidence: 'high', raw: 'POST /upload' })
 if (!alert.ok || alert.ingested !== 1) throw new Error('alert_ingest 失败')
+if (alert.alerts[0].confidence !== 'high' || alert.alerts[0].source !== 'waf') throw new Error('告警来源/置信度未落库')
+const triaged = await call('blue_alert_triage', { id: alert.alerts[0].id, status: 'investigating', note: '确认上传点', create_task: true, role: 'ir' })
+if (!triaged.ok || !triaged.task || triaged.alert.task_id !== triaged.task.id) throw new Error('告警→任务回溯未落库')
 const finding = await call('blue_finding_add', {
   title: '上传点无校验', severity: 'high', category: 'upload', asset_id: asset.asset.id, evidence: 'POST /upload',
+  confidence: 'high', source: 'tester', task_id: triaged.task.id,
 })
+if (finding.finding.confidence !== 'high' || finding.finding.source !== 'tester' || finding.finding.task_id !== triaged.task.id) {
+  throw new Error('发现来源/置信度/task_id 未落库')
+}
 const fixed = await call('blue_finding_update', {
   id: finding.finding.id, status: 'fixed', evidence: '复测：上传 .php 返回 403',
 })
 if (!fixed.ok || fixed.finding.status !== 'fixed') throw new Error('finding_update 失败')
 await call('blue_ioc_add', { type: 'ip', value: '203.0.113.9', confidence: 'high', source: 'waf' })
+await call('blue_ioc_add', { type: 'ip', value: '203.0.113.9', confidence: 'high', source: 'ids' })
+const iocs = await call('blue_ioc_list', { type: 'ip' })
+const sameIoc = (iocs.iocs || []).filter((item) => item.value === '203.0.113.9')
+if (sameIoc.length !== 1 || !sameIoc[0].first_seen || !sameIoc[0].last_seen) {
+  throw new Error('IOC 去重/首次最后出现未落库：' + JSON.stringify(sameIoc))
+}
 
 const scan = await call('blue_log_scan', {
   text: '203.0.113.9 - - [x] "POST /upload HTTP/1.1" 200 1234 eval($_POST["x"]) union select 1',
 })
 if (scan.risk !== 'critical' && scan.risk !== 'high') throw new Error('log_scan 未识别特征：' + scan.risk)
+
+const preflight = await call('blue_preflight', {})
+if (!preflight.ok || !preflight.binaries || !Array.isArray(preflight.binaries.items)) throw new Error('preflight 报告不完整')
 
 const cycle = await call('blue_autopilot', { action: 'cycle', limit: 4 })
 if (!cycle.ok || !Array.isArray(cycle.dispatches) || cycle.dispatches.length === 0) {
@@ -83,6 +100,8 @@ const completed = await call('blue_autopilot', {
   action: 'complete', task_id: first.task_id, status: 'done', result: '冒烟测试完成',
 })
 if (!completed.ok || completed.task.status !== 'done') throw new Error('autopilot complete 失败')
+const reopen = await call('blue_task_update', { id: first.task_id, status: 'queued' })
+if (reopen.ok !== false) throw new Error('终态任务被非法重新打开')
 
 // P0：高风险任务必须先进 pending_approval，不能直接派发。
 const engagementId = opened.engagement?.id ?? store.listEngagements()[0].id
@@ -114,6 +133,14 @@ const approvedDispatch = (afterApproval.dispatches || []).find((item) => item.ta
 if (!approvedDispatch || approvedDispatch.risk_level !== 'high' || approvedDispatch.approved_by !== 'test-human') {
   throw new Error('审批后的高风险任务未正确派发：' + JSON.stringify(afterApproval))
 }
+if (!approvedDispatch.task_spec || !Array.isArray(approvedDispatch.constraints) || !approvedDispatch.expected_output) {
+  throw new Error('dispatch 缺少 TaskSpec/constraints/expected_output')
+}
+for (const key of TASK_SPEC_SCHEMA.required) {
+  if (!(key in approvedDispatch.task_spec)) throw new Error('TaskSpec 缺少字段：' + key)
+}
+const taskSpec = buildTaskSpec(store.getTask(high.task.id))
+if (taskSpec.constraints.length === 0 || taskSpec.expected_output.table !== 'tasks') throw new Error('TaskSpec 默认约束/期望产出不完整')
 store.setMeta('autopilot:cooldown_sec:' + engagementId, 30)
 const cooldown = await call('blue_autopilot', { action: 'cycle', limit: 1 })
 if (cooldown.reason !== 'cooldown') throw new Error('缺少自动派发冷却：' + JSON.stringify(cooldown))

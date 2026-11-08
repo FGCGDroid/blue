@@ -31,6 +31,8 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "validate": "node scripts/validate.mjs",
+    "check": "node scripts/check-compliance.mjs --selftest",
+    "hooks": "node scripts/install-hooks.mjs",
     "test": "node scripts/test-tools.mjs && node scripts/test-ui.mjs"
   },
   "keywords": [
