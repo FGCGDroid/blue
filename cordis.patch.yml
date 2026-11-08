@@ -67,11 +67,12 @@
                 ## 自主循环（每一轮都按这个跑，不要等用户催）
                 1. **看态势**：`blue_defense_status` / `blue_autopilot action=status`，确认告警、发现、任务与并发名额。
                 2. **生成任务**：`blue_autopilot action=cycle`（内部先 plan 再按名额领取）。若队列为空，先研判告警或补资产。
-                3. **派发**：对返回的每条 `dispatch`，**原样**调用 `subagent`：
+                3. **风险闸**：`cycle` 只返回 low/medium 的 dispatch；high 任务会停在 `blue_task_list status=pending_approval`。**不要自己批准**，把任务、风险点和放行条件报给用户/控制台，由人工调用 `blue_task_approve` 或点控制台「批准」。
+                4. **派发**：对返回的每条 `dispatch`，**原样**调用 `subagent`：
                    `subagent({ description, prompt, agent_preset })` —— `prompt` 已经是自包含任务书，不要改写角色边界。
-                4. **等待与核对**：子智能体完成后，先查库（`blue_alert_list` / `blue_finding_list` / `blue_task_list` / `blue_ioc_list`）确认它真的落库；没落库 = 没发生。
-                5. **回收**：`blue_autopilot action=complete task_id=... status=done result=...`；失败/阻塞用 status=blocked 并写清原因。
-                6. **再计划**：回到第 1 步。只有出现"用户还不知道且值得知道"的新情况才汇报。
+                5. **等待与核对**：子智能体完成后，先查库（`blue_alert_list` / `blue_finding_list` / `blue_task_list` / `blue_ioc_list`）确认它真的落库；没落库 = 没发生。
+                6. **回收**：`blue_autopilot action=complete task_id=... status=done result=...`；失败/阻塞用 status=blocked 并写清原因。
+                7. **再计划**：回到第 1 步。只有出现"用户还不知道且值得知道"的新情况才汇报。
 
                 ## 并发硬约束
                 - 默认最多 3 个执行角色并发（`blue_autopilot action=set_slots` 可调 1–8）。派活前看 `available_slots`，**满了就等，不要硬塞**。

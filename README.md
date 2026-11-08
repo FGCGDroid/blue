@@ -142,7 +142,7 @@ Host 半侧通过 `POST /blue/api` 提供同源 JSON 桥接（Origin/Host 校验
 
 ---
 
-## 工具（28 个）
+## 工具（29 个）
 
 ### 目标与预检
 
@@ -178,10 +178,21 @@ Host 半侧通过 `POST /blue/api` 提供同源 JSON 桥接（Origin/Host 校验
 
 | 工具 | 作用 |
 | --- | --- |
-| `blue_task_create` | 手动建任务（角色/优先级/简报/验收） |
-| `blue_task_update` | 更新状态与结论（done/blocked/…） |
-| `blue_task_list` | 查看队列 |
+| `blue_task_create` | 手动建任务（角色/优先级/简报/验收；high 自动进入待审批） |
+| `blue_task_update` | 更新状态与结论（done/blocked/…；不能绕过审批直接派发 high） |
+| `blue_task_list` | 查看队列（含 risk_level/approved_by） |
+| `blue_task_approve` | **人工放行** high 待审批任务，写 approved_by/at 与 timeline |
 | `blue_autopilot` | **核心编排器**：`status` / `plan` / `next` / `cycle` / `complete` / `set_slots` |
+
+### 风险闸与审批
+
+- `low`：只读排查、日志确认、IOC 提取、报告；
+- `medium`：非破坏性核对、可回滚加固建议；
+- `high`：隔离主机、删除/隔离文件、改防火墙、杀进程、禁用账号、重置凭据、改启动项/内核参数。
+
+`high` 任务只能进入 `pending_approval`，不会出现在 `cycle` 的 `dispatch` 里。控制台点「批准」，或由指挥官调用 `blue_task_approve`，才会变成 `queued`；审批会写 `approved_by`、`approved_at`、`approval_note` 和 timeline 的 `approval` 事件。
+
+自动派发还带轮次上限和冷却窗口，避免“任务 → 新告警 → 再派任务”自转。
 
 `blue_autopilot action=cycle` 会返回：
 
@@ -191,6 +202,10 @@ Host 半侧通过 `POST /blue/api` 提供同源 JSON 桥接（Origin/Host 校验
     {
       "task_id": "TSK-...",
       "role": "ir",
+      "risk_level": "high",
+      "requires_approval": true,
+      "approved_by": "console",
+      "approved_at": "2026-...",
       "agent_preset": "blue-worker-ir",
       "dispatch": {
         "tool": "subagent",
@@ -198,7 +213,12 @@ Host 半侧通过 `POST /blue/api` 提供同源 JSON 桥接（Origin/Host 校验
           "description": "应急响应：处置告警：...",
           "prompt": "【角色职责】...【任务】...【验收标准】...",
           "agent_preset": "blue-worker-ir"
-        }
+        },
+        "task_id": "TSK-...",
+        "risk_level": "high",
+        "requires_approval": true,
+        "approved_by": "console",
+        "approved_at": "2026-..."
       }
     }
   ],
@@ -235,6 +255,13 @@ Host 半侧通过 `POST /blue/api` 提供同源 JSON 桥接（Origin/Host 校验
 
 去重规则：同标题任务未关闭前不重复创建，避免自主循环刷爆队列。
 
+风险闸：
+
+- `high` 任务由 `ir`/`hardening` 的隔离、删除、防火墙、杀进程、禁用账号、改启动项等动作触发；
+- 高风险任务只进入 `pending_approval`，`cycle/next` 不会派发；
+- 控制台「批准」或 `blue_task_approve` 才转 `queued`，并写入 `approved_by/approved_at/approval_note` 与 timeline `approval`；
+- `cycle` 有 `max_rounds`（默认 12）与 `cooldown_sec`（默认 30）限制，防止任务→告警→再派任务自转。
+
 并发规则：
 
 - 默认 3（`blue_autopilot action=set_slots slots=3`，上限 8）；
@@ -258,7 +285,7 @@ Host 半侧通过 `POST /blue/api` 提供同源 JSON 桥接（Origin/Host 校验
 | `alerts` | 告警（severity/source/status/assignee/note/raw，指纹去重） |
 | `findings` | 发现（severity/category/cve/evidence/recommendation/status） |
 | `iocs` | IOC（type/value/confidence/source/note） |
-| `tasks` | 任务（role/priority/status/brief/acceptance/result/时间戳） |
+| `tasks` | 任务（role/priority/status/risk_level/requires_approval/approved_by/approved_at/brief/acceptance/result/时间戳） |
 | `timeline` | 时间线（at/actor/action/target/detail） |
 | `meta` | 并发上限等运行配置 |
 

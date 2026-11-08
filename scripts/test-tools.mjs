@@ -26,8 +26,8 @@ const ctx = {
 }
 apply(ctx, { profile: 'all' })
 
-if (tools.size !== 28) {
-  throw new Error('工具数量不是 28：' + tools.size)
+if (tools.size !== 29) {
+  throw new Error('工具数量不是 29：' + tools.size)
 }
 for (const [name, definition] of tools) {
   if (definition.parameters.type !== 'object' || typeof definition.parameters.properties !== 'object') {
@@ -84,6 +84,45 @@ const completed = await call('blue_autopilot', {
 })
 if (!completed.ok || completed.task.status !== 'done') throw new Error('autopilot complete 失败')
 
+// P0：高风险任务必须先进 pending_approval，不能直接派发。
+const engagementId = opened.engagement?.id ?? store.listEngagements()[0].id
+const high = await call('blue_task_create', {
+  role: 'ir', title: '隔离主机 10.10.0.5', brief: '隔离失陷主机并保留证据', priority: 'P0', risk_level: 'low',
+})
+if (!high.ok || high.task.status !== 'pending_approval' || high.task.risk_level !== 'high') {
+  throw new Error('高风险任务未进入待审批：' + JSON.stringify(high))
+}
+const directDispatch = await call('blue_task_update', { id: high.task.id, status: 'dispatched' })
+if (directDispatch.ok !== false) throw new Error('待审批任务被直接派发')
+await call('blue_autopilot', { action: 'set_slots', slots: 8 })
+store.setMeta('autopilot:cooldown_sec:' + engagementId, 0)
+const beforeApproval = await call('blue_autopilot', { action: 'cycle', limit: 8 })
+if ((beforeApproval.dispatches || []).some((item) => item.task_id === high.task.id)) {
+  throw new Error('高风险任务未经审批被派发')
+}
+const approved = await call('blue_task_approve', {
+  task_id: high.task.id, actor: 'test-human', note: 'P0 回归测试放行',
+})
+if (!approved.ok || approved.task.status !== 'queued' || approved.task.approved_by !== 'test-human' || !approved.task.approved_at) {
+  throw new Error('审批未落库：' + JSON.stringify(approved))
+}
+const approvalEvents = store.listTimeline(engagementId, 100).filter((event) => event.action === 'approval' && event.detail.includes(high.task.id))
+if (approvalEvents.length !== 1) throw new Error('审批 timeline 事件数量异常：' + approvalEvents.length)
+store.setMeta('autopilot:cooldown_sec:' + engagementId, 0)
+const afterApproval = await call('blue_autopilot', { action: 'cycle', limit: 8 })
+const approvedDispatch = (afterApproval.dispatches || []).find((item) => item.task_id === high.task.id)
+if (!approvedDispatch || approvedDispatch.risk_level !== 'high' || approvedDispatch.approved_by !== 'test-human') {
+  throw new Error('审批后的高风险任务未正确派发：' + JSON.stringify(afterApproval))
+}
+store.setMeta('autopilot:cooldown_sec:' + engagementId, 30)
+const cooldown = await call('blue_autopilot', { action: 'cycle', limit: 1 })
+if (cooldown.reason !== 'cooldown') throw new Error('缺少自动派发冷却：' + JSON.stringify(cooldown))
+store.setMeta('autopilot:max_rounds:' + engagementId, 1)
+store.setMeta('autopilot:rounds:' + engagementId, 1)
+store.setMeta('autopilot:cooldown_sec:' + engagementId, 0)
+const limited = await call('blue_autopilot', { action: 'cycle', limit: 1 })
+if (limited.reason !== 'round_limit') throw new Error('缺少轮次上限：' + JSON.stringify(limited))
+
 const report = await call('blue_report', {})
 if (!report.ok || !report.markdown.includes('# 蓝队防守报告')) throw new Error('report 失败')
 
@@ -99,9 +138,10 @@ for (const profile of ['monitor', 'intel', 'hunt', 'ir', 'forensics', 'hardening
     get() { return undefined },
     logger: { info() {}, warn() {}, error() {} },
   }, { profile })
-  if (scoped.size === 0 || scoped.size >= 28) throw new Error(profile + ' 工具裁剪异常：' + scoped.size)
+  if (scoped.size === 0 || scoped.size >= 29) throw new Error(profile + ' 工具裁剪异常：' + scoped.size)
   if (!scoped.has('blue_task_update')) throw new Error(profile + ' 缺少任务回收工具')
   if (scoped.has('blue_autopilot')) throw new Error(profile + ' 不应拥有派发器')
+  if (scoped.has('blue_task_approve')) throw new Error(profile + ' 不应拥有审批权')
 }
 
 store.close()
