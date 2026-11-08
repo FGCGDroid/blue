@@ -14,6 +14,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { spawn } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { DatabaseSync } from 'node:sqlite'
 
 const urlArg = process.argv.find((item) => item.startsWith('--url='))?.slice(6)
 const baseUrl = process.env.BLUE_E2E_URL || urlArg
@@ -49,6 +50,33 @@ async function api(body) {
   try { data = JSON.parse(text) } catch { throw new Error(`API 非 JSON（${response.status}）：${text.slice(0, 300)}`) }
   if (!response.ok || data.ok === false) throw new Error(`API 失败（${response.status}）：${text.slice(0, 500)}`)
   return data
+}
+
+/** 只删除本测试创建的 engagement；避免测试污染目标库。 */
+function cleanupTestData(engagementId, engagementName, dataRoot) {
+  if (typeof dataRoot !== 'string' || dataRoot === '') return false
+  const dbPath = join(dataRoot, 'blue.db')
+  if (!existsSync(dbPath)) return false
+  const db = new DatabaseSync(dbPath)
+  try {
+    db.exec('PRAGMA busy_timeout = 5000')
+    db.exec('BEGIN IMMEDIATE')
+    const row = db.prepare('SELECT name FROM engagements WHERE id = ?').get(engagementId)
+    if (row && String(row.name).startsWith('E2E 审批 ')) {
+      for (const table of ['timeline', 'tasks', 'alerts', 'findings', 'iocs', 'assets']) {
+        db.prepare(`DELETE FROM ${table} WHERE engagement_id = ?`).run(engagementId)
+      }
+      db.prepare('DELETE FROM engagements WHERE id = ?').run(engagementId)
+    }
+    db.exec('COMMIT')
+    return true
+  } catch (error) {
+    try { db.exec('ROLLBACK') } catch { /* ignore */ }
+    console.error('! E2E 清理失败（测试数据可能残留）：' + (error instanceof Error ? error.message : String(error)))
+    return false
+  } finally {
+    db.close()
+  }
 }
 
 class CDP {
@@ -128,8 +156,10 @@ async function dismissOnboarding(cdp, sessionId) {
 
 async function main() {
   const stamp = Date.now()
-  const engagement = await api({ op: 'openEngagement', name: `E2E 审批 ${stamp}`, scope: '10.0.0.0/24' })
+  const engagementName = `E2E 审批 ${stamp}`
+  const engagement = await api({ op: 'openEngagement', name: engagementName, scope: '10.0.0.0/24' })
   const engagementId = engagement.engagement.id
+  const dataRoot = engagement.data_root
   const taskTitle = `隔离主机 E2E ${stamp}`
   const created = await api({
     op: 'createTask', engagement: engagementId, role: 'ir', title: taskTitle,
@@ -229,6 +259,7 @@ async function main() {
     for (let attempt = 0; attempt < 5; attempt += 1) {
       try { rmSync(profile, { recursive: true, force: true }); break } catch { await sleep(300) }
     }
+    cleanupTestData(engagementId, engagementName, dataRoot)
   }
 }
 

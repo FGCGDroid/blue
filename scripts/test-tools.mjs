@@ -22,7 +22,7 @@ const ctx = {
     },
   },
   effect(fn) { fn() },
-  get() { return undefined },
+  get(name) { return name === 'blueTeamMode' ? { root, version: 'test', skills: 16 } : undefined },
   logger: { info() {}, warn() {}, error() {} },
 }
 apply(ctx, { profile: 'all' })
@@ -78,6 +78,12 @@ const iocs = await call('blue_ioc_list', { type: 'ip' })
 const sameIoc = (iocs.iocs || []).filter((item) => item.value === '203.0.113.9')
 if (sameIoc.length !== 1 || !sameIoc[0].first_seen || !sameIoc[0].last_seen) {
   throw new Error('IOC 去重/首次最后出现未落库：' + JSON.stringify(sameIoc))
+}
+await call('blue_ioc_add', { type: 'domain', value: 'EVIL.Example.COM', confidence: 'high', source: 'dns' })
+await call('blue_ioc_add', { type: 'domain', value: 'evil.example.com', confidence: 'high', source: 'dns2' })
+const domains = await call('blue_ioc_list', { type: 'domain' })
+if ((domains.iocs || []).filter((item) => item.value === 'evil.example.com').length !== 1) {
+  throw new Error('IOC 域大小写归一化失败')
 }
 
 const scan = await call('blue_log_scan', {
@@ -141,6 +147,20 @@ for (const key of TASK_SPEC_SCHEMA.required) {
 }
 const taskSpec = buildTaskSpec(store.getTask(high.task.id))
 if (taskSpec.constraints.length === 0 || taskSpec.expected_output.table !== 'tasks') throw new Error('TaskSpec 默认约束/期望产出不完整')
+
+// P0 回归：低风险任务改成 ir 角色时，必须重新分级并回到待审批。
+const roleBypass = await call('blue_task_create', {
+  role: 'monitor', title: '隔离主机 role bypass 10.10.0.9', brief: '隔离主机并保留证据', priority: 'P1',
+})
+if (roleBypass.task.status !== 'queued' || roleBypass.task.risk_level !== 'low') {
+  throw new Error('角色绕过测试的前置任务不是 low/queued')
+}
+const reclassified = await call('blue_task_update', { id: roleBypass.task.id, role: 'ir' })
+if (!reclassified.ok || !reclassified.approval_required || reclassified.task.status !== 'pending_approval' || reclassified.task.risk_level !== 'high') {
+  throw new Error('改角色未触发风险重分级：' + JSON.stringify(reclassified))
+}
+const blockedReclassified = await call('blue_task_update', { id: roleBypass.task.id, status: 'dispatched' })
+if (blockedReclassified.ok !== false) throw new Error('重分级后的高风险任务可被直接派发')
 store.setMeta('autopilot:cooldown_sec:' + engagementId, 30)
 const cooldown = await call('blue_autopilot', { action: 'cycle', limit: 1 })
 if (cooldown.reason !== 'cooldown') throw new Error('缺少自动派发冷却：' + JSON.stringify(cooldown))
@@ -152,6 +172,8 @@ if (limited.reason !== 'round_limit') throw new Error('缺少轮次上限：' + 
 
 const report = await call('blue_report', {})
 if (!report.ok || !report.markdown.includes('# 蓝队防守报告')) throw new Error('report 失败')
+const escapedReport = await call('blue_report', { write: true, path: '../escape.md' })
+if (escapedReport.ok !== false) throw new Error('报告越界路径未被拒绝')
 
 const defense = await call('blue_defense_status', {})
 if (!defense.ok || defense.stats.assets !== 1) throw new Error('defense_status 失败')

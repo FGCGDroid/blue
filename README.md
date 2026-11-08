@@ -238,7 +238,7 @@ Host 半侧通过 `POST /blue/api` 提供同源 JSON 桥接（Origin/Host 校验
 | `blue_artifact_triage` | 样本只读初筛：哈希/类型/熵/字符串/可疑 API |
 | `blue_hardening_check` | 本机加固基线快检（端口/防火墙/账号/SSH/审计） |
 | `blue_containment_plan` | 按事件类型生成处置剧本 |
-| `blue_report` | 从事实库生成 Markdown 报告，可写文件 |
+| `blue_report` | 从事实库生成 Markdown 报告；写文件时只允许 `$DSH_HOME/blue/reports/` 下的路径 |
 | `blue_defense_status` | 一眼看态势与下一步建议 |
 | `blue_tool_catalog` | 外部蓝队工具目录（用途/示例） |
 
@@ -344,7 +344,7 @@ node scripts/check-compliance.mjs --selftest
 BLUE_E2E_URL='http://127.0.0.1:PORT/?token=...' npm run test:e2e
 ```
 
-需要本机 Chrome/Chromium；可用 `CHROME_PATH` 指定路径。脚本不依赖 Playwright，不会下载浏览器，测试结束会关闭自己启动的 Chrome 并清理临时 profile。
+需要本机 Chrome/Chromium；可用 `CHROME_PATH` 指定路径。脚本不依赖 Playwright，不会下载浏览器，测试结束会关闭自己启动的 Chrome、清理临时 profile，并删除本次创建的 `E2E 审批 ...` engagement。
 
 ---
 
@@ -372,6 +372,8 @@ node scripts/build.mjs
 ---
 
 ## 验证与排障
+
+CI 工作流：`.github/workflows/ci.yml`，在 Linux + Node 24 上跑工具测试、UI 注册测试、构建、校验与合规自测，并检查 `cordis.patch.yml` 没有未提交变化。
 
 - 安装后 `Config.listConfigs name=@deepseek-ai/dsh-agent-preset` 应出现 `preset-blue` 与 `preset-blue-worker*`，状态为 `schema` 而不是 `broken`。
 - 新模式列表里应出现「蓝队防御模式」；子预设显示名带「由主会话自动选用」。

@@ -29,8 +29,7 @@ async function loadYaml() {
 
 const YAML = await loadYaml()
 if (YAML === null) {
-  console.warn('! 未找到 yaml 包，跳过 patch 结构校验；请先运行 npm run build 并人工检查 cordis.patch.yml')
-  process.exit(0)
+  console.warn('! 未找到 yaml 包，跳过 patch 结构校验；继续校验技能/本地化/包结构')
 }
 
 function check(condition, label) {
@@ -42,6 +41,7 @@ function check(condition, label) {
   }
 }
 
+if (YAML !== null) {
 const patchText = readFileSync(join(root, 'cordis.patch.yml'), 'utf8')
 const patch = YAML.parse(patchText.replace(/!!js[^\r\n]*/g, 'js-expression'))
 
@@ -84,12 +84,13 @@ check(placeholders === null, 'patch 无未替换占位符')
 
 const workerText = readFileSync(join(root, 'presets/blue/worker.cordis.yml'), 'utf8')
 check(workerText.includes('__ROLE_TITLE__') && workerText.includes('__ROLE_PROFILE__'), 'worker 源模板保留占位符')
+}
 
 const skills = readdirSync(join(root, 'skills')).filter((file) => file.endsWith('.md'))
 check(skills.length === 16, '技能数量 = 16（实际 ' + skills.length + '）')
 for (const file of skills) {
   const text = readFileSync(join(root, 'skills', file), 'utf8')
-  check(text.startsWith('---\n') && /^name:/m.test(text) && /^description:/m.test(text), file + ' 有 frontmatter')
+  check(/^---\r?\n/.test(text) && /^name:/m.test(text) && /^description:/m.test(text), file + ' 有 frontmatter')
 }
 
 for (const locale of ['en', 'zh']) {
