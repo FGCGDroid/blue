@@ -253,7 +253,7 @@
           # 蓝队执行角色预设（source 模板）
           #
           # 这是 `blue-worker` 及六个角色变体的共同模板：
-          #   · `蓝队全工具` / `all` 由 scripts/build.mjs 替换；
+          #   · `蓝队全工具` / `worker` 由 scripts/build.mjs 替换；
           #   · 只挂执行侧工具，**不挂任何委派工具**（子智能体是叶子节点）；
           #   · 人设是"执行者"：具体角色职责由主会话在任务描述开头给出。
 
@@ -307,7 +307,7 @@
           - id: blue-tools
             name: dsh-blue-team-mode/tools
             config:
-              profile: all
+              profile: worker
 
           - id: agent-instructions
             name: '@deepseek-ai/dsh-agent-instructions'

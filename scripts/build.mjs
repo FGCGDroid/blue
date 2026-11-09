@@ -84,7 +84,7 @@ declarations.push(declarePreset({
   name: workerMeta.name,
   description: workerMeta.description,
   order: 96,
-  plugins: renderWorker('all', '蓝队全工具', 'all'),
+  plugins: renderWorker('worker', '蓝队全工具', 'worker'),
 }))
 ROLES.forEach((item, index) => {
   declarations.push(declarePreset({

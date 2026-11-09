@@ -313,7 +313,7 @@ autopilot:cooldown_sec:<engagementId>
 要求：
 
 - 把 `blue_task_approve` 加入指挥官/控制台可用工具；不要把审批权限下放给普通 worker。
-- 工具数从 28 改成 29（或实际数），同步 README。
+- 工具数以实际为准，同步 README（当前 30）。
 - `test-tools.mjs` 更新预期工具数，并加入 P0 回归用例。
 
 **验收**：
