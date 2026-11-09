@@ -8,7 +8,7 @@
 
 - 主指挥官会话的第一条工作指令前，用户必须明确回复四个字：`防御自检`。
 - 未收到前，不得调用 `blue_engagement_open`、`blue_asset_add`、`blue_autopilot` 等写库/派发工具；只允许 `blue_session_info`、`blue_preflight` 或直接要求用户发这四个字。
-- 收到后必须调用 `blue_defense_selfcheck`，参数 `phrase: "防御自检"`；工具会读取真实会话最后一条 `user/message`，模型不能只填参数伪造用户已说。
+- 收到后必须调用 `blue_defense_selfcheck`，参数 `phrase: "防御自检"`；工具会读取真实会话最后一条 `user/message`，要求去除首尾空白后恰好是 `防御自检`，模型不能只填参数伪造用户已说。
 - 执行角色（worker）不经过此门禁，不得要求用户重复自检。
 - 未自检时工具返回 `SELF_CHECK_REQUIRED`；不得绕过、假装自检或改用控制台 API 绕过。
 
