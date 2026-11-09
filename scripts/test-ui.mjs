@@ -8,6 +8,7 @@ import { rmSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { BlueStore } from '../lib/store.js'
 import { apply as applyHost } from '../lib/ui.js'
+import { writeBindings } from '../lib/bindings.js'
 
 const root = fileURLToPath(new URL('../.tmp/ui-test', import.meta.url))
 rmSync(root, { recursive: true, force: true })
@@ -77,6 +78,14 @@ if (!done.body.ok || done.body.task.status !== 'done') throw new Error('updateTa
 
 const report = await callApi({ op: 'report', session: 'S1' })
 if (!report.body.ok || !String(report.body.markdown).includes('# 蓝队防守报告')) throw new Error('report 失败')
+
+// bug 回归：会话绑定到不存在的目标时不能静默切到其他目标。
+writeBindings(root, { S1: 'ENG-MISSING' })
+const stale = await callApi({ op: 'overview', session: 'S1' })
+if (stale.status !== 400 || !String(stale.body.error).includes('已不存在')) {
+  throw new Error('失效会话绑定未明确报错：' + JSON.stringify(stale))
+}
+writeBindings(root, { S1: engagement.id })
 
 /* —— Client 注册逻辑 —— */
 const bodies = []
