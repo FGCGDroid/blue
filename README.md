@@ -38,6 +38,29 @@
 
 ## 安装
 
+### 从 npm 安装（发布后）
+
+```sh
+dsh plugin --profile desktop add dsh-blue-team-mode
+```
+
+等价的 `plugin_manager`：
+
+```text
+plugin_manager action=install_bundle target="dsh-blue-team-mode"
+```
+
+包名 `dsh-blue-team-mode`，当前版本 `1.0.0`；`dsh.bundle` 指向包内的 `cordis.patch.yml`。npm 安装不需要 `allowBuilds`，也不依赖本机源码目录。
+
+### 从本地 tarball 安装
+
+```sh
+npm pack --pack-destination dist
+dsh plugin --profile desktop add .\dist\dsh-blue-team-mode-1.0.0.tgz
+```
+
+### 从本地目录安装
+
 在 DeepSeek Harness 中把本目录作为 bundle 安装（需要 Full access 或逐次批准）：
 
 ```text

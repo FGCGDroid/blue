@@ -3,7 +3,15 @@
   "version": "1.0.0",
   "description": "CTF 网络攻防蓝队防御模式：资产盘点、告警研判、威胁狩猎、应急响应、取证分析与加固修复，内置 SQLite 事实库、独立右侧栏控制台与自主任务派发队列。",
   "license": "MIT",
-  "private": true,
+  "author": "FGCGDroid",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FGCGDroid/blue.git"
+  },
+  "homepage": "https://github.com/FGCGDroid/blue#readme",
+  "bugs": {
+    "url": "https://github.com/FGCGDroid/blue/issues"
+  },
   "type": "module",
   "exports": {
     ".": "./lib/index.js",
@@ -34,7 +42,11 @@
     "check": "node scripts/check-compliance.mjs --selftest",
     "hooks": "node scripts/install-hooks.mjs",
     "test:e2e": "node scripts/test-ui-e2e.mjs",
-    "test": "node scripts/test-tools.mjs && node scripts/test-ui.mjs"
+    "test": "node scripts/test-tools.mjs && node scripts/test-ui.mjs",
+    "prepack": "node scripts/build.mjs"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "keywords": [
     "dsh",
