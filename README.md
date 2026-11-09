@@ -82,7 +82,7 @@ dsh plugin --profile desktop add "C:\Users\86186\Desktop\蓝队防御插件"
 blue_defense_selfcheck phrase="防御自检"
 ```
 
-成功后才允许绑定目标、写资产/告警、派任务。执行角色（worker）不需要走这个门禁。
+成功后才允许绑定目标、写资产/告警、派任务。门禁会读取真实会话中**最后一条 `user/message`**；模型只填写 `phrase` 参数、但用户最新消息没有实际说「防御自检」时，仍会被拒绝。执行角色（worker）不需要走这个门禁。
 
 ### 自检通过后
 
