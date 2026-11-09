@@ -7,7 +7,8 @@ import { rmSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { apply } from '../lib/tools.js'
 import { BlueStore } from '../lib/store.js'
-import { TASK_SPEC_SCHEMA, buildTaskSpec } from '../lib/taskspec.js'
+import { writeBindings } from '../lib/bindings.js'
+import { TASK_SPEC_SCHEMA, buildTaskSpec, validateTaskSpec } from '../lib/taskspec.js'
 
 const root = fileURLToPath(new URL('../.tmp/tools-test', import.meta.url))
 rmSync(root, { recursive: true, force: true })
@@ -147,6 +148,13 @@ for (const key of TASK_SPEC_SCHEMA.required) {
 }
 const taskSpec = buildTaskSpec(store.getTask(high.task.id))
 if (taskSpec.constraints.length === 0 || taskSpec.expected_output.table !== 'tasks') throw new Error('TaskSpec 默认约束/期望产出不完整')
+let invalidSpecRejected = false
+try {
+  validateTaskSpec({ ...taskSpec, scope: 42, approved_by: 42 })
+} catch {
+  invalidSpecRejected = true
+}
+if (!invalidSpecRejected) throw new Error('TaskSpec 可选字段非法值未被拒绝')
 
 // P0 回归：低风险任务改成 ir 角色时，必须重新分级并回到待审批。
 const roleBypass = await call('blue_task_create', {
@@ -177,6 +185,19 @@ if (escapedReport.ok !== false) throw new Error('报告越界路径未被拒绝'
 
 const defense = await call('blue_defense_status', {})
 if (!defense.ok || defense.stats.assets !== 1) throw new Error('defense_status 失败')
+
+// bug 回归：控制台只写 JSON 绑定，工具侧内存 Map 过期时也要从磁盘同步。
+const second = store.openEngagement('第二目标', ['10.20.0.0/24'])
+writeBindings(root, { S1: second.id })
+const secondAsset = await call('blue_asset_add', { name: 'second-only', address: '10.20.0.5', kind: 'host' })
+if (!secondAsset.ok || secondAsset.asset.engagement_id !== second.id) {
+  throw new Error('工具侧未从磁盘同步控制台绑定')
+}
+const secondAssets = await call('blue_asset_query', { q: 'second-only' })
+if (secondAssets.assets.length !== 1 || secondAssets.assets[0].name !== 'second-only') {
+  throw new Error('磁盘绑定后的工具查询失败')
+}
+writeBindings(root, { S1: engagementId })
 
 for (const profile of ['monitor', 'intel', 'hunt', 'ir', 'forensics', 'hardening']) {
   const scoped = new Map()
