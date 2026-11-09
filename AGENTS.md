@@ -4,13 +4,21 @@
 > 范围：以下保留为 P0 验收基线；P1/P2/P3 的实现不再受本清单“非目标”约束。  
 > 前提：本项目是授权防守场景工具；不要对真实主机执行隔离、删除、防火墙修改等动作，测试只用临时 SQLite 和假数据。
 
+## 0. 开局门禁（最高优先级）
+
+- 主指挥官会话的第一条工作指令前，用户必须明确回复四个字：`防御自检`。
+- 未收到前，不得调用 `blue_engagement_open`、`blue_asset_add`、`blue_autopilot` 等写库/派发工具；只允许 `blue_session_info`、`blue_preflight` 或直接要求用户发这四个字。
+- 收到后必须调用 `blue_defense_selfcheck`，参数 `phrase: "防御自检"`，成功后才继续。
+- 执行角色（worker）不经过此门禁，不得要求用户重复自检。
+- 未自检时工具返回 `SELF_CHECK_REQUIRED`；不得绕过、假装自检或改用控制台 API 绕过。
+
 ## 0. 实现前事实（历史，已过时）
 
 - 任务表已具备 `risk_level`、`requires_approval`、`approved_by/at`、`scope/constraints/expected_output`。
 - `blue_autopilot` 的 high 任务只进入 `pending_approval`，审批后才可派发。
 - 任务书由 `lib/taskspec.js` 的 TaskSpec 统一渲染。
 - 任务状态包含 `pending_approval`；合法迁移见 `lib/judge.js`。
-- 当前工具数 29；角色白名单与测试已同步。
+- 当前工具数 30；角色白名单与测试已同步。
 
 ## 1. 必须实现的语义
 
