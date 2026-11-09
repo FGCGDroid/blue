@@ -305,7 +305,7 @@ if (!passed.ok || !passed.preflight) throw new Error('防御自检未放行：' 
 const afterSelfCheck = await gatedCall('blue_asset_query', { q: 'web01', engagement: engagementId }, userExec)
 if (!afterSelfCheck.ok) throw new Error('自检后工具仍被拦截：' + JSON.stringify(afterSelfCheck))
 
-for (const profile of ['monitor', 'intel', 'hunt', 'ir', 'forensics', 'hardening']) {
+for (const profile of ['monitor', 'intel', 'hunt', 'ir', 'forensics', 'hardening', 'worker']) {
   const scoped = new Map()
   apply({
     blueTeam: store,
