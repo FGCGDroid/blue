@@ -208,10 +208,10 @@ apply({
   get() { return undefined },
   logger: { info() {}, warn() {}, error() {} },
 }, { profile: 'all', requireSelfCheck: true })
-async function gatedCall(name, args = {}) {
+async function gatedCall(name, args = {}, exec = { agent: { session: { id: 'S2', header: {} } } }) {
   const definition = gated.get(name)
   if (!definition) throw new Error('gated 工具不存在：' + name)
-  return JSON.parse(await definition.execute(args, { agent: { session: { id: 'S2', header: {} } } }))
+  return JSON.parse(await definition.execute(args, exec))
 }
 const blocked = await gatedCall('blue_asset_query', { q: 'web01', engagement: engagementId })
 if (blocked.ok !== false || blocked.code !== 'SELF_CHECK_REQUIRED') {
@@ -219,9 +219,30 @@ if (blocked.ok !== false || blocked.code !== 'SELF_CHECK_REQUIRED') {
 }
 const badPhrase = await gatedCall('blue_defense_selfcheck', { phrase: '不是防御自检' })
 if (badPhrase.ok !== false) throw new Error('错误自检短语未被拒绝')
-const passed = await gatedCall('blue_defense_selfcheck', { phrase: '防御自检' })
+const noUserMessage = await gatedCall('blue_defense_selfcheck', { phrase: '防御自检' })
+if (noUserMessage.ok !== false || !String(noUserMessage.error).includes('用户尚未')) {
+  throw new Error('模型不能在没有用户消息时自行放行：' + JSON.stringify(noUserMessage))
+}
+const userExec = {
+  agent: {
+    session: {
+      id: 'S3',
+      header: {},
+      snapshotEvents: () => [{
+        type: 'user/message',
+        data: {
+          id: 'MSG-1',
+          role: 'user',
+          source: { kind: 'user' },
+          content: [{ type: 'text', text: '防御自检' }],
+        },
+      }],
+    },
+  },
+}
+const passed = await gatedCall('blue_defense_selfcheck', { phrase: '防御自检' }, userExec)
 if (!passed.ok || !passed.preflight) throw new Error('防御自检未放行：' + JSON.stringify(passed))
-const afterSelfCheck = await gatedCall('blue_asset_query', { q: 'web01', engagement: engagementId })
+const afterSelfCheck = await gatedCall('blue_asset_query', { q: 'web01', engagement: engagementId }, userExec)
 if (!afterSelfCheck.ok) throw new Error('自检后工具仍被拦截：' + JSON.stringify(afterSelfCheck))
 
 for (const profile of ['monitor', 'intel', 'hunt', 'ir', 'forensics', 'hardening']) {
