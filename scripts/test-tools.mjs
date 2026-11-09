@@ -240,6 +240,39 @@ const userExec = {
     },
   },
 }
+const negativeExec = {
+  agent: {
+    session: {
+      id: 'S4',
+      header: {},
+      snapshotEvents: () => [{
+        type: 'user/message',
+        data: {
+          id: 'MSG-2',
+          role: 'user',
+          source: { kind: 'user' },
+          content: [{ type: 'text', text: '不要防御自检' }],
+        },
+      }],
+    },
+  },
+}
+const oldPhraseExec = {
+  agent: {
+    session: {
+      id: 'S5',
+      header: {},
+      snapshotEvents: () => [
+        { type: 'user/message', data: { id: 'MSG-3', role: 'user', source: { kind: 'user' }, content: [{ type: 'text', text: '防御自检' }] } },
+        { type: 'user/message', data: { id: 'MSG-4', role: 'user', source: { kind: 'user' }, content: [{ type: 'text', text: '继续' }] } },
+      ],
+    },
+  },
+}
+const negative = await gatedCall('blue_defense_selfcheck', { phrase: '防御自检' }, negativeExec)
+if (negative.ok !== false) throw new Error('“不要防御自检”不应放行')
+const oldPhrase = await gatedCall('blue_defense_selfcheck', { phrase: '防御自检' }, oldPhraseExec)
+if (oldPhrase.ok !== false) throw new Error('旧消息里的自检不能放行当前回合')
 const passed = await gatedCall('blue_defense_selfcheck', { phrase: '防御自检' }, userExec)
 if (!passed.ok || !passed.preflight) throw new Error('防御自检未放行：' + JSON.stringify(passed))
 const afterSelfCheck = await gatedCall('blue_asset_query', { q: 'web01', engagement: engagementId }, userExec)
