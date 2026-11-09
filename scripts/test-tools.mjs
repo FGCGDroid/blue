@@ -28,8 +28,8 @@ const ctx = {
 }
 apply(ctx, { profile: 'all' })
 
-if (tools.size !== 29) {
-  throw new Error('工具数量不是 29：' + tools.size)
+if (tools.size !== 30) {
+  throw new Error('工具数量不是 30：' + tools.size)
 }
 for (const [name, definition] of tools) {
   if (definition.parameters.type !== 'object' || typeof definition.parameters.properties !== 'object') {
@@ -199,6 +199,31 @@ if (secondAssets.assets.length !== 1 || secondAssets.assets[0].name !== 'second-
 }
 writeBindings(root, { S1: engagementId })
 
+/* 开局门禁：主指挥官必须 selfcheck 后才允许操作。 */
+const gated = new Map()
+apply({
+  blueTeam: store,
+  tools: { register(definition) { gated.set(definition.name, definition); return () => {} } },
+  effect(fn) { fn() },
+  get() { return undefined },
+  logger: { info() {}, warn() {}, error() {} },
+}, { profile: 'all', requireSelfCheck: true })
+async function gatedCall(name, args = {}) {
+  const definition = gated.get(name)
+  if (!definition) throw new Error('gated 工具不存在：' + name)
+  return JSON.parse(await definition.execute(args, { agent: { session: { id: 'S2', header: {} } } }))
+}
+const blocked = await gatedCall('blue_asset_query', { q: 'web01', engagement: engagementId })
+if (blocked.ok !== false || blocked.code !== 'SELF_CHECK_REQUIRED') {
+  throw new Error('未自检时工具未被拦截：' + JSON.stringify(blocked))
+}
+const badPhrase = await gatedCall('blue_defense_selfcheck', { phrase: '不是防御自检' })
+if (badPhrase.ok !== false) throw new Error('错误自检短语未被拒绝')
+const passed = await gatedCall('blue_defense_selfcheck', { phrase: '防御自检' })
+if (!passed.ok || !passed.preflight) throw new Error('防御自检未放行：' + JSON.stringify(passed))
+const afterSelfCheck = await gatedCall('blue_asset_query', { q: 'web01', engagement: engagementId })
+if (!afterSelfCheck.ok) throw new Error('自检后工具仍被拦截：' + JSON.stringify(afterSelfCheck))
+
 for (const profile of ['monitor', 'intel', 'hunt', 'ir', 'forensics', 'hardening']) {
   const scoped = new Map()
   apply({
@@ -208,7 +233,7 @@ for (const profile of ['monitor', 'intel', 'hunt', 'ir', 'forensics', 'hardening
     get() { return undefined },
     logger: { info() {}, warn() {}, error() {} },
   }, { profile })
-  if (scoped.size === 0 || scoped.size >= 29) throw new Error(profile + ' 工具裁剪异常：' + scoped.size)
+  if (scoped.size === 0 || scoped.size >= 30) throw new Error(profile + ' 工具裁剪异常：' + scoped.size)
   if (!scoped.has('blue_task_update')) throw new Error(profile + ' 缺少任务回收工具')
   if (scoped.has('blue_autopilot')) throw new Error(profile + ' 不应拥有派发器')
   if (scoped.has('blue_task_approve')) throw new Error(profile + ' 不应拥有审批权')

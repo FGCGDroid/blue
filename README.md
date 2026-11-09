@@ -50,7 +50,7 @@ plugin_manager action=install_bundle target="C:\Users\86186\Desktop\蓝队防御
 dsh plugin --profile desktop add "C:\Users\86186\Desktop\蓝队防御插件"
 ```
 
-安装后**重启一次 `dsh web`**，在界面助手栏选择预设 **「蓝队防御模式」**，直接发防守目标即可开工。右侧栏控制台随插件一起加载：会话头部会出现 **「蓝队」** 按钮，右侧栏的引导页里也有 **「蓝队控制台」** 卡片。
+安装后**重启一次 `dsh web`**，在界面助手栏选择预设 **「蓝队防御模式」**。开局第一条必须发送 **`防御自检`**，自检通过后再发防守目标。右侧栏控制台随插件一起加载：会话头部会出现 **「蓝队」** 按钮，右侧栏的引导页里也有 **「蓝队控制台」** 卡片。
 
 > 依赖 Node.js ≥ 22.13（`node:sqlite`）。插件不下载、不安装任何外部工具；用 `blue_preflight` 查看本机缺什么。
 
@@ -58,7 +58,35 @@ dsh plugin --profile desktop add "C:\Users\86186\Desktop\蓝队防御插件"
 
 ## 快速开始
 
-在「蓝队防御模式」会话里发：
+### 开局门禁（必须）
+
+在「蓝队防御模式」会话里，第一条消息必须是：
+
+```text
+防御自检
+```
+
+主指挥官的 `blue-tools` 配置了 `requireSelfCheck: true`。未自检前，除 `blue_session_info` / `blue_preflight` / `blue_defense_selfcheck` 外，所有 `blue_*` 工具都会返回：
+
+```json
+{
+  "ok": false,
+  "code": "SELF_CHECK_REQUIRED",
+  "error": "开局必须先让用户明确说「防御自检」..."
+}
+```
+
+用户说了这四个字后，指挥官调用：
+
+```text
+blue_defense_selfcheck phrase="防御自检"
+```
+
+成功后才允许绑定目标、写资产/告警、派任务。执行角色（worker）不需要走这个门禁。
+
+### 自检通过后
+
+发：
 
 ```text
 防守目标：example-ctf 靶场，范围 10.10.0.0/24 和 *.example.test。
@@ -67,12 +95,13 @@ dsh plugin --profile desktop add "C:\Users\86186\Desktop\蓝队防御插件"
 
 指挥官会：
 
-1. `blue_engagement_open` 绑定目标；
-2. `blue_preflight` 检查工具；
-3. 派 `monitor` 盘点资产、接入告警；
-4. `blue_autopilot action=cycle` 生成并领取任务；
-5. 用 `subagent` + `agent_preset` 派给对应角色；
-6. 子智能体回报后查库核对，`complete` 回收，再进入下一轮。
+1. `blue_defense_selfcheck` 完成开局放行；
+2. `blue_engagement_open` 绑定目标；
+3. `blue_preflight` 检查工具；
+4. 派 `monitor` 盘点资产、接入告警；
+5. `blue_autopilot action=cycle` 生成并领取任务；
+6. 用 `subagent` + `agent_preset` 派给对应角色；
+7. 子智能体回报后查库核对，`complete` 回收，再进入下一轮。
 
 也可以手动指挥：
 
@@ -142,7 +171,7 @@ Host 半侧通过 `POST /blue/api` 提供同源 JSON 桥接（Origin/Host 校验
 
 ---
 
-## 工具（29 个）
+## 工具（30 个）
 
 ### 目标与预检
 
@@ -152,6 +181,7 @@ Host 半侧通过 `POST /blue/api` 提供同源 JSON 桥接（Origin/Host 校验
 | `blue_session_info` | 查看当前绑定、父会话链、是否子智能体 |
 | `blue_scope_check` | 检查 IP/域名/URL 是否在防守范围 |
 | `blue_preflight` | 工具链与环境变量自检，缺什么给替代方案 |
+| `blue_defense_selfcheck` | 开局门禁：用户明确说「防御自检」后调用，放行本会话 |
 
 ### 资产与告警
 
