@@ -26,7 +26,7 @@
 ### 0.2 欺骗防御边界
 
 - 只用于授权 CTF/自有资产；目标必须在 `engagement.scope` 内。
-- `blue_decoy_create` 必须 `authorized=true`，只登记、不自动部署。
+- `blue_decoy_create` 必须 `authorized=true`，只登记、不自动部署；默认 24 小时、最大 168 小时后自动标记 retired，但真实部署仍需人工下线。
 - 只用合成数据；禁止真实个人信息、身份证号、伪造执法材料。
 - 不收集 WebRTC 真实 IP、Canvas/硬件指纹、浏览器历史。
 - 不做全屏锁定、无限弹窗、心理恐吓；命中只告警，不自动反击。

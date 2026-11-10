@@ -233,8 +233,13 @@ const hit = await call('blue_decoy_hit', {
 if (!hit.ok || hit.decoy.hit_count !== 1 || hit.alert.source !== 'deception') throw new Error('诱饵命中未落库')
 const decoys = await call('blue_decoy_list', {})
 if (decoys.decoys.length !== 1) throw new Error('诱饵列表异常')
+if (!decoys.decoys[0].expires_at) throw new Error('诱饵缺少 expires_at')
 const defenseWithDecoy = await call('blue_defense_status', {})
 if (defenseWithDecoy.stats.decoys !== 1 || defenseWithDecoy.stats.decoy_hits !== 1) throw new Error('诱饵统计异常')
+store.sql('UPDATE decoys SET expires_at = ? WHERE id = ?').run(new Date(Date.now() - 1000).toISOString(), decoy.decoy.id)
+const expired = await call('blue_decoy_list', {})
+if (expired.decoys[0].status !== 'retired') throw new Error('到期诱饵未自动取消')
+if (expired.decoys[0].expires_at === null) throw new Error('到期诱饵丢失 expires_at')
 
 // bug 回归：控制台只写 JSON 绑定，工具侧内存 Map 过期时也要从磁盘同步。
 const second = store.openEngagement('第二目标', ['10.20.0.0/24'])

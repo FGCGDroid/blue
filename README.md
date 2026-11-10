@@ -52,13 +52,13 @@ dsh plugin --profile desktop add dsh-blue-team-mode
 plugin_manager action=install_bundle target="dsh-blue-team-mode"
 ```
 
-包名 `dsh-blue-team-mode`，当前版本 `1.1.0`；`dsh.bundle` 指向包内的 `cordis.patch.yml`。npm 安装不需要 `allowBuilds`，也不依赖本机源码目录。
+包名 `dsh-blue-team-mode`，当前版本 `1.1.1`；`dsh.bundle` 指向包内的 `cordis.patch.yml`。npm 安装不需要 `allowBuilds`，也不依赖本机源码目录。
 
 ### 从本地 tarball 安装
 
 ```sh
 npm pack --pack-destination dist
-dsh plugin --profile desktop add .\dist\dsh-blue-team-mode-1.1.0.tgz
+dsh plugin --profile desktop add .\dist\dsh-blue-team-mode-1.1.1.tgz
 ```
 
 ### 从本地目录安装
@@ -163,7 +163,7 @@ blue_defense_selfcheck phrase="防御自检"
 蓝队模式内置一层**克制的诱饵能力**，用于授权靶场和自有资产：
 
 - `blue_deception_plan`：生成金丝雀文件/URL、假管理入口、假凭据、低交互 tarpit 方案。
-- `blue_decoy_create`：登记诱饵并生成唯一 token；必须 `authorized=true`，目标必须在 `engagement.scope` 内。
+- `blue_decoy_create`：登记诱饵并生成唯一 token；必须 `authorized=true`，目标必须在 `engagement.scope` 内；默认 24 小时、最大 168 小时后自动取消/标记 retired。
 - `blue_decoy_hit`：记录命中并生成 `deception` 来源告警，不自动反击。
 - `blue_decoy_list`：查看状态、命中次数、最近命中时间。
 
@@ -173,6 +173,7 @@ blue_defense_selfcheck phrase="防御自检"
 - 不收集 WebRTC 真实 IP、Canvas/硬件指纹、浏览器历史。
 - 不做全屏锁定、无限弹窗、无法退出或心理恐吓。
 - 不自动部署、不自动封禁/删除；命中只作为证据和告警。
+- 到期后插件只把事实库状态改为 `retired`，不会操作真实部署；真实诱饵必须由部署者自行下线。
 
 详见 `skills/deception-defense.md`。
 
