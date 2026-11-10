@@ -52,13 +52,13 @@ dsh plugin --profile desktop add dsh-blue-team-mode
 plugin_manager action=install_bundle target="dsh-blue-team-mode"
 ```
 
-包名 `dsh-blue-team-mode`，当前版本 `1.3.0`；`dsh.bundle` 指向包内的 `cordis.patch.yml`。npm 安装不需要 `allowBuilds`，也不依赖本机源码目录。
+包名 `dsh-blue-team-mode`，当前版本 `1.3.1`；`dsh.bundle` 指向包内的 `cordis.patch.yml`。npm 安装不需要 `allowBuilds`，也不依赖本机源码目录。
 
 ### 从本地 tarball 安装
 
 ```sh
 npm pack --pack-destination dist
-dsh plugin --profile desktop add .\dist\dsh-blue-team-mode-1.3.0.tgz
+dsh plugin --profile desktop add .\dist\dsh-blue-team-mode-1.3.1.tgz
 ```
 
 ### 从本地目录安装
@@ -207,7 +207,7 @@ npx --yes --package dsh-blue-team-mode dsh-blue-decoy --host 127.0.0.1 --port 80
 node scripts/decoy-server.mjs --host 0.0.0.0 --port 8080 --allow-public
 ```
 
-提供 `/admin`、`/.git/config`、`/phpmyadmin`、`/backup.sql`、`/shell.php` 等静态假路径；`/shell.php` 只返回文本，不执行。事件写 `$DSH_HOME/blue/decoy-events.jsonl`，不主动外传。不会自动启动，是否部署由用户决定。
+提供 `/admin`、`/.git/config`、`/phpmyadmin`、`/backup.sql`、`/shell.php` 等静态假路径；`/shell.php` 只返回文本，不执行。事件写 `$DSH_HOME/blue/decoy-events.jsonl`，不主动外传；body 中的 password/token/secret/cookie 会脱敏。不会自动启动，是否部署由用户决定。
 
 详见 `skills/decoy-server.md`。
 

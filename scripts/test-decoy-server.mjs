@@ -55,11 +55,20 @@ try {
   const shellText = await shell.text()
   if (shell.status !== 200 || !shellText.includes('synthetic decoy') || shellText.includes('exec')) throw new Error('假 shell 不应执行')
 
+  await fetch(base + '/admin', {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: 'username=admin&password=SuperSecret123&token=abc123',
+  })
+
   const missing = await fetch(base + '/random-path')
   if (missing.status !== 404) throw new Error('未知路径应 404')
 
   await sleep(100)
-  const lines = readFileSync(log, 'utf8').trim().split(/\r?\n/).filter(Boolean)
+  const logText = readFileSync(log, 'utf8')
+  if (logText.includes('SuperSecret123') || logText.includes('abc123')) throw new Error('日志泄露口令/token')
+  if (!logText.includes('[REDACTED]')) throw new Error('日志未标记脱敏')
+  const lines = logText.trim().split(/\r?\n/).filter(Boolean)
   if (lines.length < 4) throw new Error('事件日志不足：' + lines.length)
   const event = JSON.parse(lines[0])
   if (event.decoy !== 'test-decoy' || !event.remote || !event.path) throw new Error('事件字段不完整')

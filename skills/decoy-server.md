@@ -50,7 +50,7 @@ node scripts/decoy-server.mjs --host 0.0.0.0 --port 8080 --allow-public
 $DSH_HOME/blue/decoy-events.jsonl
 ```
 
-每条 JSON 包含时间、来源、方法、路径、UA、截断 body、状态码、耗时。不会记录 Cookie/Authorization，不抓 WebRTC/Canvas/硬件指纹。
+每条 JSON 包含时间、来源、方法、路径、UA、脱敏 body、状态码、耗时。不会记录 Cookie/Authorization；body 中的 password/token/secret/cookie 等字段会替换为 `[REDACTED]`，不抓 WebRTC/Canvas/硬件指纹。
 
 把事件交给 Agent：
 

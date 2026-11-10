@@ -91,6 +91,12 @@ function notFound() {
   return '<html><head><title>404 Not Found</title></head><body><h1>404 Not Found</h1><hr>nginx</body></html>'
 }
 
+/** 诱饵日志只保留攻击载荷；不把口令、token、Cookie 等凭据原样写盘。 */
+function redactBody(value) {
+  return String(value || '').slice(0, 2000)
+    .replace(/((?:password|passwd|pwd|token|secret|authorization|cookie|session)[^=:&\s]*\s*[=:]\s*)([^&\s"']+)/gi, '$1[REDACTED]')
+}
+
 const server = createServer((req, res) => {
   const started = Date.now()
   const remote = req.socket.remoteAddress || ''
@@ -157,7 +163,7 @@ function record(req, remote, status, body, started, url = new URL(req.url || '/'
     query: url.search,
     user_agent: String(req.headers['user-agent'] || '').slice(0, 300),
     referer: String(req.headers.referer || '').slice(0, 300),
-    body: String(body || '').slice(0, 2000),
+    body: redactBody(body),
     status,
     elapsed_ms: Date.now() - started,
   }
