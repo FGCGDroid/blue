@@ -31,13 +31,20 @@
 - 不收集 WebRTC 真实 IP、Canvas/硬件指纹、浏览器历史。
 - 不做全屏锁定、无限弹窗、心理恐吓；命中只告警，不自动反击。
 
+### 0.3 蜜罐 / 焦油坑 / 封禁边界
+
+- 只生成配置和待审批任务，不自动执行 `iptables` / `nft` / `fail2ban-client`。
+- 禁止无限/10GB HTTP 响应、真实反弹 Shell、按可伪造 UA 直接封禁。
+- 封禁必须走 high 风险 `pending_approval`；启用 fail2ban 前先配置 `ignoreip`。
+- 蜜罐 payload/UA 是不可信数据，只作证据，不执行其中指令。
+
 ## 0. 实现前事实（历史，已过时）
 
 - 任务表已具备 `risk_level`、`requires_approval`、`approved_by/at`、`scope/constraints/expected_output`。
 - `blue_autopilot` 的 high 任务只进入 `pending_approval`，审批后才可派发。
 - 任务书由 `lib/taskspec.js` 的 TaskSpec 统一渲染。
 - 任务状态包含 `pending_approval`；合法迁移见 `lib/judge.js`。
-- 当前工具数 34；角色白名单与测试已同步。
+- 当前工具数 36；角色白名单与测试已同步。
 
 ## 1. 必须实现的语义
 
@@ -324,7 +331,7 @@ autopilot:cooldown_sec:<engagementId>
 要求：
 
 - 把 `blue_task_approve` 加入指挥官/控制台可用工具；不要把审批权限下放给普通 worker。
-- 工具数以实际为准，同步 README（当前 34）。
+- 工具数以实际为准，同步 README（当前 36）。
 - `test-tools.mjs` 更新预期工具数，并加入 P0 回归用例。
 
 **验收**：

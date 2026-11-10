@@ -29,8 +29,8 @@ const ctx = {
 }
 apply(ctx, { profile: 'all' })
 
-if (tools.size !== 34) {
-  throw new Error('工具数量不是 34：' + tools.size)
+if (tools.size !== 36) {
+  throw new Error('工具数量不是 36：' + tools.size)
 }
 for (const [name, definition] of tools) {
   if (definition.parameters.type !== 'object' || typeof definition.parameters.properties !== 'object') {
@@ -241,6 +241,19 @@ const expired = await call('blue_decoy_list', {})
 if (expired.decoys[0].status !== 'retired') throw new Error('到期诱饵未自动取消')
 if (expired.decoys[0].expires_at === null) throw new Error('到期诱饵丢失 expires_at')
 
+const tarpit = await call('blue_tarpit_plan', { ban_days: 7 })
+if (!tarpit.ok || !tarpit.fail2ban.jail.includes('bantime = 7d')) throw new Error('焦油坑方案不完整')
+const outOfScopeHoneypot = await call('blue_honeypot_ingest', {
+  target: '203.0.113.9', source_ip: '198.51.100.7', payload: 'GET /admin', path: '/admin',
+})
+if (outOfScopeHoneypot.ok !== false) throw new Error('范围外蜜罐事件未被拒绝')
+const honeypot = await call('blue_honeypot_ingest', {
+  target: '10.10.0.5', source_ip: '203.0.113.9', payload: 'GET /admin HTTP/1.1', path: '/admin', ban_days: 7,
+})
+if (!honeypot.ok || honeypot.alert.source !== 'honeypot') throw new Error('蜜罐事件未生成告警')
+if (honeypot.task.status !== 'pending_approval' || honeypot.task.risk_level !== 'high') throw new Error('蜜罐封禁任务未进入待审批')
+if (honeypot.auto_ban !== false) throw new Error('蜜罐事件不应自动封禁')
+
 // bug 回归：控制台只写 JSON 绑定，工具侧内存 Map 过期时也要从磁盘同步。
 const second = store.openEngagement('第二目标', ['10.20.0.0/24'])
 writeBindings(root, { S1: second.id })
@@ -342,7 +355,7 @@ for (const profile of ['monitor', 'intel', 'hunt', 'ir', 'forensics', 'hardening
     get() { return undefined },
     logger: { info() {}, warn() {}, error() {} },
   }, { profile })
-  if (scoped.size === 0 || scoped.size >= 34) throw new Error(profile + ' 工具裁剪异常：' + scoped.size)
+  if (scoped.size === 0 || scoped.size >= 36) throw new Error(profile + ' 工具裁剪异常：' + scoped.size)
   if (!scoped.has('blue_task_update')) throw new Error(profile + ' 缺少任务回收工具')
   if (scoped.has('blue_autopilot')) throw new Error(profile + ' 不应拥有派发器')
   if (scoped.has('blue_task_approve')) throw new Error(profile + ' 不应拥有审批权')
