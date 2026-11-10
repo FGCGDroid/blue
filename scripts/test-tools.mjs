@@ -29,8 +29,8 @@ const ctx = {
 }
 apply(ctx, { profile: 'all' })
 
-if (tools.size !== 30) {
-  throw new Error('工具数量不是 30：' + tools.size)
+if (tools.size !== 34) {
+  throw new Error('工具数量不是 34：' + tools.size)
 }
 for (const [name, definition] of tools) {
   if (definition.parameters.type !== 'object' || typeof definition.parameters.properties !== 'object') {
@@ -213,6 +213,29 @@ if (escapedReport.ok !== false) throw new Error('报告越界路径未被拒绝'
 const defense = await call('blue_defense_status', {})
 if (!defense.ok || defense.stats.assets !== 1) throw new Error('defense_status 失败')
 
+const deceptionPlan = await call('blue_deception_plan', {})
+if (!deceptionPlan.ok || deceptionPlan.templates.length < 4) throw new Error('deception_plan 不完整')
+const refusedDecoy = await call('blue_decoy_create', {
+  kind: 'canary_file', name: '拒绝测试', target: '10.10.0.5', authorized: false,
+})
+if (refusedDecoy.ok !== false) throw new Error('未授权诱饵未被拒绝')
+const outOfScopeDecoy = await call('blue_decoy_create', {
+  kind: 'canary_file', name: '越界测试', target: '203.0.113.5', authorized: true,
+})
+if (outOfScopeDecoy.ok !== false) throw new Error('范围外诱饵未被拒绝')
+const decoy = await call('blue_decoy_create', {
+  kind: 'canary_file', name: '工资表诱饵', target: '10.10.0.5', authorized: true,
+})
+if (!decoy.ok || !decoy.decoy.token || decoy.decoy.status !== 'planned') throw new Error('诱饵登记失败')
+const hit = await call('blue_decoy_hit', {
+  decoy: decoy.decoy.id, source: '10.10.0.9', evidence: '读取 payroll_2026.xlsx',
+})
+if (!hit.ok || hit.decoy.hit_count !== 1 || hit.alert.source !== 'deception') throw new Error('诱饵命中未落库')
+const decoys = await call('blue_decoy_list', {})
+if (decoys.decoys.length !== 1) throw new Error('诱饵列表异常')
+const defenseWithDecoy = await call('blue_defense_status', {})
+if (defenseWithDecoy.stats.decoys !== 1 || defenseWithDecoy.stats.decoy_hits !== 1) throw new Error('诱饵统计异常')
+
 // bug 回归：控制台只写 JSON 绑定，工具侧内存 Map 过期时也要从磁盘同步。
 const second = store.openEngagement('第二目标', ['10.20.0.0/24'])
 writeBindings(root, { S1: second.id })
@@ -314,7 +337,7 @@ for (const profile of ['monitor', 'intel', 'hunt', 'ir', 'forensics', 'hardening
     get() { return undefined },
     logger: { info() {}, warn() {}, error() {} },
   }, { profile })
-  if (scoped.size === 0 || scoped.size >= 30) throw new Error(profile + ' 工具裁剪异常：' + scoped.size)
+  if (scoped.size === 0 || scoped.size >= 34) throw new Error(profile + ' 工具裁剪异常：' + scoped.size)
   if (!scoped.has('blue_task_update')) throw new Error(profile + ' 缺少任务回收工具')
   if (scoped.has('blue_autopilot')) throw new Error(profile + ' 不应拥有派发器')
   if (scoped.has('blue_task_approve')) throw new Error(profile + ' 不应拥有审批权')

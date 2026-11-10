@@ -50,13 +50,13 @@ dsh plugin --profile desktop add dsh-blue-team-mode
 plugin_manager action=install_bundle target="dsh-blue-team-mode"
 ```
 
-包名 `dsh-blue-team-mode`，当前版本 `1.0.0`；`dsh.bundle` 指向包内的 `cordis.patch.yml`。npm 安装不需要 `allowBuilds`，也不依赖本机源码目录。
+包名 `dsh-blue-team-mode`，当前版本 `1.1.0`；`dsh.bundle` 指向包内的 `cordis.patch.yml`。npm 安装不需要 `allowBuilds`，也不依赖本机源码目录。
 
 ### 从本地 tarball 安装
 
 ```sh
 npm pack --pack-destination dist
-dsh plugin --profile desktop add .\dist\dsh-blue-team-mode-1.0.0.tgz
+dsh plugin --profile desktop add .\dist\dsh-blue-team-mode-1.1.0.tgz
 ```
 
 ### 从本地目录安装
@@ -156,6 +156,24 @@ blue_defense_selfcheck phrase="防御自检"
 生成报告并写到文件
 ```
 
+## 欺骗防御（可选）
+
+蓝队模式内置一层**克制的诱饵能力**，用于授权靶场和自有资产：
+
+- `blue_deception_plan`：生成金丝雀文件/URL、假管理入口、假凭据、低交互 tarpit 方案。
+- `blue_decoy_create`：登记诱饵并生成唯一 token；必须 `authorized=true`，目标必须在 `engagement.scope` 内。
+- `blue_decoy_hit`：记录命中并生成 `deception` 来源告警，不自动反击。
+- `blue_decoy_list`：查看状态、命中次数、最近命中时间。
+
+明确不做：
+
+- 不使用真实个人信息、身份证号、失踪人员档案或伪造执法材料。
+- 不收集 WebRTC 真实 IP、Canvas/硬件指纹、浏览器历史。
+- 不做全屏锁定、无限弹窗、无法退出或心理恐吓。
+- 不自动部署、不自动封禁/删除；命中只作为证据和告警。
+
+详见 `skills/deception-defense.md`。
+
 ---
 
 ## 独立控制台（右侧常驻面板）
@@ -175,6 +193,7 @@ blue_defense_selfcheck phrase="防御自检"
 | 发现 | 严重级别、类型、状态 | 标记已修复、接受风险 |
 | 任务 | 优先级、角色、状态、任务书 | 领取（生成 subagent 任务书）、完成、阻塞 |
 | IOC | 类型、值、置信度、来源 | 新增 IOC |
+| 诱饵 | 诱饵类型、目标、状态、命中次数 | 查看（部署仍由人工执行） |
 | 时间线 | 时间、主体、动作、对象、详情 | 查看 |
 | 报告 | 从事实库生成的 Markdown | 生成/刷新 |
 
@@ -215,7 +234,7 @@ Host 半侧通过 `POST /blue/api` 提供同源 JSON 桥接（Origin/Host 校验
 
 ---
 
-## 工具（30 个）
+## 工具（34 个）
 
 ### 目标与预检
 
@@ -307,11 +326,15 @@ Host 半侧通过 `POST /blue/api` 提供同源 JSON 桥接（Origin/Host 校验
 | 工具 | 作用 |
 | --- | --- |
 | `blue_timeline` | 记录/查看事件时间线 |
-| `blue_playbook_list` | 列出 16 个随包蓝队技能 |
+| `blue_playbook_list` | 列出 17 个随包蓝队技能 |
 | `blue_log_scan` | 日志/文本攻击特征 + IOC 扫描 |
 | `blue_artifact_triage` | 样本只读初筛：哈希/类型/熵/字符串/可疑 API |
 | `blue_hardening_check` | 本机加固基线快检（端口/防火墙/账号/SSH/审计） |
 | `blue_containment_plan` | 按事件类型生成处置剧本 |
+| `blue_deception_plan` | 授权范围内的诱饵方案与安全边界 |
+| `blue_decoy_create` | 登记诱饵（不自动部署），必须 `authorized=true` 且目标在 scope 内 |
+| `blue_decoy_hit` | 记录诱饵命中并生成 `deception` 告警 |
+| `blue_decoy_list` | 查看诱饵状态、命中次数与最近命中时间 |
 | `blue_report` | 从事实库生成 Markdown 报告；写文件时只允许 `$DSH_HOME/blue/reports/` 下的路径 |
 | `blue_defense_status` | 一眼看态势与下一步建议 |
 | `blue_tool_catalog` | 外部蓝队工具目录（用途/示例） |
@@ -395,9 +418,9 @@ node scripts/check-compliance.mjs --selftest
 
 ---
 
-## 随包技能（16 个）
+## 随包技能（17 个）
 
-`blue-setup`、`incident-response`、`log-analysis`、`webshell-hunt`、`threat-hunting`、`host-forensics`、`memory-forensics`、`malware-triage`、`network-forensics`、`hardening`、`ioc-management`、`ctf-defense`、`reporting`、`containment`、`web-attack-triage`、`cloud-k8s-defense`。
+`blue-setup`、`incident-response`、`log-analysis`、`webshell-hunt`、`threat-hunting`、`host-forensics`、`memory-forensics`、`malware-triage`、`network-forensics`、`hardening`、`ioc-management`、`ctf-defense`、`reporting`、`containment`、`web-attack-triage`、`cloud-k8s-defense`、`deception-defense`。
 
 技能同步到 `$DSH_HOME/blue/skills`，由预设的 `skill-filesystem` 发现；用户自己的 `$DSH_HOME/skills` 优先级更高，可覆盖同名技能。
 

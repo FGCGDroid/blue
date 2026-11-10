@@ -23,13 +23,21 @@
 - 残余风险：Prompt 注入仍可能影响模型判断和低风险工具调用；需要 Docker/VM、只读挂载、无出站网络做 OS 级隔离。
 - 外部情报：移除 `tool-web` 后 worker 不能自行查询；需要时在回报写 `needs:`，由主会话或人类通过受控通道提供，不要临时加回 web 工具。
 
+### 0.2 欺骗防御边界
+
+- 只用于授权 CTF/自有资产；目标必须在 `engagement.scope` 内。
+- `blue_decoy_create` 必须 `authorized=true`，只登记、不自动部署。
+- 只用合成数据；禁止真实个人信息、身份证号、伪造执法材料。
+- 不收集 WebRTC 真实 IP、Canvas/硬件指纹、浏览器历史。
+- 不做全屏锁定、无限弹窗、心理恐吓；命中只告警，不自动反击。
+
 ## 0. 实现前事实（历史，已过时）
 
 - 任务表已具备 `risk_level`、`requires_approval`、`approved_by/at`、`scope/constraints/expected_output`。
 - `blue_autopilot` 的 high 任务只进入 `pending_approval`，审批后才可派发。
 - 任务书由 `lib/taskspec.js` 的 TaskSpec 统一渲染。
 - 任务状态包含 `pending_approval`；合法迁移见 `lib/judge.js`。
-- 当前工具数 30；角色白名单与测试已同步。
+- 当前工具数 34；角色白名单与测试已同步。
 
 ## 1. 必须实现的语义
 
@@ -316,7 +324,7 @@ autopilot:cooldown_sec:<engagementId>
 要求：
 
 - 把 `blue_task_approve` 加入指挥官/控制台可用工具；不要把审批权限下放给普通 worker。
-- 工具数以实际为准，同步 README（当前 30）。
+- 工具数以实际为准，同步 README（当前 34）。
 - `test-tools.mjs` 更新预期工具数，并加入 P0 回归用例。
 
 **验收**：
