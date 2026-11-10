@@ -198,7 +198,7 @@ node scripts/decoy-server.mjs --host 127.0.0.1 --port 8080
 npm 安装后：
 
 ```powershell
-npx dsh-blue-decoy --host 127.0.0.1 --port 8080
+npx --yes --package dsh-blue-team-mode dsh-blue-decoy --host 127.0.0.1 --port 8080
 ```
 
 默认只监听本机；公开/内网监听必须显式：
