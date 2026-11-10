@@ -87,7 +87,7 @@ check(workerText.includes('__ROLE_TITLE__') && workerText.includes('__ROLE_PROFI
 }
 
 const skills = readdirSync(join(root, 'skills')).filter((file) => file.endsWith('.md'))
-check(skills.length === 18, '技能数量 = 18（实际 ' + skills.length + '）')
+check(skills.length === 19, '技能数量 = 19（实际 ' + skills.length + '）')
 for (const file of skills) {
   const text = readFileSync(join(root, 'skills', file), 'utf8')
   check(/^---\r?\n/.test(text) && /^name:/m.test(text) && /^description:/m.test(text), file + ' 有 frontmatter')

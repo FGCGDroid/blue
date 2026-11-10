@@ -52,13 +52,13 @@ dsh plugin --profile desktop add dsh-blue-team-mode
 plugin_manager action=install_bundle target="dsh-blue-team-mode"
 ```
 
-包名 `dsh-blue-team-mode`，当前版本 `1.2.0`；`dsh.bundle` 指向包内的 `cordis.patch.yml`。npm 安装不需要 `allowBuilds`，也不依赖本机源码目录。
+包名 `dsh-blue-team-mode`，当前版本 `1.3.0`；`dsh.bundle` 指向包内的 `cordis.patch.yml`。npm 安装不需要 `allowBuilds`，也不依赖本机源码目录。
 
 ### 从本地 tarball 安装
 
 ```sh
 npm pack --pack-destination dist
-dsh plugin --profile desktop add .\dist\dsh-blue-team-mode-1.2.0.tgz
+dsh plugin --profile desktop add .\dist\dsh-blue-team-mode-1.3.0.tgz
 ```
 
 ### 从本地目录安装
@@ -186,6 +186,30 @@ blue_defense_selfcheck phrase="防御自检"
 - 启用 fail2ban 前先填 `ignoreip`，避免封掉自己、办公出口和监控。
 
 详见 `skills/honeypot-tarpit.md`。
+
+## 可选诱饵程序
+
+包内自带一个独立、手动启动的 HTTP 诱饵程序：
+
+```powershell
+node scripts/decoy-server.mjs --host 127.0.0.1 --port 8080
+```
+
+npm 安装后：
+
+```powershell
+npx dsh-blue-decoy --host 127.0.0.1 --port 8080
+```
+
+默认只监听本机；公开/内网监听必须显式：
+
+```powershell
+node scripts/decoy-server.mjs --host 0.0.0.0 --port 8080 --allow-public
+```
+
+提供 `/admin`、`/.git/config`、`/phpmyadmin`、`/backup.sql`、`/shell.php` 等静态假路径；`/shell.php` 只返回文本，不执行。事件写 `$DSH_HOME/blue/decoy-events.jsonl`，不主动外传。不会自动启动，是否部署由用户决定。
+
+详见 `skills/decoy-server.md`。
 
 ---
 
@@ -339,7 +363,7 @@ Host 半侧通过 `POST /blue/api` 提供同源 JSON 桥接（Origin/Host 校验
 | 工具 | 作用 |
 | --- | --- |
 | `blue_timeline` | 记录/查看事件时间线 |
-| `blue_playbook_list` | 列出 18 个随包蓝队技能 |
+| `blue_playbook_list` | 列出 19 个随包蓝队技能 |
 | `blue_log_scan` | 日志/文本攻击特征 + IOC 扫描 |
 | `blue_artifact_triage` | 样本只读初筛：哈希/类型/熵/字符串/可疑 API |
 | `blue_hardening_check` | 本机加固基线快检（端口/防火墙/账号/SSH/审计） |
@@ -433,9 +457,9 @@ node scripts/check-compliance.mjs --selftest
 
 ---
 
-## 随包技能（18 个）
+## 随包技能（19 个）
 
-`blue-setup`、`incident-response`、`log-analysis`、`webshell-hunt`、`threat-hunting`、`host-forensics`、`memory-forensics`、`malware-triage`、`network-forensics`、`hardening`、`ioc-management`、`ctf-defense`、`reporting`、`containment`、`web-attack-triage`、`cloud-k8s-defense`、`deception-defense`、`honeypot-tarpit`。
+`blue-setup`、`incident-response`、`log-analysis`、`webshell-hunt`、`threat-hunting`、`host-forensics`、`memory-forensics`、`malware-triage`、`network-forensics`、`hardening`、`ioc-management`、`ctf-defense`、`reporting`、`containment`、`web-attack-triage`、`cloud-k8s-defense`、`deception-defense`、`honeypot-tarpit`、`decoy-server`。
 
 技能同步到 `$DSH_HOME/blue/skills`，由预设的 `skill-filesystem` 发现；用户自己的 `$DSH_HOME/skills` 优先级更高，可覆盖同名技能。
 
