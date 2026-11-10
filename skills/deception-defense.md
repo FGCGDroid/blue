@@ -16,8 +16,8 @@ description: 授权范围内的欺骗防御：金丝雀文件/URL、假管理入
 ## 工作流
 
 1. `blue_deception_plan`：查看可用的诱饵模板与安全边界。
-2. `blue_decoy_create`：登记诱饵；必须 `authorized=true`，且目标在 scope 内。
-3. 人工在授权资产上部署；工具不会自动部署，也不会开启监听端口。
+2. `blue_decoy_create`：登记诱饵；必须 `authorized=true`，且目标在 scope 内；默认 24 小时、最大 168 小时后自动取消/标记 retired。
+3. 人工在授权资产上部署；工具不会自动部署，也不会开启监听端口；到期只改事实库状态，真实部署需人工下线。
 4. `blue_decoy_hit`：把访问记录、来源 IP、请求行作为证据落库；自动生成 `deception` 来源告警。
 5. `blue_decoy_list`：查看状态、命中次数、最近命中时间。
 6. 命中后按告警研判流程处理；需要隔离/封禁时先建 high 风险任务并走人工审批。
