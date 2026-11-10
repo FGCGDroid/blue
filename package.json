@@ -1,6 +1,6 @@
 {
   "name": "dsh-blue-team-mode",
-  "version": "1.2.0",
+  "version": "1.3.1",
   "description": "CTF 网络攻防蓝队防御模式：资产盘点、告警研判、威胁狩猎、应急响应、取证分析与加固修复，内置 SQLite 事实库、独立右侧栏控制台与自主任务派发队列。",
   "license": "MIT",
   "author": "FGCGDroid",
@@ -41,9 +41,13 @@
     "validate": "node scripts/validate.mjs",
     "check": "node scripts/check-compliance.mjs --selftest",
     "hooks": "node scripts/install-hooks.mjs",
+    "test:decoy": "node scripts/test-decoy-server.mjs",
     "test:e2e": "node scripts/test-ui-e2e.mjs",
-    "test": "node scripts/test-tools.mjs && node scripts/test-ui.mjs",
+    "test": "node scripts/test-tools.mjs && node scripts/test-ui.mjs && node scripts/test-decoy-server.mjs",
     "prepack": "node scripts/build.mjs"
+  },
+  "bin": {
+    "dsh-blue-decoy": "scripts/decoy-server.mjs"
   },
   "publishConfig": {
     "access": "public"
