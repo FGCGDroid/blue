@@ -52,13 +52,13 @@ dsh plugin --profile desktop add dsh-blue-team-mode
 plugin_manager action=install_bundle target="dsh-blue-team-mode"
 ```
 
-包名 `dsh-blue-team-mode`，当前版本 `1.1.1`；`dsh.bundle` 指向包内的 `cordis.patch.yml`。npm 安装不需要 `allowBuilds`，也不依赖本机源码目录。
+包名 `dsh-blue-team-mode`，当前版本 `1.2.0`；`dsh.bundle` 指向包内的 `cordis.patch.yml`。npm 安装不需要 `allowBuilds`，也不依赖本机源码目录。
 
 ### 从本地 tarball 安装
 
 ```sh
 npm pack --pack-destination dist
-dsh plugin --profile desktop add .\dist\dsh-blue-team-mode-1.1.1.tgz
+dsh plugin --profile desktop add .\dist\dsh-blue-team-mode-1.2.0.tgz
 ```
 
 ### 从本地目录安装
@@ -177,6 +177,16 @@ blue_defense_selfcheck phrase="防御自检"
 
 详见 `skills/deception-defense.md`。
 
+## 蜜罐 / 焦油坑 / 自动闭环
+
+- `blue_tarpit_plan`：生成 Endlessh 慢速 SSH Banner、静态假路径、有界慢响应、fail2ban 7 天 jail 配置。
+- `blue_honeypot_ingest`：接收蜜罐/Webhook 事件，校验目标在 scope 内，生成 `honeypot` 告警和 high 风险“封禁 7 天”待审批任务。
+- 自动闭环是：**蜜罐日志 → 告警 → 待审批任务 → 人工批准 → 主机侧 fail2ban 执行**。
+- 插件不直接调用 `iptables` / `nft` / `fail2ban-client`，不做 10GB/无限 HTTP 响应，不做真实反弹 Shell，不按可伪造 UA 自动封禁。
+- 启用 fail2ban 前先填 `ignoreip`，避免封掉自己、办公出口和监控。
+
+详见 `skills/honeypot-tarpit.md`。
+
 ---
 
 ## 独立控制台（右侧常驻面板）
@@ -237,7 +247,7 @@ Host 半侧通过 `POST /blue/api` 提供同源 JSON 桥接（Origin/Host 校验
 
 ---
 
-## 工具（34 个）
+## 工具（36 个）
 
 ### 目标与预检
 
@@ -329,7 +339,7 @@ Host 半侧通过 `POST /blue/api` 提供同源 JSON 桥接（Origin/Host 校验
 | 工具 | 作用 |
 | --- | --- |
 | `blue_timeline` | 记录/查看事件时间线 |
-| `blue_playbook_list` | 列出 17 个随包蓝队技能 |
+| `blue_playbook_list` | 列出 18 个随包蓝队技能 |
 | `blue_log_scan` | 日志/文本攻击特征 + IOC 扫描 |
 | `blue_artifact_triage` | 样本只读初筛：哈希/类型/熵/字符串/可疑 API |
 | `blue_hardening_check` | 本机加固基线快检（端口/防火墙/账号/SSH/审计） |
@@ -338,6 +348,8 @@ Host 半侧通过 `POST /blue/api` 提供同源 JSON 桥接（Origin/Host 校验
 | `blue_decoy_create` | 登记诱饵（不自动部署），必须 `authorized=true` 且目标在 scope 内 |
 | `blue_decoy_hit` | 记录诱饵命中并生成 `deception` 告警 |
 | `blue_decoy_list` | 查看诱饵状态、命中次数与最近命中时间 |
+| `blue_tarpit_plan` | 生成 Endlessh/假路径/有界慢响应/fail2ban 7 天 jail 配置，不部署、不执行 |
+| `blue_honeypot_ingest` | 接收蜜罐事件，生成告警和 high 风险待审批封禁任务，不自动调用防火墙 |
 | `blue_report` | 从事实库生成 Markdown 报告；写文件时只允许 `$DSH_HOME/blue/reports/` 下的路径 |
 | `blue_defense_status` | 一眼看态势与下一步建议 |
 | `blue_tool_catalog` | 外部蓝队工具目录（用途/示例） |
@@ -421,9 +433,9 @@ node scripts/check-compliance.mjs --selftest
 
 ---
 
-## 随包技能（17 个）
+## 随包技能（18 个）
 
-`blue-setup`、`incident-response`、`log-analysis`、`webshell-hunt`、`threat-hunting`、`host-forensics`、`memory-forensics`、`malware-triage`、`network-forensics`、`hardening`、`ioc-management`、`ctf-defense`、`reporting`、`containment`、`web-attack-triage`、`cloud-k8s-defense`、`deception-defense`。
+`blue-setup`、`incident-response`、`log-analysis`、`webshell-hunt`、`threat-hunting`、`host-forensics`、`memory-forensics`、`malware-triage`、`network-forensics`、`hardening`、`ioc-management`、`ctf-defense`、`reporting`、`containment`、`web-attack-triage`、`cloud-k8s-defense`、`deception-defense`、`honeypot-tarpit`。
 
 技能同步到 `$DSH_HOME/blue/skills`，由预设的 `skill-filesystem` 发现；用户自己的 `$DSH_HOME/skills` 优先级更高，可覆盖同名技能。
 
