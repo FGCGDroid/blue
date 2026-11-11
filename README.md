@@ -12,6 +12,8 @@
 
 支持与安全：[SECURITY](SECURITY.md) · [Issues](https://github.com/FGCGDroid/blue/issues)
 
+维护方式：[MAINTENANCE](MAINTENANCE.md)
+
 ---
 
 ## 它解决什么问题
