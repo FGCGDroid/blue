@@ -8,6 +8,8 @@
 >
 > **本插件不是 EDR/IPS/WAF/防火墙/备份系统，不承诺拦截或恢复攻击。** 真实服务器使用前请自行完成授权、备份、回滚演练与独立安全评估；不要把它当作唯一防线。详见 `DISCLOSURE`。
 
+更新记录：[CHANGELOG](CHANGELOG.md) · [GitHub Releases](https://github.com/FGCGDroid/blue/releases)
+
 ---
 
 ## 它解决什么问题
