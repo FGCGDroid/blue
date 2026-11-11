@@ -1,97 +1,76 @@
-# 维护手册
+# 维护笔记
 
-这个项目按“低频、可回滚、安全优先”的方式维护，不追求频繁发版。
+之前那份写得太像模板了，重写一版，按我自己的话来。
 
-## 维护原则
+这项目一开始就是练手，后来真有人下载，那就别烂尾。但也没必要把自己搞成安全厂商，按下面的节奏来就行。
 
-- 只做 patch / 小版本维护，不主动扩大攻击面。
-- 不加入自动 root 防火墙、真实凭据收集、WebRTC/Canvas 指纹、心理恐吓、无限响应。
-- 高风险动作继续走 `pending_approval`。
-- 默认不部署诱饵；诱饵程序必须手动启动。
-- 不加入隐蔽遥测。
-- 每次发版必须有 CHANGELOG、测试和可回滚说明。
+## 平时
 
-## 每次迭代流程
+不追版本号。没有安全问题、没有明确 bug，就不发版。小问题先记着，攒一攒，凑一个补丁版本再发。
 
-1. 检查仓库状态：
+每次动手前先看两样东西：
 
-   ```powershell
-   git status --short --branch
-   git log --oneline -5
-   ```
+```powershell
+git status --short --branch
+node scripts/test-tools.mjs
+```
 
-2. 跑测试：
+测试过了再改。改完再跑：
 
-   ```powershell
-   node scripts/test-tools.mjs
-   node scripts/test-ui.mjs
-   node scripts/test-decoy-server.mjs
-   node scripts/build.mjs
-   node scripts/validate.mjs
-   ```
+```powershell
+node scripts/test-ui.mjs
+node scripts/test-decoy-server.mjs
+node scripts/build.mjs
+node scripts/validate.mjs
+```
 
-3. 看 issue / 安全报告：
+## 发版
 
-   ```text
-   https://github.com/FGCGDroid/blue/issues
-   https://github.com/FGCGDroid/blue/security/advisories
-   ```
+只发 patch 和小版本，不做大改。
 
-4. 只处理明确、可复现、低风险的问题。需求不明确时先不改。
+改版本号，写 `CHANGELOG.md`，然后：
 
-5. 修改后更新：
+```powershell
+npm.cmd whoami
+npm.cmd publish --access public
+```
 
-   - `CHANGELOG.md`
-   - 必要时 `README.md`
-   - `package.json` 版本号
+发布后去 GitHub 建一个 `vX.Y.Z` 的 Release，把 CHANGELOG 里的内容贴过去。
 
-6. 发布前检查 npm 登录：
+最后把 `.npmrc` 删掉：
 
-   ```powershell
-   npm.cmd whoami
-   npm.cmd view dsh-blue-team-mode version
-   ```
+```powershell
+del .npmrc
+```
 
-7. 发布：
+没有 token 就停在 tarball 和本地提交，别假装已经发了。
 
-   ```powershell
-   npm.cmd publish --access public
-   ```
+## 底线
 
-8. 创建 GitHub Release，tag 使用 `vX.Y.Z`。
+这几条不改：
 
-9. 发布后清理：
+- 不做自动 root 封禁
+- 不收集 Cookie、Authorization、WebRTC、Canvas、硬件指纹
+- 不做全屏锁定、无限弹窗、心理恐吓
+- 不做无限/10GB 响应
+- 高风险动作继续人工审批
+- 诱饵程序默认只监听本机，公开必须手动加参数
+- 不加隐蔽遥测
 
-   ```powershell
-   del .npmrc
-   ```
+## 有人提需求
 
-10. 确认：
+先问一句：
 
-   ```powershell
-   npm.cmd view dsh-blue-team-mode version
-   ```
+> 这是通用防守需求，还是你那个环境特有的？
 
-## 版本策略
+只做前者。后者让他自己写脚本，或者直接说不合适。
 
-- 安全修复 / 小 bug：patch，例如 `1.3.2 → 1.3.3`
-- 新工具 / 新能力：minor，例如 `1.3.x → 1.4.0`
-- 破坏性变更：major，尽量不做
+遇到“自动封禁所有 IP”“记录访问者指纹”“直接报警抓人”这种，直接拒绝，不用解释太多。
 
-## 不自动做的事
+## 接手的人
 
-- 不在无人确认时发布 major 版本
-- 不自动合并市场 PR
-- 不自动联系用户或警方
-- 不自动执行封禁/隔离/删除
-- 不在没有测试的情况下发布
+先看 `AGENTS.md`、`SECURITY.md`、`CHANGELOG.md`，再跑测试。
 
-## 给未来 Agent 的提示
+优先修安全问题和小 bug，别主动加新能力。没有 token 就别碰发布。
 
-用户说“继续迭代”时：
-
-1. 先读 `AGENTS.md`、`SECURITY.md`、`CHANGELOG.md`。
-2. 先跑全部测试。
-3. 优先修安全和小 bug，不要主动加危险功能。
-4. 没有 npm token 时，只做到 tarball 和 GitHub Release，不假装已发布。
-5. 发布后报告：版本、测试、Release 链接、npm 最新版本。
+用户说“继续迭代”的时候，做一轮检查就行，不用一次改太多。
