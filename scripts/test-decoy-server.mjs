@@ -60,13 +60,21 @@ try {
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: 'username=admin&password=SuperSecret123&token=abc123',
   })
+  await fetch(base + '/admin', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ username: 'admin', password: 'JsonSecret456', token: 'jsonToken789' }),
+  })
+  await fetch(base + '/admin?token=QuerySecret321&x=1')
 
   const missing = await fetch(base + '/random-path')
   if (missing.status !== 404) throw new Error('未知路径应 404')
 
   await sleep(100)
   const logText = readFileSync(log, 'utf8')
-  if (logText.includes('SuperSecret123') || logText.includes('abc123')) throw new Error('日志泄露口令/token')
+  for (const secret of ['SuperSecret123', 'abc123', 'JsonSecret456', 'jsonToken789', 'QuerySecret321']) {
+    if (logText.includes(secret)) throw new Error('日志泄露口令/token：' + secret)
+  }
   if (!logText.includes('[REDACTED]')) throw new Error('日志未标记脱敏')
   const lines = logText.trim().split(/\r?\n/).filter(Boolean)
   if (lines.length < 4) throw new Error('事件日志不足：' + lines.length)

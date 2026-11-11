@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.3.2 — 2026-11-11
+
+### Security
+
+- 脱敏覆盖 JSON body 和 query string 中的 password/token/secret/cookie/session。
+- 脱敏同时应用于 User-Agent 和 Referer。
+- 限流表增加过期清理，避免长期运行时无界增长。
+
+### Docs
+
+- 新增 `SECURITY.md`：支持范围、私密报告、隐私与安全边界。
+- 新增 GitHub issue 模板，默认禁止公开贴凭据和客户数据。
+
 ## 1.3.1 — 2026-11-10
 
 ### Security
