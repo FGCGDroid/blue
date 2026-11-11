@@ -10,6 +10,8 @@
 
 更新记录：[CHANGELOG](CHANGELOG.md) · [GitHub Releases](https://github.com/FGCGDroid/blue/releases)
 
+支持与安全：[SECURITY](SECURITY.md) · [Issues](https://github.com/FGCGDroid/blue/issues)
+
 ---
 
 ## 它解决什么问题
@@ -54,13 +56,13 @@ dsh plugin --profile desktop add dsh-blue-team-mode
 plugin_manager action=install_bundle target="dsh-blue-team-mode"
 ```
 
-包名 `dsh-blue-team-mode`，当前版本 `1.3.1`；`dsh.bundle` 指向包内的 `cordis.patch.yml`。npm 安装不需要 `allowBuilds`，也不依赖本机源码目录。
+包名 `dsh-blue-team-mode`，当前版本 `1.3.2`；`dsh.bundle` 指向包内的 `cordis.patch.yml`。npm 安装不需要 `allowBuilds`，也不依赖本机源码目录。
 
 ### 从本地 tarball 安装
 
 ```sh
 npm pack --pack-destination dist
-dsh plugin --profile desktop add .\dist\dsh-blue-team-mode-1.3.1.tgz
+dsh plugin --profile desktop add .\dist\dsh-blue-team-mode-1.3.2.tgz
 ```
 
 ### 从本地目录安装

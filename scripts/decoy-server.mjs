@@ -94,13 +94,18 @@ function notFound() {
 /** 诱饵日志只保留攻击载荷；不把口令、token、Cookie 等凭据原样写盘。 */
 function redactBody(value) {
   return String(value || '').slice(0, 2000)
-    .replace(/((?:password|passwd|pwd|token|secret|authorization|cookie|session)[^=:&\s]*\s*[=:]\s*)([^&\s"']+)/gi, '$1[REDACTED]')
+    .replace(/((?:password|passwd|pwd|token|secret|authorization|cookie|session)[^=:&\s"']*\s*["']?\s*[:=]\s*["']?)([^&\s"']+)/gi, '$1[REDACTED]')
 }
 
 const server = createServer((req, res) => {
   const started = Date.now()
   const remote = req.socket.remoteAddress || ''
   const now = Date.now()
+  if (rate.size > 5000) {
+    for (const [key, value] of rate) {
+      if (now - value.start > RATE_WINDOW_MS) rate.delete(key)
+    }
+  }
   const bucket = rate.get(remote)
   if (bucket === undefined || now - bucket.start > RATE_WINDOW_MS) {
     rate.set(remote, { start: now, count: 1 })
@@ -160,9 +165,9 @@ function record(req, remote, status, body, started, url = new URL(req.url || '/'
     remote,
     method: req.method,
     path: url.pathname,
-    query: url.search,
-    user_agent: String(req.headers['user-agent'] || '').slice(0, 300),
-    referer: String(req.headers.referer || '').slice(0, 300),
+    query: redactBody(url.search),
+    user_agent: redactBody(String(req.headers['user-agent'] || '').slice(0, 300)),
+    referer: redactBody(String(req.headers.referer || '').slice(0, 300)),
     body: redactBody(body),
     status,
     elapsed_ms: Date.now() - started,

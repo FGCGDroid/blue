@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 私密报告安全问题
+    url: https://github.com/FGCGDroid/blue/security/advisories/new
+    about: 不要公开贴 token、Cookie、客户日志或可利用细节
+  - name: 使用说明
+    url: https://github.com/FGCGDroid/blue#readme
+    about: 安装、预设、控制台和工具说明
+  - name: 更新记录
+    url: https://github.com/FGCGDroid/blue/releases
+    about: 版本变更和发布说明
