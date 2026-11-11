@@ -1,5 +1,7 @@
 # DSH BlueTeam 模式
 
+> 本插件由 **FGCGDroid** 和 **大肥鱼** 一起创作。
+
 把 [DeepSeek Harness](https://github.com/deepseek-ai)（DSH）变成一张**蓝队防守指挥台**：
 只给一个防守目标，主会话拉起监控值守、情报分析、威胁狩猎、应急响应、取证分析、加固修复六个执行角色；
 资产、告警、发现、IOC、任务与时间线实时写进本机 SQLite，右侧常驻控制台同步可视化。
