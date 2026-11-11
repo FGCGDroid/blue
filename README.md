@@ -10,6 +10,8 @@
 
 更新记录：[CHANGELOG](CHANGELOG.md) · [GitHub Releases](https://github.com/FGCGDroid/blue/releases)
 
+开发说明：[docs/development.md](docs/development.md)
+
 支持与安全：[SECURITY](SECURITY.md) · [Issues](https://github.com/FGCGDroid/blue/issues)
 
 ---
