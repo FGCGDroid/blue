@@ -76,6 +76,7 @@ monitor / intel / hunt / ir / forensics / hardening
 lib/index.js       Host 入口，挂载工具、UI、服务和技能
 lib/store.js       SQLite 事实库
 lib/tools.js       36 个 blue_* 工具
+lib/hunter.js      1 秒行为窗口（只标注，不封禁）
 lib/ui.js          /blue/api 和控制台数据
 lib/client.js      DSH 客户端控制台
 lib/playbooks.js   角色、技能、处置剧本
@@ -112,6 +113,14 @@ docs/              截图和说明
 
 它不能替代 Docker/VM、EDR、WAF 或备份，只是蓝队侧的编排和记录工具。
 
+## 行为标注不是自动封禁
+
+`lib/hunter.js` 是一个 1 秒滑动窗口，只按来源 IP 统计请求数、不同路径数和工具 UA，给诱饵日志打 `automation_burst` / `path_sweep` / `automation_tool` 标签。
+
+它不判断“这是不是 AI”，也不自动封禁。封禁仍然由 fail2ban 或人工审批后的任务执行。
+
+同样，诱饵页面是静态主题模板，不在请求时调用大模型生成“带假漏洞的页面”。那样会引入不可控代码、延迟和提示词注入，不适合直接部署在真实资产上。
+
 ## 不基于什么
 
 - 不是 EDR/IPS/WAF
@@ -125,6 +134,7 @@ docs/              截图和说明
 ```powershell
 node scripts/test-tools.mjs
 node scripts/test-ui.mjs
+node scripts/test-hunter.mjs
 node scripts/test-decoy-server.mjs
 node scripts/build.mjs
 node scripts/validate.mjs

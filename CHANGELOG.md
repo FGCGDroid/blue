@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.4.0 — 2026-11-12
+
+### Added
+
+- 轻量行为窗口 `lib/hunter.js`：按来源 IP 统计 1 秒窗口内的请求数、路径数和工具指纹。
+- 诱饵日志新增 `tags` / `risk`：`automation_burst`、`path_sweep`、`automation_tool`。
+- 诱饵服务新增 `--theme generic/tomcat/thinkphp/wordpress` 静态主题。
+- 报告新增一段“执行摘要”，用事实库数字概括关键资产、待审批任务和诱饵命中。
+
+### Safety
+
+- 行为标签只做展示和研判，不自动封禁。
+- 不调用大模型实时生成假漏洞页面；诱饵主题仍是静态模板。
+- 不新增绕过 `pending_approval` 的自动 root 封禁。
+
 ## 1.3.2 — 2026-11-11
 
 ### Security
