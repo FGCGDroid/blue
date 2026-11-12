@@ -37,11 +37,11 @@ function waitForUrl(child) {
 
 let child
 try {
-  child = start(['--port', '0', '--log', log, '--name', 'test-decoy'])
+  child = start(['--port', '0', '--log', log, '--name', 'test-decoy', '--theme', 'tomcat'])
   const base = await waitForUrl(child)
   const admin = await fetch(base + '/admin')
   const adminText = await admin.text()
-  if (admin.status !== 200 || !adminText.includes('Internal Admin')) throw new Error('假管理页失败')
+  if (admin.status !== 200 || !adminText.includes('Tomcat Manager')) throw new Error('假管理页失败')
 
   const git = await fetch(base + '/.git/config')
   const gitText = await git.text()
@@ -70,6 +70,8 @@ try {
   const missing = await fetch(base + '/random-path')
   if (missing.status !== 404) throw new Error('未知路径应 404')
 
+  for (let i = 0; i < 25; i += 1) await fetch(base + `/p/${i}`)
+
   await sleep(100)
   const logText = readFileSync(log, 'utf8')
   for (const secret of ['SuperSecret123', 'abc123', 'JsonSecret456', 'jsonToken789', 'QuerySecret321']) {
@@ -78,7 +80,9 @@ try {
   if (!logText.includes('[REDACTED]')) throw new Error('日志未标记脱敏')
   const lines = logText.trim().split(/\r?\n/).filter(Boolean)
   if (lines.length < 4) throw new Error('事件日志不足：' + lines.length)
-  const event = JSON.parse(lines[0])
+  const events = lines.map((line) => JSON.parse(line))
+  if (!events.some((event) => (event.tags || []).includes('automation_burst'))) throw new Error('未记录自动化突发标签')
+  const event = events[0]
   if (event.decoy !== 'test-decoy' || !event.remote || !event.path) throw new Error('事件字段不完整')
 
   child.kill('SIGTERM')

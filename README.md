@@ -47,7 +47,7 @@ dsh plugin --profile desktop add dsh-blue-team-mode
 
 ```sh
 dsh plugin --profile desktop add \
-  https://github.com/FGCGDroid/blue/releases/download/v1.3.2/dsh-blue-team-mode-1.3.2.tgz
+  https://github.com/FGCGDroid/blue/releases/download/v1.4.0/dsh-blue-team-mode-1.4.0.tgz
 # 装完重启一次 dsh web
 ```
 
@@ -55,7 +55,7 @@ dsh plugin --profile desktop add \
 
 ```sh
 npm pack --pack-destination dist
-dsh plugin --profile desktop add ./dist/dsh-blue-team-mode-1.3.2.tgz
+dsh plugin --profile desktop add ./dist/dsh-blue-team-mode-1.4.0.tgz
 ```
 
 **从源码目录安装**：
@@ -105,7 +105,9 @@ dsh plugin --profile desktop add .
 - **报告**：从事实库生成 Markdown，包含态势、关键资产、告警研判、脆弱性、IOC、任务与时间线；只允许写到 `$DSH_HOME/blue/reports/`。
 - **欺骗防御（可选）**：金丝雀文件/URL、假管理入口、假凭据、低交互 tarpit；登记诱饵、记录命中、生成 `deception` 告警。诱饵默认自动过期（24–168 小时），但真实部署仍需人工下线。
 - **蜜罐 / 焦油坑（可选）**：`blue_tarpit_plan` 生成 Endlessh、Nginx 假路径、有界慢响应和 fail2ban 7 天 jail 配置；`blue_honeypot_ingest` 把命中转成告警和待审批封禁任务。插件不直接调用 `iptables` / `nft` / `fail2ban-client`。
-- **可选诱饵程序**：包内自带手动启动的 HTTP 诱饵，默认只监听 `127.0.0.1`，公开监听必须显式 `--allow-public`；不执行命令、不抓指纹、不做无限响应。
+- **可选诱饵程序**：包内自带手动启动的 HTTP 诱饵，默认只监听 `127.0.0.1`，公开监听必须显式 `--allow-public`；提供 `generic/tomcat/thinkphp/wordpress` 静态主题；不执行命令、不抓指纹、不做无限响应。
+- **自动化流量标注**：诱饵服务按来源 IP 维护 1 秒行为窗口，命中高频请求、路径扫描或工具 UA 时打上 `automation_burst` / `path_sweep` / `automation_tool` 标签；只做研判，不自动封禁。
+- **执行摘要**：报告开头用事实库数字概括关键资产、未闭环高危告警、待审批任务和诱饵命中，方便直接发给人看。
 - **数据只在本机**：全部落在 `$DSH_HOME/blue/`，无遥测、无上报、无云端同步。
 
 ---

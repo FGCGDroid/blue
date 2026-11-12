@@ -11,6 +11,7 @@ import { appendFileSync, mkdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { randomUUID } from 'node:crypto'
+import { BehaviorWindow } from '../lib/hunter.js'
 
 const VERSION = '1.0.0'
 const MAX_BODY = 64 * 1024
@@ -24,6 +25,7 @@ function parseArgs(argv) {
     log: join(process.env.DSH_HOME || join(homedir(), '.dsh'), 'blue', 'decoy-events.jsonl'),
     allowPublic: false,
     name: 'decoy-http',
+    theme: 'generic',
     help: false,
   }
   for (let i = 0; i < argv.length; i += 1) {
@@ -34,6 +36,7 @@ function parseArgs(argv) {
     else if (arg === '--port') options.port = Number(argv[++i] || options.port)
     else if (arg === '--log') options.log = String(argv[++i] || options.log)
     else if (arg === '--name') options.name = String(argv[++i] || options.name)
+    else if (arg === '--theme') options.theme = String(argv[++i] || options.theme)
     else if (arg === '--version' || arg === '-v') {
       console.log(VERSION)
       process.exit(0)
@@ -59,9 +62,16 @@ function text(res, status, body, type = 'text/plain; charset=utf-8') {
   res.end(data)
 }
 
-function fakeAdmin() {
-  return '<!doctype html><html><head><title>Admin Console</title></head><body>'
-    + '<h1>Internal Admin</h1><form method="post" action="/admin/login">'
+function fakeAdmin(theme = 'generic') {
+  const titles = {
+    tomcat: 'Tomcat Manager',
+    thinkphp: 'ThinkPHP',
+    wordpress: 'WordPress',
+    generic: 'Internal Admin',
+  }
+  const title = titles[theme] || titles.generic
+  return `<!doctype html><html><head><title>${title}</title></head><body>`
+    + `<h1>${title}</h1><form method="post" action="/admin/login">`
     + '<input name="username" placeholder="username"><input name="password" type="password" placeholder="password">'
     + '<button>Sign in</button></form><p>Build 2026.11</p></body></html>'
 }
@@ -97,10 +107,13 @@ function redactBody(value) {
     .replace(/((?:password|passwd|pwd|token|secret|authorization|cookie|session)[^=:&\s"']*\s*["']?\s*[:=]\s*["']?)([^&\s"']+)/gi, '$1[REDACTED]')
 }
 
+const hunter = new BehaviorWindow()
 const server = createServer((req, res) => {
   const started = Date.now()
   const remote = req.socket.remoteAddress || ''
   const now = Date.now()
+  const url = new URL(req.url || '/', 'http://decoy.invalid')
+  const behavior = hunter.observe(remote, url.pathname, String(req.headers['user-agent'] || ''))
   if (rate.size > 5000) {
     for (const [key, value] of rate) {
       if (now - value.start > RATE_WINDOW_MS) rate.delete(key)
@@ -113,12 +126,11 @@ const server = createServer((req, res) => {
     bucket.count += 1
     if (bucket.count > RATE_LIMIT) {
       text(res, 429, 'Too Many Requests')
-      record(req, remote, 429, '', started)
+      record(req, remote, 429, '', started, url, behavior)
       return
     }
   }
 
-  const url = new URL(req.url || '/', 'http://decoy.invalid')
   let body = ''
   let tooLarge = false
   req.on('data', (chunk) => {
@@ -132,12 +144,12 @@ const server = createServer((req, res) => {
   req.on('end', () => {
     if (tooLarge) {
       text(res, 413, 'Payload Too Large')
-      record(req, remote, 413, body, started)
+      record(req, remote, 413, body, started, url, behavior)
       return
     }
     const path = url.pathname
     if (req.method === 'GET' && (path === '/admin' || path === '/admin/' || path === '/wp-login.php')) {
-      text(res, 200, fakeAdmin(), 'text/html; charset=utf-8')
+      text(res, 200, fakeAdmin(options.theme), 'text/html; charset=utf-8')
     } else if (req.method === 'GET' && path === '/.git/config') {
       text(res, 200, fakeGitConfig())
     } else if (req.method === 'GET' && (path === '/phpmyadmin' || path === '/phpmyadmin/')) {
@@ -152,16 +164,17 @@ const server = createServer((req, res) => {
     } else {
       text(res, 404, notFound(), 'text/html; charset=utf-8')
     }
-    record(req, remote, res.statusCode, body, started, url)
+    record(req, remote, res.statusCode, body, started, url, behavior)
   })
 })
 
 const rate = new Map()
 
-function record(req, remote, status, body, started, url = new URL(req.url || '/', 'http://decoy.invalid')) {
+function record(req, remote, status, body, started, url = new URL(req.url || '/', 'http://decoy.invalid'), behavior = { tags: [], risk: 'none', count: 0, distinctPaths: 0, reason: '' }) {
   const event = {
     at: new Date().toISOString(),
     decoy: options.name,
+    theme: options.theme,
     remote,
     method: req.method,
     path: url.pathname,
@@ -171,6 +184,11 @@ function record(req, remote, status, body, started, url = new URL(req.url || '/'
     body: redactBody(body),
     status,
     elapsed_ms: Date.now() - started,
+    tags: behavior.tags,
+    risk: behavior.risk,
+    behavior_reason: behavior.reason,
+    window_count: behavior.count,
+    distinct_paths: behavior.distinctPaths,
   }
   try {
     mkdirSync(dirname(options.log), { recursive: true })
@@ -195,6 +213,7 @@ if (options.help) {
   --port <port>       监听端口，默认 8080
   --log <path>        JSONL 日志路径，默认 $DSH_HOME/blue/decoy-events.jsonl
   --name <name>       诱饵名称
+  --theme <theme>     generic/tomcat/thinkphp/wordpress
   --allow-public      允许非 loopback 监听（公开暴露前先评估）
   --help              显示帮助`)
   process.exit(0)

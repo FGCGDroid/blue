@@ -10,8 +10,10 @@ description: 可选的本地/授权资产 HTTP 诱饵程序：静态假管理页
 在插件目录：
 
 ```bash
-node scripts/decoy-server.mjs --host 127.0.0.1 --port 8080
+node scripts/decoy-server.mjs --host 127.0.0.1 --port 8080 --theme tomcat
 ```
+
+主题：`generic`、`tomcat`、`thinkphp`、`wordpress`，都是静态模板，不调用大模型生成。
 
 安装为 npm 包后：
 
@@ -50,7 +52,15 @@ node scripts/decoy-server.mjs --host 0.0.0.0 --port 8080 --allow-public
 $DSH_HOME/blue/decoy-events.jsonl
 ```
 
-每条 JSON 包含时间、来源、方法、路径、UA、脱敏 body、状态码、耗时。不会记录 Cookie/Authorization；body 中的 password/token/secret/cookie 等字段会替换为 `[REDACTED]`，不抓 WebRTC/Canvas/硬件指纹。
+每条 JSON 包含时间、来源、方法、路径、UA、脱敏 body、状态码、耗时，以及 `tags` / `risk`：
+
+```text
+automation_burst   1 秒内请求过多
+path_sweep         1 秒内路径过多
+automation_tool    curl/python/nuclei 等工具 UA + 多次请求
+```
+
+这些标签只用于研判，不自动封禁。不会记录 Cookie/Authorization；body 中的 password/token/secret/cookie 等字段会替换为 `[REDACTED]`，不抓 WebRTC/Canvas/硬件指纹。
 
 把事件交给 Agent：
 
