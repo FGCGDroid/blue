@@ -14,10 +14,8 @@ jobs:
           node-version: 24
       - name: Install git hook config
         run: git config core.hooksPath .githooks
-      - name: Tool tests
-        run: node scripts/test-tools.mjs
-      - name: UI registration tests
-        run: node scripts/test-ui.mjs
+      - name: Full test suite
+        run: npm test
       - name: Build generated patch
         run: node scripts/build.mjs
       - name: Validate bundle
