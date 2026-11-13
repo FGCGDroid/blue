@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.0.0-beta.9 — 2026-11-13（本地试用，未发布）
+
+### Added
+
+- 案件页签增加「调查 / 控制 / 关闭」操作，走同源 `/blue/api` 的 `updateIncident`。
+- `blue_incident_update` 和 UI 更新都会写入时间线。
+
+### Fixed
+
+- ATT&CK 覆盖说明从 13 条规则修正为 16 条，避免文档和实际规则数不一致。
+
+### Notes
+
+- 仍是本地 beta，没有发布 npm 或市场。
+
 ## 2.0.0-beta.8 — 2026-11-13（本地试用，未发布）
 
 ### Added

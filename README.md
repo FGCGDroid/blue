@@ -12,8 +12,8 @@
 
 **45 个 `blue_*` 工具 · 19 个随 npm 包技能 · 6 个执行角色 · 10 个控制台页签 · 12 张事实库表**
 
-> 🧪 当前源码是 `2.0.0-beta.8` 本地试用版，**没有发布到 npm / 市场**。  
-> 正式安装仍用 `1.5.0`；2.0 用本地 tarball 装。
+> 🧪 当前源码是 `2.0.0-beta.9` 本地试用版，**没有发布到 npm / 市场**。  
+> 正式安装仍用 `1.5.2`；2.0 用本地 tarball 装。
 
 ---
 
@@ -50,7 +50,7 @@ dsh plugin --profile desktop add dsh-blue-team-mode
 
 ```sh
 dsh plugin --profile desktop add \
-  https://github.com/FGCGDroid/blue/releases/download/v1.5.0/dsh-blue-team-mode-1.5.0.tgz
+  https://github.com/FGCGDroid/blue/releases/download/v1.5.2/dsh-blue-team-mode-1.5.2.tgz
 # 装完重启一次 dsh web
 ```
 
@@ -58,7 +58,7 @@ dsh plugin --profile desktop add \
 
 ```sh
 npm pack --pack-destination dist
-dsh plugin --profile desktop add ./dist/dsh-blue-team-mode-1.5.0.tgz
+dsh plugin --profile desktop add ./dist/dsh-blue-team-mode-1.5.2.tgz
 ```
 
 **从源码目录安装**：
@@ -118,7 +118,7 @@ dsh plugin --profile desktop add .
 - **日志规则补齐**：增加 JWT `alg=none`、HTTP 401 登录失败、`Process.Start` 型 ASPX 马；支持 `custom_rules` 自定义字段规则。
 - **可选内联网关**：`scripts/inline-gateway.mjs` 在同一入口检查路径、重复 Cookie、JWT `alg=none`、原型污染和权限字段，写访问日志后再转发；不自动改端口。
 - **ctf-lab 访问日志接入**：ctf-lab 的题目服务会写 `access.jsonl`，`blue_access_log_ingest` 把 401/403/5xx/404 转成告警；设置 `CTF_LAB_GUARD=jwt-none` 或 `strict` 可启用内联阻断。
-- **ATT&CK 覆盖映射**：`blue_attack_coverage` 把内置 13 条日志规则映射到技术和战术，标出未映射规则；明确说明这不是全量覆盖。
+- **ATT&CK 覆盖映射**：`blue_attack_coverage` 把内置 16 条日志规则映射到技术和战术，标出未映射规则；明确说明这不是全量覆盖。
 - **数据只在本机**：全部落在 `$DSH_HOME/blue/`，无遥测、无上报、无云端同步。
 
 ---

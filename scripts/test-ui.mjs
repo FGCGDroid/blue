@@ -54,6 +54,12 @@ if (overview.status !== 200 || !overview.body.ok || overview.body.engagement.nam
   throw new Error('overview 失败：' + JSON.stringify(overview.body))
 }
 if (overview.body.alerts.length !== 1 || overview.body.assets.length !== 1) throw new Error('overview 数据不完整')
+const uiIncident = store.addIncident(engagement.id, { title: '控制台案件', severity: 'high' })
+const updatedIncident = await callApi({ op: 'updateIncident', session: 'S1', incident: uiIncident.id, status: 'contained' })
+if (!updatedIncident.body.ok || updatedIncident.body.incident.status !== 'contained') throw new Error('updateIncident 失败')
+if (!updatedIncident.body.snapshot.incidents.some((item) => item.id === uiIncident.id && item.status === 'contained')) {
+  throw new Error('updateIncident 未刷新 snapshot')
+}
 
 const opened = await callApi({ op: 'openEngagement', session: 'S1', name: '控制台测试二', scope: '10.0.0.0/24' })
 if (!opened.body.ok || opened.body.engagement.name !== '控制台测试二') throw new Error('openEngagement 失败')
