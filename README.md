@@ -10,7 +10,7 @@
 > 本仓库是蓝队编排、事实记录与辅助研判的工程实现，**不包含攻击、漏洞利用或未授权探测代码**。
 > 使用者必须自行确保对目标拥有书面授权，并遵守比赛规则与当地法律。
 
-**36 个 `blue_*` 工具 · 19 个随 npm 包技能 · 6 个执行角色 · 9 个控制台页签 · 10 张事实库表**
+**37 个 `blue_*` 工具 · 19 个随 npm 包技能 · 6 个执行角色 · 9 个控制台页签 · 10 张事实库表**
 
 ---
 
@@ -47,7 +47,7 @@ dsh plugin --profile desktop add dsh-blue-team-mode
 
 ```sh
 dsh plugin --profile desktop add \
-  https://github.com/FGCGDroid/blue/releases/download/v1.4.0/dsh-blue-team-mode-1.4.0.tgz
+  https://github.com/FGCGDroid/blue/releases/download/v1.5.0/dsh-blue-team-mode-1.5.0.tgz
 # 装完重启一次 dsh web
 ```
 
@@ -55,7 +55,7 @@ dsh plugin --profile desktop add \
 
 ```sh
 npm pack --pack-destination dist
-dsh plugin --profile desktop add ./dist/dsh-blue-team-mode-1.4.0.tgz
+dsh plugin --profile desktop add ./dist/dsh-blue-team-mode-1.5.0.tgz
 ```
 
 **从源码目录安装**：
@@ -108,6 +108,7 @@ dsh plugin --profile desktop add .
 - **可选诱饵程序**：包内自带手动启动的 HTTP 诱饵，默认只监听 `127.0.0.1`，公开监听必须显式 `--allow-public`；提供 `generic/tomcat/thinkphp/wordpress` 静态主题；不执行命令、不抓指纹、不做无限响应。
 - **自动化流量标注**：诱饵服务按来源 IP 维护 1 秒行为窗口，命中高频请求、路径扫描或工具 UA 时打上 `automation_burst` / `path_sweep` / `automation_tool` 标签；只做研判，不自动封禁。
 - **执行摘要**：报告开头用事实库数字概括关键资产、未闭环高危告警、待审批任务和诱饵命中，方便直接发给人看。
+- **ATT&CK 覆盖映射**：`blue_attack_coverage` 把内置 13 条日志规则映射到技术和战术，标出未映射规则；明确说明这不是全量覆盖。
 - **数据只在本机**：全部落在 `$DSH_HOME/blue/`，无遥测、无上报、无云端同步。
 
 ---
@@ -207,6 +208,7 @@ $DSH_HOME/blue/
 - 安全问题：[SECURITY](SECURITY.md)
 - 问题反馈：[Issues](https://github.com/FGCGDroid/blue/issues)
 - 开发说明：[docs/development.md](docs/development.md)
+- 蓝队开源项目调研：[docs/blue-team-repos.md](docs/blue-team-repos.md)
 
 发版流程、测试命令和目录结构见开发说明。
 
