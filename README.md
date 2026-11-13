@@ -10,9 +10,9 @@
 > 本仓库是蓝队编排、事实记录与辅助研判的工程实现，**不包含攻击、漏洞利用或未授权探测代码**。
 > 使用者必须自行确保对目标拥有书面授权，并遵守比赛规则与当地法律。
 
-**60 个 `blue_*` 工具 · 19 个随 npm 包技能 · 6 个执行角色 · 11 个控制台页签 · 17 张事实库表**
+**62 个 `blue_*` 工具 · 19 个随 npm 包技能 · 6 个执行角色 · 11 个控制台页签 · 17 张事实库表**
 
-> 🧪 当前源码是 `2.0.0-beta.19` 本地试用版，**没有发布到 npm / 市场**。  
+> 🧪 当前源码是 `2.0.0-beta.21` 本地试用版，**没有发布到 npm / 市场**。  
 > 正式安装仍用 `1.5.2`；2.0 用本地 tarball 装。  
 > DSH 兼容：最低 `0.2.1-rc.1`，当前验证 `0.2.2-rc.3`；详见 `docs/compatibility.md`。
 
@@ -110,7 +110,9 @@ dsh plugin --profile desktop add .
 - **欺骗防御（可选）**：金丝雀文件/URL、假管理入口、假凭据、低交互 tarpit；登记诱饵、记录命中、生成 `deception` 告警。诱饵默认自动过期（24–168 小时），但真实部署仍需人工下线。
 - **蜜罐 / 焦油坑（可选）**：`blue_tarpit_plan` 生成 Endlessh、Nginx 假路径、有界慢响应和 fail2ban 7 天 jail 配置；`blue_honeypot_ingest` 把命中转成告警和待审批封禁任务。插件不直接调用 `iptables` / `nft` / `fail2ban-client`。
 - **可选诱饵程序**：包内自带手动启动的 HTTP 诱饵，默认只监听 `127.0.0.1`，公开监听必须显式 `--allow-public`；提供 `generic/tomcat/thinkphp/wordpress` 静态主题；不执行命令、不抓指纹、不做无限响应。
+- **证据包**：`blue_evidence_export` 导出事实库快照、审计链/锚点状态和 Ed25519 签名；`blue_evidence_verify` 校验 digest 与签名，敏感字段脱敏。
 - **低指纹诱饵**：按主题返回 Server / X-Powered-By / ETag / Last-Modified / Set-Cookie，补齐 favicon、robots、CSS 和登录后假面板；响应里不再写 `synthetic decoy` 这类自曝字符串。
+- **50579 式欺骗**：`/robots.txt` 返回死线索，`/flag` 返回 200 格式合法的假 flag，真路径 `/backup/flag.txt` 固定 403；保护表优先于诱饵表，并先规范化路径再匹配。
 - **诱饵可配置**：`--lures` 控制暴露哪些诱饵，`--token` 写入金丝雀标识，`--tls-cert/--tls-key` 可挂真实证书启用 HTTPS；页面构建号和资源版本随机化。
 - **自动化流量标注**：诱饵服务按来源 IP 维护 1 秒行为窗口，命中高频请求、路径扫描或工具 UA 时打上 `automation_burst` / `path_sweep` / `automation_tool` 标签；只做研判，不自动封禁。
 - **诱饵状态与日志回退**：`blue_decoy_update` 可把诱饵从 `planned` 更新为 `active`；`blue_decoy_sync` 把外部 JSONL 事件同步进事实库；默认日志目录不可写时回退到 workspace，也可用 `BLUE_LOG_DIR` 指定。

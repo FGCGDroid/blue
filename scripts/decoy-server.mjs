@@ -31,6 +31,11 @@ function parseArgs(argv) {
     token: '',
     tlsCert: '',
     tlsKey: '',
+    robotsDisallow: '/admin/',
+    protect: '/backup/flag.txt',
+    fakeFlag: '',
+    tarpitMin: 0,
+    tarpitMax: 0,
     help: false,
   }
   for (let i = 0; i < argv.length; i += 1) {
@@ -44,6 +49,11 @@ function parseArgs(argv) {
     else if (arg === '--theme') options.theme = String(argv[++i] || options.theme)
     else if (arg === '--lures') options.lures = String(argv[++i] || options.lures)
     else if (arg === '--token') options.token = String(argv[++i] || options.token)
+    else if (arg === '--robots-disallow') options.robotsDisallow = String(argv[++i] || options.robotsDisallow)
+    else if (arg === '--protect') options.protect = String(argv[++i] || options.protect)
+    else if (arg === '--fake-flag') options.fakeFlag = String(argv[++i] || options.fakeFlag)
+    else if (arg === '--tarpit-min') options.tarpitMin = Number(argv[++i] || 0)
+    else if (arg === '--tarpit-max') options.tarpitMax = Number(argv[++i] || 0)
     else if (arg === '--tls-cert') options.tlsCert = String(argv[++i] || '')
     else if (arg === '--tls-key') options.tlsKey = String(argv[++i] || '')
     else if (arg === '--version' || arg === '-v') {
@@ -58,6 +68,30 @@ function parseArgs(argv) {
 
 function isLoopback(host) {
   return host === '127.0.0.1' || host === '::1' || host === 'localhost'
+}
+
+/** 解码两次并折叠 . / .. / 反斜杠，避免把编码变体漏给诱饵表。 */
+function normalizePath(raw) {
+  let value = String(raw || '/').split('?')[0]
+  for (let i = 0; i < 2; i += 1) {
+    try { value = decodeURIComponent(value) } catch { return null }
+  }
+  value = value.replace(/\\/g, '/')
+  const parts = []
+  for (const part of value.split('/')) {
+    if (part === '' || part === '.') continue
+    if (part === '..') { parts.pop(); continue }
+    parts.push(part)
+  }
+  return '/' + parts.join('/')
+}
+
+function listOf(value) {
+  return String(value || '').split(',').map((item) => item.trim()).filter(Boolean)
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 function ensureLogPath(requested) {
@@ -216,6 +250,13 @@ function fakePhpMyAdmin() {
     + '<button>Log in</button></form><p>phpMyAdmin 5.2.1</p></body></html>'
 }
 
+function fakeBackupIndex() {
+  return '<!doctype html><html><head><title>Index of /backup</title></head><body><h1>Index of /backup</h1><hr><pre>'
+    + '<a href="config.json">config.json</a>  2026-11-01 08:12  1.2K\n'
+    + '<a href="backup.sql">backup.sql</a>  2026-11-01 08:14  48K\n'
+    + '</pre><hr></body></html>'
+}
+
 function syntheticSql() {
   let body = '-- MySQL dump 10.13  Distrib 8.0.36, for Linux (x86_64)\n--\n-- Host: localhost    Database: ops\n-- ------------------------------------------------------\n'
   body += 'CREATE TABLE `audit_log` (\n  `id` bigint NOT NULL AUTO_INCREMENT,\n  `actor` varchar(64) DEFAULT NULL,\n  `action` varchar(64) DEFAULT NULL,\n  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,\n  PRIMARY KEY (`id`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n'
@@ -280,13 +321,28 @@ const handler = (req, res) => {
       body = body.slice(0, MAX_BODY)
     }
   })
-  req.on('end', () => {
+  req.on('end', async () => {
     if (tooLarge) {
       text(res, 413, 'Payload Too Large')
       record(req, remote, 413, body, started, url, behavior)
       return
     }
-    const path = url.pathname
+    const path = normalizePath(url.pathname)
+    if (path === null) {
+      text(res, 400, 'Bad Request')
+      record(req, remote, 400, body, started, url, behavior)
+      return
+    }
+    if (options.tarpitMax > 0) {
+      const min = Math.min(options.tarpitMin, options.tarpitMax)
+      const max = Math.max(options.tarpitMin, options.tarpitMax)
+      await sleep(min + Math.floor(Math.random() * (max - min + 1)))
+    }
+    if (listOf(options.protect).includes(path)) {
+      text(res, 403, 'Forbidden')
+      record(req, remote, 403, body, started, url, behavior)
+      return
+    }
     if (req.method === 'OPTIONS') {
       text(res, 204, '', 'text/plain', { allow: 'GET, HEAD, POST, OPTIONS' })
     } else if (req.method === 'GET' && path === '/favicon.ico') {
@@ -299,11 +355,13 @@ const handler = (req, res) => {
       })
       res.end(data)
     } else if (req.method === 'GET' && path === '/robots.txt') {
-      text(res, 200, 'User-agent: *\nDisallow: /admin\nDisallow: /manager\nDisallow: /wp-admin\n')
+      text(res, 200, `User-agent: *\nDisallow: ${options.robotsDisallow}\n`)
     } else if (req.method === 'GET' && Object.prototype.hasOwnProperty.call(STATIC_CSS, path)) {
       text(res, 200, STATIC_CSS[path], 'text/css; charset=utf-8', { cookie: cookieOf() })
     } else if (req.method === 'GET' && (path === '/' || path === '/index.php' || path === '/index.html')) {
       text(res, 200, fakeHome(), 'text/html; charset=utf-8', { cookie: cookieOf() })
+    } else if (req.method === 'GET' && (path === '/flag' || path === '/flag.txt')) {
+      text(res, 200, options.fakeFlag, 'text/plain; charset=utf-8')
     } else if (req.method === 'POST' && lureEnabled('admin') && (path === '/admin/login' || path === '/admin' || path === '/manager/html' || path === '/wp-login.php')) {
       text(res, 302, '', 'text/plain', { cookie: cookieOf(), location: '/admin' })
     } else if (req.method === 'GET' && lureEnabled('admin') && (path === '/admin' || path === '/admin/' || path === '/admin/login' || path === '/wp-login.php' || path === '/manager/html')) {
@@ -312,6 +370,8 @@ const handler = (req, res) => {
       text(res, 200, fakeGitConfig())
     } else if (req.method === 'GET' && lureEnabled('phpmyadmin') && (path === '/phpmyadmin' || path === '/phpmyadmin/')) {
       text(res, 200, fakePhpMyAdmin(), 'text/html; charset=utf-8')
+    } else if (req.method === 'GET' && lureEnabled('backup') && (path === '/backup' || path === '/backup/')) {
+      text(res, 200, fakeBackupIndex(), 'text/html; charset=utf-8')
     } else if (req.method === 'GET' && lureEnabled('backup') && path === '/backup.sql') {
       text(res, 200, syntheticSql(), 'application/sql; charset=utf-8')
     } else if (req.method === 'GET' && lureEnabled('shell') && path === '/shell.php') {
@@ -363,6 +423,7 @@ try {
   if (!options.help) {
     options.log = ensureLogPath(options.log)
     if (options.token === '') options.token = randomUUID().replace(/-/g, '').slice(0, 16)
+    if (options.fakeFlag === '') options.fakeFlag = `flag{decoy_${randomUUID().replace(/-/g, '').slice(0, 12)}_not_real}`
   }
 } catch (error) {
   console.error(error.message)
@@ -379,6 +440,11 @@ if (options.help) {
   --theme <theme>     generic/tomcat/thinkphp/wordpress
   --lures <list>      admin,git,phpmyadmin,backup,shell,status 的逗号子集
   --token <token>     诱饵金丝雀标识，默认随机生成
+  --robots-disallow <path> robots.txt 里返回的死线索，默认 /admin/
+  --protect <paths>   永远 403 的真资产路径，逗号分隔，默认 /backup/flag.txt
+  --fake-flag <value> /flag 返回的假 flag，默认随机格式合法值
+  --tarpit-min <ms>   诱饵最小延迟，默认 0
+  --tarpit-max <ms>   诱饵最大延迟，默认 0
   --tls-cert <path>   PEM 证书链；与 --tls-key 一起启用 HTTPS
   --tls-key <path>    PEM 私钥
   --allow-public      允许非 loopback 监听（公开暴露前先评估）
@@ -396,6 +462,14 @@ if (!isLoopback(options.host) && !options.allowPublic) {
 }
 if ((options.tlsCert === '') !== (options.tlsKey === '')) {
   console.error('--tls-cert 和 --tls-key 必须同时提供')
+  process.exit(2)
+}
+if (!Number.isFinite(options.tarpitMin) || !Number.isFinite(options.tarpitMax) || options.tarpitMin < 0 || options.tarpitMax < 0) {
+  console.error('--tarpit-min/--tarpit-max 必须是非负数')
+  process.exit(2)
+}
+if (listOf(options.protect).includes('/flag') || listOf(options.protect).includes('/flag.txt')) {
+  console.error('--protect 不能包含假 flag 路径 /flag 或 /flag.txt')
   process.exit(2)
 }
 
