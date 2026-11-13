@@ -115,12 +115,28 @@ $DSH_HOME/ctf-lab/access.jsonl
 启用阻断：
 
 ```powershell
-$env:CTF_LAB_GUARD = "jwt-none"
-# 或
 $env:CTF_LAB_GUARD = "strict"
 ```
 
-不设置这个环境变量时，靶场保持原本的漏洞行为，方便做红队测试。
+也可以持久化到：
+
+```text
+$DSH_HOME\ctf-lab\guard.json
+```
+
+内容：
+
+```json
+{"mode":"strict"}
+```
+
+或在重启后调用 ctf-lab API：
+
+```json
+{"op":"guard","mode":"strict"}
+```
+
+不设置环境变量、也没有 guard.json 时，靶场保持原本的漏洞行为，方便做红队测试。
 
 仍然没有解决：
 
