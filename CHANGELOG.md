@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.0.0-beta.15 — 2026-11-13（本地试用，未发布）
+
+### Added
+
+- Sigma-lite 检测规则：`blue_detection_rule_add/list`，JSON selection + all/any，点路径和 `*` 通配符。
+- `blue_detection_scan` 用启用规则扫描遥测源，返回命中，不写库。
+- 遥测轮询自动套用启用规则：无规则时保留原始事件，有规则时只落规则命中和 guard 事件。
+- 控制台「防线」页签新增检测规则表。
+
+### Notes
+
+- JSON 规则不是完整 Sigma，不支持 aggregation/时间窗/转换后端。
+- 仍是本地 beta，没有发布 npm 或市场。
+
 ## 2.0.0-beta.14 — 2026-11-13（本地试用，未发布）
 
 ### Added

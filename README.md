@@ -10,9 +10,9 @@
 > 本仓库是蓝队编排、事实记录与辅助研判的工程实现，**不包含攻击、漏洞利用或未授权探测代码**。
 > 使用者必须自行确保对目标拥有书面授权，并遵守比赛规则与当地法律。
 
-**57 个 `blue_*` 工具 · 19 个随 npm 包技能 · 6 个执行角色 · 11 个控制台页签 · 16 张事实库表**
+**60 个 `blue_*` 工具 · 19 个随 npm 包技能 · 6 个执行角色 · 11 个控制台页签 · 17 张事实库表**
 
-> 🧪 当前源码是 `2.0.0-beta.14` 本地试用版，**没有发布到 npm / 市场**。  
+> 🧪 当前源码是 `2.0.0-beta.15` 本地试用版，**没有发布到 npm / 市场**。  
 > 正式安装仍用 `1.5.2`；2.0 用本地 tarball 装。
 
 ---
@@ -118,6 +118,7 @@ dsh plugin --profile desktop add .
 - **日志规则补齐**：增加 JWT `alg=none`、HTTP 401 登录失败、`Process.Start` 型 ASPX 马；支持 `custom_rules` 自定义字段规则。
 - **可选内联网关**：`scripts/inline-gateway.mjs` 在同一入口检查路径、重复 Cookie、JWT `alg=none`、原型污染和权限字段，写访问日志后再转发；不自动改端口。
 - **ctf-lab 访问日志接入**：ctf-lab 的题目服务会写 `access.jsonl`，`blue_access_log_ingest` 把 401/403/5xx/404 转成告警；设置 `CTF_LAB_GUARD=jwt-none` 或 `strict` 可启用内联阻断。
+- **Sigma-lite 检测**：`blue_detection_rule_add` 用 JSON selection + all/any 写规则，`blue_detection_scan` 扫描遥测源，遥测轮询会自动套用启用规则。
 - **遥测接入**：`blue_telemetry_source_add/poll/health` 增量读取 JSONL/access log，按 cursor 去重落告警，overview 自动轮询 active 源。
 - **防线控制验证**：`blue_control_scan` 检查审计链、审批闸、遥测源健康、诱饵在线和审计锚定，输出控制分。
 - **受控响应台账**：`blue_response_plan` 只生成高风险待审批任务和回滚方案，`blue_response_update` 回填执行/回滚证据，不执行命令。

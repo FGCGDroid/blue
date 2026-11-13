@@ -3,7 +3,7 @@
  *
  * 运行：node scripts/test-tools.mjs
  */
-import { readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { appendFileSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { apply } from '../lib/tools.js'
 import { BlueStore } from '../lib/store.js'
@@ -29,8 +29,8 @@ const ctx = {
 }
 apply(ctx, { profile: 'all' })
 
-if (tools.size !== 57) {
-  throw new Error('工具数量不是 57：' + tools.size)
+if (tools.size !== 60) {
+  throw new Error('工具数量不是 60：' + tools.size)
 }
 for (const [name, definition] of tools) {
   if (definition.parameters.type !== 'object' || typeof definition.parameters.properties !== 'object') {
@@ -308,6 +308,18 @@ const telemetryPoll = await call('blue_telemetry_poll', { name: 'test-jsonl' })
 if (!telemetryPoll.ok || telemetryPoll.results[0].inserted !== 1) throw new Error('遥测轮询失败：' + JSON.stringify(telemetryPoll))
 const telemetryHealth = await call('blue_telemetry_health', {})
 if (!telemetryHealth.sources.some((source) => source.name === 'test-jsonl' && source.alerts_total === 1)) throw new Error('遥测健康数据异常')
+const detectionRule = await call('blue_detection_rule_add', {
+  rule_key: 'admin-403', title: '管理员入口 403', severity: 'high',
+  selection: '{"path":["/admin*"],"status":[403]}', tags: ['attack.T1190'],
+})
+if (!detectionRule.ok) throw new Error('检测规则添加失败')
+appendFileSync(telemetryPath, JSON.stringify({ at: '2026-11-13T19:05:00+08:00', remote: '127.0.0.1', method: 'GET', path: '/admin/x', status: 403 }) + '\n')
+const detectionPoll = await call('blue_telemetry_poll', { name: 'test-jsonl' })
+if (!detectionPoll.ok || detectionPoll.results[0].inserted !== 1) throw new Error('检测规则没有生效：' + JSON.stringify(detectionPoll))
+const ruleAlert = store.sql('SELECT title, severity FROM alerts WHERE engagement_id = ? ORDER BY created_at DESC LIMIT 1').get(engagementId)
+if (!ruleAlert.title.startsWith('规则命中：') || ruleAlert.severity !== 'high') throw new Error('规则告警字段异常：' + JSON.stringify(ruleAlert))
+const detectionScan = await call('blue_detection_scan', { source: 'test-jsonl' })
+if (!detectionScan.ok || detectionScan.hits.length < 1) throw new Error('检测扫描没有命中')
 const controls = await call('blue_control_scan', {})
 if (!controls.ok || controls.rows.length === 0 || typeof controls.score !== 'number') throw new Error('控制验证失败：' + JSON.stringify(controls))
 const controlList = await call('blue_control_list', {})
@@ -484,7 +496,7 @@ for (const profile of ['monitor', 'intel', 'hunt', 'ir', 'forensics', 'hardening
     get() { return undefined },
     logger: { info() {}, warn() {}, error() {} },
   }, { profile })
-  if (scoped.size === 0 || scoped.size >= 57) throw new Error(profile + ' 工具裁剪异常：' + scoped.size)
+  if (scoped.size === 0 || scoped.size >= 60) throw new Error(profile + ' 工具裁剪异常：' + scoped.size)
   if (!scoped.has('blue_task_update')) throw new Error(profile + ' 缺少任务回收工具')
   if (scoped.has('blue_autopilot')) throw new Error(profile + ' 不应拥有派发器')
   if (scoped.has('blue_task_approve')) throw new Error(profile + ' 不应拥有审批权')

@@ -44,7 +44,7 @@
 - `blue_autopilot` 的 high 任务只进入 `pending_approval`，审批后才可派发。
 - 任务书由 `lib/taskspec.js` 的 TaskSpec 统一渲染。
 - 任务状态包含 `pending_approval`；合法迁移见 `lib/judge.js`。
-- 当前工具数 57；角色白名单与测试已同步。
+- 当前工具数 60；角色白名单与测试已同步。
 
 ## 1. 必须实现的语义
 
@@ -331,7 +331,7 @@ autopilot:cooldown_sec:<engagementId>
 要求：
 
 - 把 `blue_task_approve` 加入指挥官/控制台可用工具；不要把审批权限下放给普通 worker。
-- 工具数以实际为准，同步 README（当前 57）。
+- 工具数以实际为准，同步 README（当前 60）。
 - `test-tools.mjs` 更新预期工具数，并加入 P0 回归用例。
 
 **验收**：
