@@ -42,6 +42,8 @@ try {
   const admin = await fetch(base + '/admin')
   const adminText = await admin.text()
   if (admin.status !== 200 || !adminText.includes('Tomcat Manager')) throw new Error('假管理页失败')
+  if (!String(admin.headers.get('server') || '').includes('Apache-Coyote')) throw new Error('Tomcat 主题 Server 头不匹配')
+  if (adminText.includes('synthetic') || adminText.includes('decoy')) throw new Error('假管理页自曝诱饵')
 
   const git = await fetch(base + '/.git/config')
   const gitText = await git.text()
@@ -53,7 +55,7 @@ try {
 
   const shell = await fetch(base + '/shell.php')
   const shellText = await shell.text()
-  if (shell.status !== 200 || !shellText.includes('synthetic decoy') || shellText.includes('exec')) throw new Error('假 shell 不应执行')
+  if (shell.status !== 200 || shellText.includes('synthetic') || shellText.includes('exec')) throw new Error('假 shell 不应执行或自曝')
 
   await fetch(base + '/admin', {
     method: 'POST',

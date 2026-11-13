@@ -12,7 +12,7 @@
 
 **60 个 `blue_*` 工具 · 19 个随 npm 包技能 · 6 个执行角色 · 11 个控制台页签 · 17 张事实库表**
 
-> 🧪 当前源码是 `2.0.0-beta.15` 本地试用版，**没有发布到 npm / 市场**。  
+> 🧪 当前源码是 `2.0.0-beta.16` 本地试用版，**没有发布到 npm / 市场**。  
 > 正式安装仍用 `1.5.2`；2.0 用本地 tarball 装。
 
 ---
@@ -109,6 +109,7 @@ dsh plugin --profile desktop add .
 - **欺骗防御（可选）**：金丝雀文件/URL、假管理入口、假凭据、低交互 tarpit；登记诱饵、记录命中、生成 `deception` 告警。诱饵默认自动过期（24–168 小时），但真实部署仍需人工下线。
 - **蜜罐 / 焦油坑（可选）**：`blue_tarpit_plan` 生成 Endlessh、Nginx 假路径、有界慢响应和 fail2ban 7 天 jail 配置；`blue_honeypot_ingest` 把命中转成告警和待审批封禁任务。插件不直接调用 `iptables` / `nft` / `fail2ban-client`。
 - **可选诱饵程序**：包内自带手动启动的 HTTP 诱饵，默认只监听 `127.0.0.1`，公开监听必须显式 `--allow-public`；提供 `generic/tomcat/thinkphp/wordpress` 静态主题；不执行命令、不抓指纹、不做无限响应。
+- **低指纹诱饵**：按主题返回 Server / X-Powered-By / ETag / Last-Modified / Set-Cookie，补齐 favicon、robots、CSS 和登录后假面板；响应里不再写 `synthetic decoy` 这类自曝字符串。
 - **自动化流量标注**：诱饵服务按来源 IP 维护 1 秒行为窗口，命中高频请求、路径扫描或工具 UA 时打上 `automation_burst` / `path_sweep` / `automation_tool` 标签；只做研判，不自动封禁。
 - **诱饵状态与日志回退**：`blue_decoy_update` 可把诱饵从 `planned` 更新为 `active`；`blue_decoy_sync` 把外部 JSONL 事件同步进事实库；默认日志目录不可写时回退到 workspace，也可用 `BLUE_LOG_DIR` 指定。
 - **执行摘要**：报告开头用事实库数字概括关键资产、未闭环高危告警、待审批任务和诱饵命中，方便直接发给人看。

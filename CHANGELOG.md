@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.0.0-beta.16 — 2026-11-13（本地试用，未发布）
+
+### Changed
+
+- 诱饵服务降低指纹：按主题返回 Server / X-Powered-By，补 ETag、Last-Modified、Set-Cookie，静态 CSS、favicon、robots、首页和登录后假面板。
+- 移除响应里的 `synthetic decoy` 等自曝字符串；假 SQL 改成真实 dump 形态。
+- 登录后访问管理页返回假面板，不再总是登录页。
+
+### Notes
+
+- 这只能提高识别成本，不能保证红队一定识破不了。
+- 仍是本地 beta，没有发布 npm 或市场。
+
 ## 2.0.0-beta.15 — 2026-11-13（本地试用，未发布）
 
 ### Added
