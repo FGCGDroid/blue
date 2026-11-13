@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.0.0-beta.10 — 2026-11-13（本地试用，未发布）
+
+### Fixed
+
+- 案件状态机：拒绝 `closed -> contained` 等非法迁移，允许 `closed -> open` 重开。
+- 案件关联改为先全量校验再更新，避免“告警挂上了、任务不存在”导致部分写入。
+- 决策记录校验关联的案件/任务/告警必须属于当前防守目标。
+- 诱饵状态机：`retired` 不能重新激活，只允许 `planned -> active/retired`、`active -> retired`。
+
+### Notes
+
+- 仍是本地 beta，没有发布 npm 或市场。
+
 ## 2.0.0-beta.9 — 2026-11-13（本地试用，未发布）
 
 ### Added
