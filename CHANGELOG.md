@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.0-beta.12 — 2026-11-13（本地试用，未发布）
+
+### Fixed
+
+- 修复 beta.11 的启动崩溃：旧库的 `decoy_hits` 还没有 `event_key` 列，但 schema 里提前创建了引用该列的唯一索引，导致 `no such column: event_key`。
+- 唯一索引改为迁移补列后再创建；新增 `test:migration` 覆盖旧库升级。
+
+### Notes
+
+- 这是 beta.11 页面/接口加载失败的根本原因。
+- 仍是本地 beta，没有发布 npm 或市场。
+
 ## 2.0.0-beta.11 — 2026-11-13（本地试用，未发布）
 
 ### Added
