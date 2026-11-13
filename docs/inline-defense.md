@@ -56,6 +56,30 @@ Windows 上可用：
 这是最可靠的，因为不依赖外部端口和权限。  
 但它要求能改服务代码或配置。
 
+## 可选网关
+
+如果上游服务能改成只监听内网/回环，可以让网关对外：
+
+```powershell
+node scripts/inline-gateway.mjs `
+  --listen 127.0.0.1:63487 `
+  --upstream http://127.0.0.1:63488 `
+  --guard strict
+```
+
+它会：
+
+- 拒绝 `./`、`../`、`%2e`、`%2f`、`//`、`%00`
+- 拒绝重复 `token/session/auth` Cookie
+- 拒绝 JWT `alg=none`
+- 拒绝 JSON 里的 `__proto__` / `constructor` / `prototype`
+- 拒绝 `isAdmin` / `role` / `staff` 等权限字段
+- 写 `inline-gateway.jsonl`，不记录 body/Cookie
+- 403 只返回 `request blocked`
+
+默认只允许回环监听和回环上游；公开监听要显式 `--allow-public`。  
+它不会替你改端口，也不会自动把上游藏起来。
+
 ## 访问日志
 
 没有访问日志，就没有时间线、没有源 IP、没有状态码、没有 UA。
@@ -102,8 +126,9 @@ remote, method, uri, status, user_agent, bytes, duration_ms, event_time
 - `blue_log_scan` 支持 `custom_rules`
 - `blue_decoy_update` 支持 `planned → active`
 - 诱饵日志目录不可写时回退 workspace / `BLUE_LOG_DIR`
+- 新增可选 `scripts/inline-gateway.mjs`：同一入口做路径/Cookie/JWT/JSON 检查、写访问日志、再转发上游
 - ctf-lab 题目服务新增 `access.jsonl`，蓝队用 `blue_access_log_ingest` 消费
-- ctf-lab 可选 `CTF_LAB_GUARD=jwt-none`，在服务中间件里直接阻断 `alg=none`
+- ctf-lab 可选 `CTF_LAB_GUARD=jwt-none` 或 `strict`，在服务中间件里直接阻断
 - `CTF_LAB_GUARD=strict` 还会阻断重复 `token` Cookie 和路径规范化绕过；403 不回显规则名
 
 ctf-lab 的访问日志默认在：

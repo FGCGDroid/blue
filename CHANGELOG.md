@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.0.0-beta.8 — 2026-11-13（本地试用，未发布）
+
+### Added
+
+- 新增 `lib/inline-guard.js`：路径规范化、重复 Cookie、JWT `alg=none`、原型污染、权限字段检查。
+- 新增 `scripts/inline-gateway.mjs`：可选内联 HTTP 网关，检查后转发并写访问日志。
+- 新增 `test:gateway` 回归：转发、路径、重复 Cookie、JWT、原型、权限字段、日志。
+
+### Notes
+
+- 网关需要上游只监听回环/内网才有意义，不会自动改端口。
+- 仍是本地 beta，没有发布 npm 或市场。
+
 ## 2.0.0-beta.7 — 2026-11-13（本地试用，未发布）
 
 ### Fixed
