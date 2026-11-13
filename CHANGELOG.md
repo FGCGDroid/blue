@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.0-beta.1 — 2026-11-13（本地试用，未发布）
+## 2.0.0-beta.2 — 2026-11-13（本地试用，未发布）
 
 ### Added
 
@@ -11,10 +11,20 @@
 - 报告新增案件和决策记录段落。
 - 任务/告警/发现增加 `incident_id` 关联字段，旧库自动补列。
 
+### Fixed
+
+- `blue_scope_check` 支持 CIDR、`host:port` 和 URL；不再把真实目标误判为范围外。
+- `blue_alert_ingest` 顶层 `title/severity/note` 不再被 JSON 路径吞掉；新增独立 `event_time` 列。
+- 重复告警返回 `ingested=0`、`updated=1`，不再假装新入账。
+- `blue_log_scan` 支持 `custom_rules` 自定义字段规则；补 HTTP 401 登录失败、JWT `alg=none`、`Process.Start` 型 ASPX 马。
+- 新增 `blue_decoy_update`，可把诱饵从 `planned` 更新为 `active`。
+- 诱饵日志目录不可写时回退到 workspace `.blue-decoy/`，并支持 `BLUE_LOG_DIR`。
+- 未知/缺失的本地插件不再阻塞 profile reconcile。
+
 ### Notes
 
 - 2.0 仍是本地 beta，没有发布 npm 或市场。
-- 43 个工具、19 个技能、10 个控制台页签、12 张事实表。
+- 44 个工具、19 个技能、10 个控制台页签、12 张事实表。
 
 ## 1.5.0 — 2026-11-13
 

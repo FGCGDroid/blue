@@ -21,7 +21,28 @@ node scripts/decoy-server.mjs --host 127.0.0.1 --port 8080 --theme tomcat
 npx --yes --package dsh-blue-team-mode dsh-blue-decoy --host 127.0.0.1 --port 8080
 ```
 
-默认只监听 `127.0.0.1`。对公网/内网资产监听必须显式：
+默认只监听 `127.0.0.1`。
+
+默认日志：
+
+```text
+$DSH_HOME/blue/decoy-events.jsonl
+```
+
+如果该目录不可写，会自动回退到当前工作区的：
+
+```text
+.blue-decoy/decoy-events.jsonl
+```
+
+也可以显式指定：
+
+```bash
+set BLUE_LOG_DIR=C:\path\to\logs
+node scripts/decoy-server.mjs --host 127.0.0.1 --port 8080
+```
+
+公开监听必须显式：
 
 ```bash
 node scripts/decoy-server.mjs --host 0.0.0.0 --port 8080 --allow-public

@@ -7,7 +7,7 @@
  * 事件只写本地 JSONL，不主动外传。
  */
 import { createServer } from 'node:http'
-import { appendFileSync, mkdirSync } from 'node:fs'
+import { appendFileSync, mkdirSync, accessSync, constants as fsConstants } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { randomUUID } from 'node:crypto'
@@ -22,7 +22,7 @@ function parseArgs(argv) {
   const options = {
     host: '127.0.0.1',
     port: 8080,
-    log: join(process.env.DSH_HOME || join(homedir(), '.dsh'), 'blue', 'decoy-events.jsonl'),
+    log: '',
     allowPublic: false,
     name: 'decoy-http',
     theme: 'generic',
@@ -49,6 +49,26 @@ function parseArgs(argv) {
 
 function isLoopback(host) {
   return host === '127.0.0.1' || host === '::1' || host === 'localhost'
+}
+
+function ensureLogPath(requested) {
+  if (requested) {
+    mkdirSync(dirname(requested), { recursive: true })
+    return requested
+  }
+  const preferred = process.env.BLUE_LOG_DIR
+    ? join(process.env.BLUE_LOG_DIR, 'decoy-events.jsonl')
+    : join(process.env.DSH_HOME || join(homedir(), '.dsh'), 'blue', 'decoy-events.jsonl')
+  const fallback = join(process.cwd(), '.blue-decoy', 'decoy-events.jsonl')
+  for (const candidate of [preferred, fallback]) {
+    try {
+      mkdirSync(dirname(candidate), { recursive: true })
+      appendFileSync(candidate, '')
+      accessSync(dirname(candidate), fsConstants.W_OK)
+      return candidate
+    } catch { /* 试下一个 */ }
+  }
+  throw new Error('没有可写的诱饵日志目录；用 --log 或 BLUE_LOG_DIR 指定')
 }
 
 function text(res, status, body, type = 'text/plain; charset=utf-8') {
@@ -201,6 +221,7 @@ function record(req, remote, status, body, started, url = new URL(req.url || '/'
 let options
 try {
   options = parseArgs(process.argv.slice(2))
+  if (!options.help) options.log = ensureLogPath(options.log)
 } catch (error) {
   console.error(error.message)
   process.exit(2)
