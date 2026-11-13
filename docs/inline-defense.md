@@ -102,6 +102,22 @@ remote, method, uri, status, user_agent, bytes, duration_ms, event_time
 - `blue_log_scan` 支持 `custom_rules`
 - `blue_decoy_update` 支持 `planned → active`
 - 诱饵日志目录不可写时回退 workspace / `BLUE_LOG_DIR`
+- ctf-lab 题目服务新增 `access.jsonl`，蓝队用 `blue_access_log_ingest` 消费
+- ctf-lab 可选 `CTF_LAB_GUARD=jwt-none`，在服务中间件里直接阻断 `alg=none`
+
+ctf-lab 的访问日志默认在：
+
+```text
+$DSH_HOME/ctf-lab/access.jsonl
+```
+
+启用阻断：
+
+```powershell
+$env:CTF_LAB_GUARD = "jwt-none"
+```
+
+不设置这个环境变量时，靶场保持原本的漏洞行为，方便做红队测试。
 
 仍然没有解决：
 

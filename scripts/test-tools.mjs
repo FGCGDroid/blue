@@ -3,7 +3,7 @@
  *
  * 运行：node scripts/test-tools.mjs
  */
-import { readFileSync, rmSync } from 'node:fs'
+import { readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { apply } from '../lib/tools.js'
 import { BlueStore } from '../lib/store.js'
@@ -29,8 +29,8 @@ const ctx = {
 }
 apply(ctx, { profile: 'all' })
 
-if (tools.size !== 44) {
-  throw new Error('工具数量不是 44：' + tools.size)
+if (tools.size !== 45) {
+  throw new Error('工具数量不是 45：' + tools.size)
 }
 for (const [name, definition] of tools) {
   if (definition.parameters.type !== 'object' || typeof definition.parameters.properties !== 'object') {
@@ -71,6 +71,16 @@ if (alert.alerts[0].title !== 'WebShell 上传' || alert.alerts[0].note !== '初
 }
 const duplicateAlert = await call('blue_alert_ingest', { title: 'WebShell 上传', severity: 'critical', source: 'waf', confidence: 'high', note: '初判', event_time: '2026-11-13T19:00:00+08:00', raw: 'POST /upload' })
 if (duplicateAlert.ingested !== 0 || duplicateAlert.updated !== 1) throw new Error('告警去重计数不准确')
+const accessPath = fileURLToPath(new URL('../.tmp/tools-test/access.jsonl', import.meta.url))
+writeFileSync(accessPath, [
+  JSON.stringify({ at: '2026-11-13T19:01:00+08:00', challenge: 'jwt-none', remote: '127.0.0.1', method: 'POST', path: '/login', status: 401, user_agent: 'curl/8.0' }),
+  JSON.stringify({ at: '2026-11-13T19:01:01+08:00', challenge: 'jwt-none', remote: '127.0.0.1', method: 'GET', path: '/admin', status: 500, user_agent: 'curl/8.0' }),
+  JSON.stringify({ at: '2026-11-13T19:01:02+08:00', challenge: 'jwt-none', remote: '127.0.0.1', method: 'GET', path: '/', status: 200, user_agent: 'curl/8.0' }),
+].join('\n') + '\n')
+const accessIngest = await call('blue_access_log_ingest', { path: accessPath })
+if (!accessIngest.ok || accessIngest.read !== 3 || accessIngest.suspicious !== 2 || accessIngest.ingested !== 2) {
+  throw new Error('access_log_ingest 结果异常：' + JSON.stringify(accessIngest))
+}
 const triaged = await call('blue_alert_triage', { id: alert.alerts[0].id, status: 'investigating', note: '确认上传点', create_task: true, role: 'ir' })
 if (!triaged.ok || !triaged.task || triaged.alert.task_id !== triaged.task.id) throw new Error('告警→任务回溯未落库')
 const finding = await call('blue_finding_add', {
@@ -401,7 +411,7 @@ for (const profile of ['monitor', 'intel', 'hunt', 'ir', 'forensics', 'hardening
     get() { return undefined },
     logger: { info() {}, warn() {}, error() {} },
   }, { profile })
-  if (scoped.size === 0 || scoped.size >= 43) throw new Error(profile + ' 工具裁剪异常：' + scoped.size)
+  if (scoped.size === 0 || scoped.size >= 45) throw new Error(profile + ' 工具裁剪异常：' + scoped.size)
   if (!scoped.has('blue_task_update')) throw new Error(profile + ' 缺少任务回收工具')
   if (scoped.has('blue_autopilot')) throw new Error(profile + ' 不应拥有派发器')
   if (scoped.has('blue_task_approve')) throw new Error(profile + ' 不应拥有审批权')

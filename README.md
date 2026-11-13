@@ -10,7 +10,7 @@
 > 本仓库是蓝队编排、事实记录与辅助研判的工程实现，**不包含攻击、漏洞利用或未授权探测代码**。
 > 使用者必须自行确保对目标拥有书面授权，并遵守比赛规则与当地法律。
 
-**44 个 `blue_*` 工具 · 19 个随 npm 包技能 · 6 个执行角色 · 10 个控制台页签 · 12 张事实库表**
+**45 个 `blue_*` 工具 · 19 个随 npm 包技能 · 6 个执行角色 · 10 个控制台页签 · 12 张事实库表**
 
 > 🧪 当前源码是 `2.0.0-beta.2` 本地试用版，**没有发布到 npm / 市场**。  
 > 正式安装仍用 `1.5.0`；2.0 用本地 tarball 装。
@@ -116,6 +116,7 @@ dsh plugin --profile desktop add .
 - **接入字段可回退**：`blue_alert_ingest` 支持顶层 `title/severity/note`，并单独保存 `event_time`，重复投递返回 `updated` 而不是假 `ingested`。
 - **范围支持 URL / host:port**：`blue_scope_check` 同时识别 CIDR、`host:port` 和 URL，避免把真实目标误判为范围外。
 - **日志规则补齐**：增加 JWT `alg=none`、HTTP 401 登录失败、`Process.Start` 型 ASPX 马；支持 `custom_rules` 自定义字段规则。
+- **ctf-lab 访问日志接入**：ctf-lab 的题目服务会写 `access.jsonl`，`blue_access_log_ingest` 把 401/403/5xx/404 转成告警；设置 `CTF_LAB_GUARD=jwt-none` 可启用内联阻断。
 - **ATT&CK 覆盖映射**：`blue_attack_coverage` 把内置 13 条日志规则映射到技术和战术，标出未映射规则；明确说明这不是全量覆盖。
 - **数据只在本机**：全部落在 `$DSH_HOME/blue/`，无遥测、无上报、无云端同步。
 

@@ -20,11 +20,13 @@
 - 新增 `blue_decoy_update`，可把诱饵从 `planned` 更新为 `active`。
 - 诱饵日志目录不可写时回退到 workspace `.blue-decoy/`，并支持 `BLUE_LOG_DIR`。
 - 未知/缺失的本地插件不再阻塞 profile reconcile。
+- ctf-lab 题目服务新增 access.jsonl 访问日志；新增 `blue_access_log_ingest`。
+- ctf-lab 支持 `CTF_LAB_GUARD=jwt-none` 的可选内联阻断，默认关闭。
 
 ### Notes
 
 - 2.0 仍是本地 beta，没有发布 npm 或市场。
-- 44 个工具、19 个技能、10 个控制台页签、12 张事实表。
+- 45 个工具、19 个技能、10 个控制台页签、12 张事实表。
 
 ## 1.5.0 — 2026-11-13
 
