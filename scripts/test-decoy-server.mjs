@@ -49,6 +49,20 @@ try {
   const gitText = await git.text()
   if (git.status !== 200 || !gitText.includes('repositoryformatversion')) throw new Error('假 .git 失败')
 
+  const robots = await fetch(base + '/robots.txt')
+  const robotsText = await robots.text()
+  if (robots.status !== 200 || !robotsText.includes('/admin/') || robotsText.includes('/backup/')) throw new Error('robots 死线索异常')
+
+  const fakeFlag = await fetch(base + '/flag')
+  const fakeFlagText = await fakeFlag.text()
+  if (fakeFlag.status !== 200 || !/^flag\{[^}]+\}$/.test(fakeFlagText)) throw new Error('假 flag 格式异常')
+  const protectedFlag = await fetch(base + '/backup/flag.txt')
+  if (protectedFlag.status !== 403) throw new Error('真 flag 路径没有被保护')
+  for (const variant of ['/./flag', '/x/../flag', '/%66lag', '/fl%61g']) {
+    const normalized = await fetch(base + variant)
+    if (normalized.status !== 200 || (await normalized.text()) !== fakeFlagText) throw new Error('路径规范化漏了 ' + variant)
+  }
+
   const backup = await fetch(base + '/backup.sql')
   const backupText = await backup.text()
   if (backup.status !== 200 || backupText.length < 1024 || backupText.length > 128 * 1024) throw new Error('合成备份大小异常')
