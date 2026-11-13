@@ -37,7 +37,7 @@ $DSH_HOME/blue/blue.db
 
 工具通过 `ctx.tools.register(defineTool(...))` 注册，模型看到的是普通工具调用，实际执行在 Host 进程。
 
-主入口是 `lib/tools.js`，目前 45 个工具，覆盖：
+主入口是 `lib/tools.js`，目前 47 个工具，覆盖：
 
 - 目标与预检
 - 资产、告警、发现、IOC
@@ -75,7 +75,7 @@ monitor / intel / hunt / ir / forensics / hardening
 ```text
 lib/index.js       Host 入口，挂载工具、UI、服务和技能
 lib/store.js       SQLite 事实库
-lib/tools.js       45 个 blue_* 工具
+lib/tools.js       47 个 blue_* 工具
 lib/hunter.js      1 秒行为窗口（只标注，不封禁）
 lib/ui.js          /blue/api 和控制台数据
 lib/client.js      DSH 客户端控制台

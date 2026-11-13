@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.0-beta.13 — 2026-11-13（本地试用，未发布）
+
+### Added
+
+- 时间线新增 SHA-256 哈希链：每条事件带 `prev_hash/hash`，旧库自动补链。
+- 新增 `blue_audit_verify`：检测时间线被改、被插队或链断裂；不是外部公证。
+- 控制台时间线页显示审计链状态；Timeline 页的 `audit` 字段随 overview 返回。
+
+### Notes
+
+- 仍是本地 beta，没有发布 npm 或市场。
+
 ## 2.0.0-beta.12 — 2026-11-13（本地试用，未发布）
 
 ### Fixed

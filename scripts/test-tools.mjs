@@ -29,8 +29,8 @@ const ctx = {
 }
 apply(ctx, { profile: 'all' })
 
-if (tools.size !== 46) {
-  throw new Error('工具数量不是 46：' + tools.size)
+if (tools.size !== 47) {
+  throw new Error('工具数量不是 47：' + tools.size)
 }
 for (const [name, definition] of tools) {
   if (definition.parameters.type !== 'object' || typeof definition.parameters.properties !== 'object') {
@@ -293,6 +293,13 @@ const decisions = await call('blue_decision_list', { incident_id: incident.incid
 if (decisions.decisions.length !== 1) throw new Error('决策列表异常')
 const incidentReport = await call('blue_report', {})
 if (!incidentReport.markdown.includes('## 案件') || !incidentReport.markdown.includes('## 决策记录')) throw new Error('报告缺少案件/决策段')
+const audit = await call('blue_audit_verify', {})
+if (!audit.ok || audit.ok !== true || audit.checked === 0) throw new Error('审计链校验失败：' + JSON.stringify(audit))
+const timelineRow = store.sql('SELECT id, detail FROM timeline ORDER BY rowid LIMIT 1').get()
+store.sql('UPDATE timeline SET detail = ? WHERE id = ?').run('tampered-detail', timelineRow.id)
+const tampered = await call('blue_audit_verify', {})
+if (tampered.ok !== false || tampered.reason !== 'hash_mismatch') throw new Error('审计链没有发现篡改：' + JSON.stringify(tampered))
+store.sql('UPDATE timeline SET detail = ? WHERE id = ?').run(timelineRow.detail, timelineRow.id)
 const badDecision = await call('blue_decision_add', { incident_id: 'INC-NOT-FOUND', decision: 'test' })
 if (badDecision.ok !== false) throw new Error('决策未校验关联案件')
 const incident2 = await call('blue_incident_open', { title: '关闭状态测试', severity: 'low' })
@@ -443,7 +450,7 @@ for (const profile of ['monitor', 'intel', 'hunt', 'ir', 'forensics', 'hardening
     get() { return undefined },
     logger: { info() {}, warn() {}, error() {} },
   }, { profile })
-  if (scoped.size === 0 || scoped.size >= 46) throw new Error(profile + ' 工具裁剪异常：' + scoped.size)
+  if (scoped.size === 0 || scoped.size >= 47) throw new Error(profile + ' 工具裁剪异常：' + scoped.size)
   if (!scoped.has('blue_task_update')) throw new Error(profile + ' 缺少任务回收工具')
   if (scoped.has('blue_autopilot')) throw new Error(profile + ' 不应拥有派发器')
   if (scoped.has('blue_task_approve')) throw new Error(profile + ' 不应拥有审批权')
