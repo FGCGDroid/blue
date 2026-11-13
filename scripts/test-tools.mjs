@@ -76,9 +76,10 @@ writeFileSync(accessPath, [
   JSON.stringify({ at: '2026-11-13T19:01:00+08:00', challenge: 'jwt-none', remote: '127.0.0.1', method: 'POST', path: '/login', status: 401, user_agent: 'curl/8.0' }),
   JSON.stringify({ at: '2026-11-13T19:01:01+08:00', challenge: 'jwt-none', remote: '127.0.0.1', method: 'GET', path: '/admin', status: 500, user_agent: 'curl/8.0' }),
   JSON.stringify({ at: '2026-11-13T19:01:02+08:00', challenge: 'jwt-none', remote: '127.0.0.1', method: 'GET', path: '/', status: 200, user_agent: 'curl/8.0' }),
+  JSON.stringify({ at: '2026-11-13T19:01:03+08:00', challenge: 'jwt-none', remote: '127.0.0.1', method: 'GET', path: '/admin', status: 403, user_agent: 'curl/8.0', guard: 'jwt-none' }),
 ].join('\n') + '\n')
 const accessIngest = await call('blue_access_log_ingest', { path: accessPath })
-if (!accessIngest.ok || accessIngest.read !== 3 || accessIngest.suspicious !== 2 || accessIngest.ingested !== 2) {
+if (!accessIngest.ok || accessIngest.read !== 4 || accessIngest.suspicious !== 3 || accessIngest.ingested !== 3) {
   throw new Error('access_log_ingest 结果异常：' + JSON.stringify(accessIngest))
 }
 const triaged = await call('blue_alert_triage', { id: alert.alerts[0].id, status: 'investigating', note: '确认上传点', create_task: true, role: 'ir' })
