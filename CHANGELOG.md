@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.0.0-beta.19 — 2026-11-14（本地试用，未发布）
+
+### Changed
+
+- `engines.dsh` 从 `>=0.2.1-rc.5` 下调到 `>=0.2.1-rc.1`，覆盖 0.2.1 的早期 rc。
+- 新增运行时版本检测；`blue_session_info`、`blue_autopilot status` 返回 `dsh` 能力。
+- DSH < 0.2.1-rc.1 时，`next/cycle` 和控制台领取会明确拒绝 `agent_preset` 派发，不静默用错角色。
+- 新增 `docs/compatibility.md` 和 `test:compat`。
+
 ## 2.0.0-beta.18 — 2026-11-13（本地试用，未发布）
 
 ### Docs
