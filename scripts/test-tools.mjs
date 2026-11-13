@@ -29,8 +29,8 @@ const ctx = {
 }
 apply(ctx, { profile: 'all' })
 
-if (tools.size !== 37) {
-  throw new Error('工具数量不是 37：' + tools.size)
+if (tools.size !== 43) {
+  throw new Error('工具数量不是 43：' + tools.size)
 }
 for (const [name, definition] of tools) {
   if (definition.parameters.type !== 'object' || typeof definition.parameters.properties !== 'object') {
@@ -239,6 +239,27 @@ if (decoys.decoys.length !== 1) throw new Error('诱饵列表异常')
 if (!decoys.decoys[0].expires_at) throw new Error('诱饵缺少 expires_at')
 const defenseWithDecoy = await call('blue_defense_status', {})
 if (defenseWithDecoy.stats.decoys !== 1 || defenseWithDecoy.stats.decoy_hits !== 1) throw new Error('诱饵统计异常')
+
+const incident = await call('blue_incident_open', { title: '测试案件', severity: 'high', owner: 'ir-test' })
+if (!incident.ok || incident.incident.status !== 'open') throw new Error('案件创建失败')
+const attached = await call('blue_incident_attach', {
+  id: incident.incident.id, alert_id: alert.alerts[0].id, task_id: triaged.task.id,
+})
+if (!attached.ok || attached.attached.length !== 2) throw new Error('案件关联失败')
+const decision = await call('blue_decision_add', {
+  incident_id: incident.incident.id,
+  decision: 'escalate',
+  rationale: '测试决策记录',
+  confidence: 'high',
+  evidence: 'alert=' + alert.alerts[0].id,
+})
+if (!decision.ok || decision.decision.confidence !== 'high') throw new Error('决策记录失败')
+const incidentList = await call('blue_incident_list', {})
+if (incidentList.incidents.length !== 1 || incidentList.incidents[0].owner !== 'ir-test') throw new Error('案件列表异常')
+const decisions = await call('blue_decision_list', { incident_id: incident.incident.id })
+if (decisions.decisions.length !== 1) throw new Error('决策列表异常')
+const incidentReport = await call('blue_report', {})
+if (!incidentReport.markdown.includes('## 案件') || !incidentReport.markdown.includes('## 决策记录')) throw new Error('报告缺少案件/决策段')
 store.sql('UPDATE decoys SET expires_at = ? WHERE id = ?').run(new Date(Date.now() - 1000).toISOString(), decoy.decoy.id)
 const expired = await call('blue_decoy_list', {})
 if (expired.decoys[0].status !== 'retired') throw new Error('到期诱饵未自动取消')
@@ -358,7 +379,7 @@ for (const profile of ['monitor', 'intel', 'hunt', 'ir', 'forensics', 'hardening
     get() { return undefined },
     logger: { info() {}, warn() {}, error() {} },
   }, { profile })
-  if (scoped.size === 0 || scoped.size >= 37) throw new Error(profile + ' 工具裁剪异常：' + scoped.size)
+  if (scoped.size === 0 || scoped.size >= 43) throw new Error(profile + ' 工具裁剪异常：' + scoped.size)
   if (!scoped.has('blue_task_update')) throw new Error(profile + ' 缺少任务回收工具')
   if (scoped.has('blue_autopilot')) throw new Error(profile + ' 不应拥有派发器')
   if (scoped.has('blue_task_approve')) throw new Error(profile + ' 不应拥有审批权')

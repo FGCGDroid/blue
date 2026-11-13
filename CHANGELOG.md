@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.0.0-beta.1 — 2026-11-13（本地试用，未发布）
+
+### Added
+
+- 新增 `incidents` 案件表：把多条告警、发现和任务归到同一事件下。
+- 新增 `decisions` 决策记录表：记录决策、理由、置信度和证据。
+- 新增 `blue_incident_open/list/update/attach` 和 `blue_decision_add/list`。
+- 控制台新增「案件」页签。
+- 报告新增案件和决策记录段落。
+- 任务/告警/发现增加 `incident_id` 关联字段，旧库自动补列。
+
+### Notes
+
+- 2.0 仍是本地 beta，没有发布 npm 或市场。
+- 43 个工具、19 个技能、10 个控制台页签、12 张事实表。
+
 ## 1.5.0 — 2026-11-13
 
 ### Added
