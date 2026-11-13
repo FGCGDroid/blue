@@ -29,8 +29,8 @@ const ctx = {
 }
 apply(ctx, { profile: 'all' })
 
-if (tools.size !== 60) {
-  throw new Error('工具数量不是 60：' + tools.size)
+if (tools.size !== 62) {
+  throw new Error('工具数量不是 62：' + tools.size)
 }
 for (const [name, definition] of tools) {
   if (definition.parameters.type !== 'object' || typeof definition.parameters.properties !== 'object') {
@@ -333,6 +333,21 @@ store.sql('UPDATE timeline SET detail = ? WHERE id = ?').run('anchor-tamper', an
 const anchorBroken = await call('blue_audit_anchor_verify', {})
 if (anchorBroken.ok !== false || anchorBroken.reason !== 'chain_broken') throw new Error('锚定没有发现链篡改：' + JSON.stringify(anchorBroken))
 store.sql('UPDATE timeline SET detail = ? WHERE id = ?').run(anchorTamperRow.detail, anchorTamperRow.id)
+store.addAlert(engagementId, { title: 'evidence secret test', severity: 'low', source: 'test', raw: 'password=SuperSecret123&token=abc123', actor: 'tester' })
+const exportedEvidence = await call('blue_evidence_export', { path: 'test-evidence.json', actor: 'tester' })
+if (!exportedEvidence.ok || !exportedEvidence.digest) throw new Error('证据包导出失败：' + JSON.stringify(exportedEvidence))
+const verifiedEvidence = await call('blue_evidence_verify', { path: exportedEvidence.file })
+if (!verifiedEvidence.ok) throw new Error('证据包验证失败：' + JSON.stringify(verifiedEvidence))
+const evidenceDoc = JSON.parse(readFileSync(exportedEvidence.file, 'utf8'))
+if (evidenceDoc.data.decoys.some((decoy) => decoy.token !== '[REDACTED]')) throw new Error('证据包未脱敏诱饵 token')
+if (JSON.stringify(evidenceDoc).includes('SuperSecret123') || JSON.stringify(evidenceDoc).includes('abc123')) throw new Error('证据包未脱敏常见凭据文本')
+const wrongKeyEvidence = await call('blue_evidence_verify', { path: exportedEvidence.file, public_key: 'not-the-audit-key' })
+if (wrongKeyEvidence.ok !== false || wrongKeyEvidence.reason !== 'untrusted_key') throw new Error('证据包没有拒绝错误公钥：' + JSON.stringify(wrongKeyEvidence))
+evidenceDoc.counts.timeline = 0
+writeFileSync(exportedEvidence.file, JSON.stringify(evidenceDoc), 'utf8')
+const brokenEvidence = await call('blue_evidence_verify', { path: exportedEvidence.file })
+if (brokenEvidence.ok !== false || brokenEvidence.reason !== 'digest_mismatch') throw new Error('证据包没有发现篡改：' + JSON.stringify(brokenEvidence))
+rmSync(exportedEvidence.file, { force: true })
 const controlsAfterAnchor = await call('blue_control_scan', {})
 if (!controlsAfterAnchor.rows.some((row) => row.control_key === 'audit_anchor' && row.status === 'pass')) throw new Error('控制扫描没有识别审计锚')
 const response = await call('blue_response_plan', { action: 'isolate_host', target: '10.0.0.5', rollback: '解除隔离' })
@@ -496,7 +511,7 @@ for (const profile of ['monitor', 'intel', 'hunt', 'ir', 'forensics', 'hardening
     get() { return undefined },
     logger: { info() {}, warn() {}, error() {} },
   }, { profile })
-  if (scoped.size === 0 || scoped.size >= 60) throw new Error(profile + ' 工具裁剪异常：' + scoped.size)
+  if (scoped.size === 0 || scoped.size >= 62) throw new Error(profile + ' 工具裁剪异常：' + scoped.size)
   if (!scoped.has('blue_task_update')) throw new Error(profile + ' 缺少任务回收工具')
   if (scoped.has('blue_autopilot')) throw new Error(profile + ' 不应拥有派发器')
   if (scoped.has('blue_task_approve')) throw new Error(profile + ' 不应拥有审批权')
