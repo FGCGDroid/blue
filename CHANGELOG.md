@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.0.0-beta.7 — 2026-11-13（本地试用，未发布）
+
+### Fixed
+
+- `blue_access_log_ingest` 使用 `raw_path` 识别 `/./config`、`/%2e/config` 这类被规范化后的路径异常。
+
+### Notes
+
+- 仍是本地 beta，没有发布 npm 或市场。
+
 ## 2.0.0-beta.6 — 2026-11-13（本地试用，未发布）
 
 ### Fixed
