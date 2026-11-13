@@ -47,7 +47,7 @@ dsh plugin --profile desktop add dsh-blue-team-mode
 
 ```sh
 dsh plugin --profile desktop add \
-  https://github.com/FGCGDroid/blue/releases/download/v1.5.0/dsh-blue-team-mode-1.5.0.tgz
+  https://github.com/FGCGDroid/blue/releases/download/v1.5.2/dsh-blue-team-mode-1.5.2.tgz
 # 装完重启一次 dsh web
 ```
 
@@ -55,7 +55,7 @@ dsh plugin --profile desktop add \
 
 ```sh
 npm pack --pack-destination dist
-dsh plugin --profile desktop add ./dist/dsh-blue-team-mode-1.5.0.tgz
+dsh plugin --profile desktop add ./dist/dsh-blue-team-mode-1.5.2.tgz
 ```
 
 **从源码目录安装**：
