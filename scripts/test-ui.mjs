@@ -4,7 +4,7 @@
  * 运行：node scripts/test-ui.mjs
  */
 import { PassThrough } from 'node:stream'
-import { rmSync } from 'node:fs'
+import { rmSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { BlueStore } from '../lib/store.js'
 import { apply as applyHost } from '../lib/ui.js'
@@ -60,6 +60,20 @@ if (!updatedIncident.body.ok || updatedIncident.body.incident.status !== 'contai
 if (!updatedIncident.body.snapshot.incidents.some((item) => item.id === uiIncident.id && item.status === 'contained')) {
   throw new Error('updateIncident 未刷新 snapshot')
 }
+const decoyLog = fileURLToPath(new URL('../.tmp/ui-test/decoy-events.jsonl', import.meta.url))
+writeFileSync(decoyLog, JSON.stringify({
+  at: '2026-11-13T19:03:00+08:00',
+  decoy: 'ui-decoy',
+  remote: '127.0.0.1',
+  method: 'GET',
+  path: '/admin',
+  status: 200,
+}) + '\n')
+const syncedDecoy = await callApi({ op: 'syncDecoys', session: 'S1', path: decoyLog, authorized: true })
+if (!syncedDecoy.body.ok || syncedDecoy.body.created !== 1 || syncedDecoy.body.inserted !== 1) {
+  throw new Error('syncDecoys 失败：' + JSON.stringify(syncedDecoy.body))
+}
+if (!syncedDecoy.body.snapshot.decoys.some((item) => item.name === 'ui-decoy')) throw new Error('syncDecoys 未刷新 snapshot')
 
 const opened = await callApi({ op: 'openEngagement', session: 'S1', name: '控制台测试二', scope: '10.0.0.0/24' })
 if (!opened.body.ok || opened.body.engagement.name !== '控制台测试二') throw new Error('openEngagement 失败')

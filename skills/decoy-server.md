@@ -86,7 +86,13 @@ automation_tool    curl/python/nuclei 等工具 UA + 多次请求
 把事件交给 Agent：
 
 ```text
-读取 decoy-events.jsonl，把命中事件用 blue_honeypot_ingest 落库
+读取 decoy-events.jsonl，把命中事件用 `blue_decoy_sync` 落库：
+
+```text
+blue_decoy_sync path=... authorized=true
+```
+
+设置 `BLUE_DECOY_EVENTS` 指向外部 JSONL 后，控制台的诱饵页会随 overview 自动同步。
 ```
 
 `blue_honeypot_ingest` 会生成告警和 high 风险待审批封禁任务，不会自动改防火墙。

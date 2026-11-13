@@ -29,8 +29,8 @@ const ctx = {
 }
 apply(ctx, { profile: 'all' })
 
-if (tools.size !== 45) {
-  throw new Error('工具数量不是 45：' + tools.size)
+if (tools.size !== 46) {
+  throw new Error('工具数量不是 46：' + tools.size)
 }
 for (const [name, definition] of tools) {
   if (definition.parameters.type !== 'object' || typeof definition.parameters.properties !== 'object') {
@@ -314,6 +314,20 @@ if (expired.decoys[0].status !== 'retired') throw new Error('到期诱饵未自�
 if (expired.decoys[0].expires_at === null) throw new Error('到期诱饵丢失 expires_at')
 const reopenDecoy = await call('blue_decoy_update', { id: decoy.decoy.id, status: 'active' })
 if (reopenDecoy.ok !== false) throw new Error('已退役诱饵被重新激活')
+const decoyEventsPath = fileURLToPath(new URL('../.tmp/tools-test/decoy-events.jsonl', import.meta.url))
+writeFileSync(decoyEventsPath, JSON.stringify({
+  at: '2026-11-13T19:02:00+08:00',
+  decoy: 'external-decoy',
+  remote: '127.0.0.1',
+  method: 'GET',
+  path: '/admin',
+  status: 200,
+  tags: ['automation_burst'],
+}) + '\n')
+const synced = await call('blue_decoy_sync', { path: decoyEventsPath, authorized: true })
+if (!synced.ok || synced.created !== 1 || synced.inserted !== 1) throw new Error('诱饵事件同步失败：' + JSON.stringify(synced))
+const syncedAgain = await call('blue_decoy_sync', { path: decoyEventsPath, authorized: true })
+if (syncedAgain.inserted !== 0 || syncedAgain.duplicates !== 1) throw new Error('诱饵事件未去重')
 
 const tarpit = await call('blue_tarpit_plan', { ban_days: 7 })
 if (!tarpit.ok || !tarpit.fail2ban.jail.includes('bantime = 7d')) throw new Error('焦油坑方案不完整')
@@ -429,7 +443,7 @@ for (const profile of ['monitor', 'intel', 'hunt', 'ir', 'forensics', 'hardening
     get() { return undefined },
     logger: { info() {}, warn() {}, error() {} },
   }, { profile })
-  if (scoped.size === 0 || scoped.size >= 45) throw new Error(profile + ' 工具裁剪异常：' + scoped.size)
+  if (scoped.size === 0 || scoped.size >= 46) throw new Error(profile + ' 工具裁剪异常：' + scoped.size)
   if (!scoped.has('blue_task_update')) throw new Error(profile + ' 缺少任务回收工具')
   if (scoped.has('blue_autopilot')) throw new Error(profile + ' 不应拥有派发器')
   if (scoped.has('blue_task_approve')) throw new Error(profile + ' 不应拥有审批权')

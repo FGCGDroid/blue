@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.0-beta.11 — 2026-11-13（本地试用，未发布）
+
+### Added
+
+- 新增 `blue_decoy_sync`：把外部诱饵 JSONL 事件同步进事实库，自动补登记未知诱饵并按事件去重。
+- 诱饵页新增「同步事件」按钮；设置 `BLUE_DECOY_EVENTS` 后，overview 会自动同步，页面随 2 秒刷新更新。
+- `decoy_hits` 增加 `event_key` 唯一键，避免重复导入。
+
+### Notes
+
+- 仍是本地 beta，没有发布 npm 或市场。
+
 ## 2.0.0-beta.10 — 2026-11-13（本地试用，未发布）
 
 ### Fixed

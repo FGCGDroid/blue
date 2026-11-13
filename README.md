@@ -10,9 +10,9 @@
 > 本仓库是蓝队编排、事实记录与辅助研判的工程实现，**不包含攻击、漏洞利用或未授权探测代码**。
 > 使用者必须自行确保对目标拥有书面授权，并遵守比赛规则与当地法律。
 
-**45 个 `blue_*` 工具 · 19 个随 npm 包技能 · 6 个执行角色 · 10 个控制台页签 · 12 张事实库表**
+**46 个 `blue_*` 工具 · 19 个随 npm 包技能 · 6 个执行角色 · 10 个控制台页签 · 12 张事实库表**
 
-> 🧪 当前源码是 `2.0.0-beta.10` 本地试用版，**没有发布到 npm / 市场**。  
+> 🧪 当前源码是 `2.0.0-beta.11` 本地试用版，**没有发布到 npm / 市场**。  
 > 正式安装仍用 `1.5.2`；2.0 用本地 tarball 装。
 
 ---
@@ -110,7 +110,7 @@ dsh plugin --profile desktop add .
 - **蜜罐 / 焦油坑（可选）**：`blue_tarpit_plan` 生成 Endlessh、Nginx 假路径、有界慢响应和 fail2ban 7 天 jail 配置；`blue_honeypot_ingest` 把命中转成告警和待审批封禁任务。插件不直接调用 `iptables` / `nft` / `fail2ban-client`。
 - **可选诱饵程序**：包内自带手动启动的 HTTP 诱饵，默认只监听 `127.0.0.1`，公开监听必须显式 `--allow-public`；提供 `generic/tomcat/thinkphp/wordpress` 静态主题；不执行命令、不抓指纹、不做无限响应。
 - **自动化流量标注**：诱饵服务按来源 IP 维护 1 秒行为窗口，命中高频请求、路径扫描或工具 UA 时打上 `automation_burst` / `path_sweep` / `automation_tool` 标签；只做研判，不自动封禁。
-- **诱饵状态与日志回退**：`blue_decoy_update` 可把诱饵从 `planned` 更新为 `active`；默认日志目录不可写时回退到 workspace，也可用 `BLUE_LOG_DIR` 指定。
+- **诱饵状态与日志回退**：`blue_decoy_update` 可把诱饵从 `planned` 更新为 `active`；`blue_decoy_sync` 把外部 JSONL 事件同步进事实库；默认日志目录不可写时回退到 workspace，也可用 `BLUE_LOG_DIR` 指定。
 - **执行摘要**：报告开头用事实库数字概括关键资产、未闭环高危告警、待审批任务和诱饵命中，方便直接发给人看。
 - **案件与决策记录**：`blue_incident_*` 把多条告警/发现/任务归到同一案件；`blue_decision_*` 记录决策、理由、置信度和证据，方便复盘。
 - **接入字段可回退**：`blue_alert_ingest` 支持顶层 `title/severity/note`，并单独保存 `event_time`，重复投递返回 `updated` 而不是假 `ingested`。
