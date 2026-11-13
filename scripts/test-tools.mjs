@@ -29,8 +29,8 @@ const ctx = {
 }
 apply(ctx, { profile: 'all' })
 
-if (tools.size !== 36) {
-  throw new Error('工具数量不是 36：' + tools.size)
+if (tools.size !== 37) {
+  throw new Error('工具数量不是 37：' + tools.size)
 }
 for (const [name, definition] of tools) {
   if (definition.parameters.type !== 'object' || typeof definition.parameters.properties !== 'object') {
@@ -51,6 +51,9 @@ const inScope = await call('blue_scope_check', { target: 'http://a.example.test/
 const outScope = await call('blue_scope_check', { target: '203.0.113.9' })
 if (!inScope.ok || inScope.status !== 'in') throw new Error('scope_check 未识别域名范围')
 if (outScope.ok || outScope.status !== 'out') throw new Error('scope_check 未识别范围外目标')
+const coverage = await call('blue_attack_coverage', {})
+if (!coverage.ok || coverage.total < 10 || coverage.mapped !== coverage.total) throw new Error('ATT&CK 覆盖映射不完整')
+if (!coverage.techniques.some((item) => item.id === 'T1505.003')) throw new Error('ATT&CK 映射缺少 WebShell')
 const asset = await call('blue_asset_add', {
   name: 'web01', address: '10.10.0.5', kind: 'web', port: 80, criticality: 'critical', tags: ['flag'],
 })
@@ -355,7 +358,7 @@ for (const profile of ['monitor', 'intel', 'hunt', 'ir', 'forensics', 'hardening
     get() { return undefined },
     logger: { info() {}, warn() {}, error() {} },
   }, { profile })
-  if (scoped.size === 0 || scoped.size >= 36) throw new Error(profile + ' 工具裁剪异常：' + scoped.size)
+  if (scoped.size === 0 || scoped.size >= 37) throw new Error(profile + ' 工具裁剪异常：' + scoped.size)
   if (!scoped.has('blue_task_update')) throw new Error(profile + ' 缺少任务回收工具')
   if (scoped.has('blue_autopilot')) throw new Error(profile + ' 不应拥有派发器')
   if (scoped.has('blue_task_approve')) throw new Error(profile + ' 不应拥有审批权')

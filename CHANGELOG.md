@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.5.0 — 2026-11-13
+
+### Added
+
+- 新增 `blue_attack_coverage`：把内置 13 条日志规则映射到 MITRE ATT&CK 技术和战术。
+- 新增 `docs/blue-team-repos.md`：抽样调研 AiSOC、Security Onion、Sigma、APT-Hunter、UAC、VanGuard 等蓝队项目，记录借鉴与不借鉴的边界。
+
+### Notes
+
+- 覆盖映射只代表内置日志规则，不代表 ATT&CK 全量覆盖。
+- 没有引入 Sigma 规则库、外部工具、SIEM/EDR 或自动封禁。
+
 ## 1.4.0 — 2026-11-12
 
 ### Added
