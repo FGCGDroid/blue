@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.0.0-beta.4 — 2026-11-13（本地试用，未发布）
+
+### Added
+
+- `blue_access_log_ingest` 识别 `guard` 拦截事件和路径规范化异常，生成高危告警。
+- ctf-lab `CTF_LAB_GUARD=strict`：阻断重复 `token` Cookie、`alg=none`、`./`/`../`/编码路径；403 不回显规则名。
+
+### Notes
+
+- 仍是本地 beta，没有发布 npm 或市场。
+
 ## 2.0.0-beta.3 — 2026-11-13（本地试用，未发布）
 
 ### Fixed

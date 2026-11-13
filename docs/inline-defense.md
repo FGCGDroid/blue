@@ -104,6 +104,7 @@ remote, method, uri, status, user_agent, bytes, duration_ms, event_time
 - 诱饵日志目录不可写时回退 workspace / `BLUE_LOG_DIR`
 - ctf-lab 题目服务新增 `access.jsonl`，蓝队用 `blue_access_log_ingest` 消费
 - ctf-lab 可选 `CTF_LAB_GUARD=jwt-none`，在服务中间件里直接阻断 `alg=none`
+- `CTF_LAB_GUARD=strict` 还会阻断重复 `token` Cookie 和路径规范化绕过；403 不回显规则名
 
 ctf-lab 的访问日志默认在：
 
@@ -115,6 +116,8 @@ $DSH_HOME/ctf-lab/access.jsonl
 
 ```powershell
 $env:CTF_LAB_GUARD = "jwt-none"
+# 或
+$env:CTF_LAB_GUARD = "strict"
 ```
 
 不设置这个环境变量时，靶场保持原本的漏洞行为，方便做红队测试。
