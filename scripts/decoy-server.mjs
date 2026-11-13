@@ -7,7 +7,8 @@
  * 事件只写本地 JSONL，不主动外传。
  */
 import { createServer } from 'node:http'
-import { appendFileSync, mkdirSync, accessSync, constants as fsConstants } from 'node:fs'
+import { createServer as createHttpsServer } from 'node:https'
+import { appendFileSync, mkdirSync, accessSync, readFileSync, constants as fsConstants } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { createHash, randomUUID } from 'node:crypto'
@@ -26,6 +27,10 @@ function parseArgs(argv) {
     allowPublic: false,
     name: 'decoy-http',
     theme: 'generic',
+    lures: 'admin,git,phpmyadmin,backup,shell,status',
+    token: '',
+    tlsCert: '',
+    tlsKey: '',
     help: false,
   }
   for (let i = 0; i < argv.length; i += 1) {
@@ -37,6 +42,10 @@ function parseArgs(argv) {
     else if (arg === '--log') options.log = String(argv[++i] || options.log)
     else if (arg === '--name') options.name = String(argv[++i] || options.name)
     else if (arg === '--theme') options.theme = String(argv[++i] || options.theme)
+    else if (arg === '--lures') options.lures = String(argv[++i] || options.lures)
+    else if (arg === '--token') options.token = String(argv[++i] || options.token)
+    else if (arg === '--tls-cert') options.tlsCert = String(argv[++i] || '')
+    else if (arg === '--tls-key') options.tlsKey = String(argv[++i] || '')
     else if (arg === '--version' || arg === '-v') {
       console.log(VERSION)
       process.exit(0)
@@ -102,6 +111,18 @@ function profileOf(theme = options.theme) {
   return THEMES[theme] || THEMES.generic
 }
 
+function lureEnabled(name) {
+  return String(options.lures || '').split(',').map((item) => item.trim()).includes(name)
+}
+
+function canary() {
+  return options.token
+}
+
+function buildId() {
+  return randomUUID().slice(0, 8)
+}
+
 function cookieOf(theme = options.theme) {
   const id = randomUUID().replace(/-/g, '').slice(0, 26)
   if (theme === 'tomcat') return `JSESSIONID=${id}; Path=/; HttpOnly`
@@ -164,9 +185,10 @@ function fakeAdmin(theme = 'generic') {
 
 function fakeDashboard(theme = 'generic') {
   const title = profileOf(theme).title
+  const rows = ['api', 'worker', 'scheduler', 'cache'].sort(() => Math.random() - 0.5).slice(0, 3)
+    .map((name) => `<tr><td>${name}</td><td>healthy</td></tr>`).join('')
   return `<!doctype html><html><head><meta charset="utf-8"><title>${title} - Dashboard</title></head><body>`
-    + `<h1>${title}</h1><p>Signed in as operator</p><table><tr><th>Service</th><th>Status</th></tr>`
-    + '<tr><td>api</td><td>healthy</td></tr><tr><td>worker</td><td>healthy</td></tr></table>'
+    + `<h1>${title}</h1><p>Signed in as operator</p><table><tr><th>Service</th><th>Status</th></tr>${rows}</table>`
     + '<p><a href="/">Home</a></p></body></html>'
 }
 
@@ -177,13 +199,14 @@ function isAuthed(req) {
 
 function fakeHome(theme = 'generic') {
   const title = profileOf(theme).title
+  const build = buildId()
   return `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title></head><body>`
-    + `<h1>${title}</h1><p>Service is running.</p><p><a href="/admin">Sign in</a></p></body></html>`
+    + `<h1>${title}</h1><p>Service is running. Build ${build}</p><p><a href="/admin">Sign in</a></p></body></html>`
 }
 
 function fakeGitConfig() {
   return '[core]\n\trepositoryformatversion = 0\n\tfilemode = true\n\tbare = false\n\tlogallrefupdates = true\n'
-    + '[remote "origin"]\n\turl = git@git.internal:platform/ops-tooling.git\n\tfetch = +refs/heads/*:refs/remotes/origin/*\n'
+    + `[remote "origin"]\n\turl = git@git.internal:platform/ops-tooling-${canary()}.git\n\tfetch = +refs/heads/*:refs/remotes/origin/*\n`
     + '[branch "main"]\n\tremote = origin\n\tmerge = refs/heads/main\n'
 }
 
@@ -197,7 +220,7 @@ function syntheticSql() {
   let body = '-- MySQL dump 10.13  Distrib 8.0.36, for Linux (x86_64)\n--\n-- Host: localhost    Database: ops\n-- ------------------------------------------------------\n'
   body += 'CREATE TABLE `audit_log` (\n  `id` bigint NOT NULL AUTO_INCREMENT,\n  `actor` varchar(64) DEFAULT NULL,\n  `action` varchar(64) DEFAULT NULL,\n  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,\n  PRIMARY KEY (`id`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n'
   for (let i = 0; body.length < 48 * 1024; i += 1) {
-    body += `INSERT INTO \`audit_log\` VALUES (${i + 1},'svc-${randomUUID().slice(0, 8)}','deploy',NOW());\n`
+    body += `INSERT INTO \`audit_log\` VALUES (${i + 1},'svc-${canary()}-${randomUUID().slice(0, 8)}','deploy',NOW());\n`
   }
   return body
 }
@@ -224,7 +247,7 @@ function redactBody(value) {
 }
 
 const hunter = new BehaviorWindow()
-const server = createServer((req, res) => {
+const handler = (req, res) => {
   const started = Date.now()
   const remote = req.socket.remoteAddress || ''
   const now = Date.now()
@@ -281,27 +304,27 @@ const server = createServer((req, res) => {
       text(res, 200, STATIC_CSS[path], 'text/css; charset=utf-8', { cookie: cookieOf() })
     } else if (req.method === 'GET' && (path === '/' || path === '/index.php' || path === '/index.html')) {
       text(res, 200, fakeHome(), 'text/html; charset=utf-8', { cookie: cookieOf() })
-    } else if (req.method === 'POST' && (path === '/admin/login' || path === '/admin' || path === '/manager/html' || path === '/wp-login.php')) {
+    } else if (req.method === 'POST' && lureEnabled('admin') && (path === '/admin/login' || path === '/admin' || path === '/manager/html' || path === '/wp-login.php')) {
       text(res, 302, '', 'text/plain', { cookie: cookieOf(), location: '/admin' })
-    } else if (req.method === 'GET' && (path === '/admin' || path === '/admin/' || path === '/admin/login' || path === '/wp-login.php' || path === '/manager/html')) {
+    } else if (req.method === 'GET' && lureEnabled('admin') && (path === '/admin' || path === '/admin/' || path === '/admin/login' || path === '/wp-login.php' || path === '/manager/html')) {
       text(res, 200, isAuthed(req) ? fakeDashboard(options.theme) : fakeAdmin(options.theme), 'text/html; charset=utf-8', { cookie: cookieOf() })
-    } else if (req.method === 'GET' && path === '/.git/config') {
+    } else if (req.method === 'GET' && lureEnabled('git') && path === '/.git/config') {
       text(res, 200, fakeGitConfig())
-    } else if (req.method === 'GET' && (path === '/phpmyadmin' || path === '/phpmyadmin/')) {
+    } else if (req.method === 'GET' && lureEnabled('phpmyadmin') && (path === '/phpmyadmin' || path === '/phpmyadmin/')) {
       text(res, 200, fakePhpMyAdmin(), 'text/html; charset=utf-8')
-    } else if (req.method === 'GET' && path === '/backup.sql') {
+    } else if (req.method === 'GET' && lureEnabled('backup') && path === '/backup.sql') {
       text(res, 200, syntheticSql(), 'application/sql; charset=utf-8')
-    } else if (req.method === 'GET' && path === '/shell.php') {
+    } else if (req.method === 'GET' && lureEnabled('shell') && path === '/shell.php') {
       // 静态假页面：绝不执行、不解析、不回连。
       text(res, 200, '<?php\n// maintenance endpoint\necho "ok";\n', 'text/plain; charset=utf-8')
-    } else if (req.method === 'GET' && path === '/server-status') {
+    } else if (req.method === 'GET' && lureEnabled('status') && path === '/server-status') {
       text(res, 200, `Server Status\n\nServer Version: ${profileOf().server}\nUptime: 12 days\n`)
     } else {
       text(res, req.method === 'GET' || req.method === 'HEAD' ? 404 : 405, notFound(), 'text/html; charset=utf-8', req.method === 'GET' ? {} : { allow: 'GET, HEAD, POST, OPTIONS' })
     }
     record(req, remote, res.statusCode, body, started, url, behavior)
   })
-})
+}
 
 const rate = new Map()
 
@@ -309,6 +332,7 @@ function record(req, remote, status, body, started, url = new URL(req.url || '/'
   const event = {
     at: new Date().toISOString(),
     decoy: options.name,
+    canary: options.token,
     theme: options.theme,
     remote,
     method: req.method,
@@ -336,7 +360,10 @@ function record(req, remote, status, body, started, url = new URL(req.url || '/'
 let options
 try {
   options = parseArgs(process.argv.slice(2))
-  if (!options.help) options.log = ensureLogPath(options.log)
+  if (!options.help) {
+    options.log = ensureLogPath(options.log)
+    if (options.token === '') options.token = randomUUID().replace(/-/g, '').slice(0, 16)
+  }
 } catch (error) {
   console.error(error.message)
   process.exit(2)
@@ -350,6 +377,10 @@ if (options.help) {
   --log <path>        JSONL 日志路径，默认 $DSH_HOME/blue/decoy-events.jsonl
   --name <name>       诱饵名称
   --theme <theme>     generic/tomcat/thinkphp/wordpress
+  --lures <list>      admin,git,phpmyadmin,backup,shell,status 的逗号子集
+  --token <token>     诱饵金丝雀标识，默认随机生成
+  --tls-cert <path>   PEM 证书链；与 --tls-key 一起启用 HTTPS
+  --tls-key <path>    PEM 私钥
   --allow-public      允许非 loopback 监听（公开暴露前先评估）
   --help              显示帮助`)
   process.exit(0)
@@ -363,12 +394,27 @@ if (!isLoopback(options.host) && !options.allowPublic) {
   console.error('拒绝公开监听：请先确认授权和防火墙，再加 --allow-public')
   process.exit(2)
 }
+if ((options.tlsCert === '') !== (options.tlsKey === '')) {
+  console.error('--tls-cert 和 --tls-key 必须同时提供')
+  process.exit(2)
+}
+
+let server
+try {
+  server = options.tlsCert !== ''
+    ? createHttpsServer({ cert: readFileSync(options.tlsCert), key: readFileSync(options.tlsKey) }, handler)
+    : createServer(handler)
+} catch (error) {
+  console.error('创建服务失败：' + error.message)
+  process.exit(2)
+}
 
 server.listen(options.port, options.host, () => {
   const address = server.address()
   const host = options.host.includes(':') ? `[${options.host}]` : options.host
-  console.log(`listening http://${host}:${address.port}`)
+  console.log(`listening ${options.tlsCert ? 'https' : 'http'}://${host}:${address.port}`)
   console.log(`log ${options.log}`)
+  console.log(`lures ${options.lures}`)
 })
 
 process.on('SIGINT', () => {

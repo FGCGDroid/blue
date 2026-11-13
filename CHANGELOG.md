@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.0.0-beta.17 — 2026-11-13（本地试用，未发布）
+
+### Added
+
+- 诱饵支持 `--tls-cert/--tls-key` 启用 HTTPS，可用真实证书链。
+- `--lures` 控制 admin/git/phpmyadmin/backup/shell/status 的暴露子集。
+- `--token` 金丝雀标识写入假 git 配置和 SQL dump；日志记录 canary。
+- 首页构建号、假后台服务行、SQL 数据随机化，降低静态模板特征。
+
+### Notes
+
+- 仍然不是不可识别；真实证书、真实反向代理和隔离网络更重要。
+- 仍是本地 beta，没有发布 npm 或市场。
+
 ## 2.0.0-beta.16 — 2026-11-13（本地试用，未发布）
 
 ### Changed

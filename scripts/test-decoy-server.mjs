@@ -90,6 +90,15 @@ try {
   child.kill('SIGTERM')
   child = null
 
+  const limited = start(['--port', '0', '--log', join(root, 'limited.jsonl'), '--lures', 'admin,git', '--token', 'canary-test'])
+  const limitedBase = await waitForUrl(limited)
+  const limitedGit = await fetch(limitedBase + '/.git/config')
+  const limitedGitText = await limitedGit.text()
+  if (limitedGit.status !== 200 || !limitedGitText.includes('canary-test')) throw new Error('金丝雀标识未写入假 git')
+  const limitedBackup = await fetch(limitedBase + '/backup.sql')
+  if (limitedBackup.status !== 404) throw new Error('--lures 未关闭 backup 诱饵')
+  limited.kill('SIGTERM')
+
   const blocked = start(['--host', '0.0.0.0', '--port', '0', '--log', join(root, 'blocked.jsonl')])
   const exitCode = await new Promise((resolve) => blocked.on('exit', resolve))
   if (exitCode !== 2) throw new Error('公开监听未要求 --allow-public')
