@@ -29,8 +29,8 @@ const ctx = {
 }
 apply(ctx, { profile: 'all' })
 
-if (tools.size !== 47) {
-  throw new Error('工具数量不是 47：' + tools.size)
+if (tools.size !== 57) {
+  throw new Error('工具数量不是 57：' + tools.size)
 }
 for (const [name, definition] of tools) {
   if (definition.parameters.type !== 'object' || typeof definition.parameters.properties !== 'object') {
@@ -300,6 +300,40 @@ store.sql('UPDATE timeline SET detail = ? WHERE id = ?').run('tampered-detail', 
 const tampered = await call('blue_audit_verify', {})
 if (tampered.ok !== false || tampered.reason !== 'hash_mismatch') throw new Error('审计链没有发现篡改：' + JSON.stringify(tampered))
 store.sql('UPDATE timeline SET detail = ? WHERE id = ?').run(timelineRow.detail, timelineRow.id)
+const telemetryPath = fileURLToPath(new URL('../.tmp/tools-test/telemetry.jsonl', import.meta.url))
+writeFileSync(telemetryPath, JSON.stringify({ at: '2026-11-13T19:04:00+08:00', remote: '127.0.0.1', method: 'GET', path: '/admin', status: 403, guard: 'test' }) + '\n')
+const telemetrySource = await call('blue_telemetry_source_add', { name: 'test-jsonl', path: telemetryPath })
+if (!telemetrySource.ok) throw new Error('遥测源登记失败')
+const telemetryPoll = await call('blue_telemetry_poll', { name: 'test-jsonl' })
+if (!telemetryPoll.ok || telemetryPoll.results[0].inserted !== 1) throw new Error('遥测轮询失败：' + JSON.stringify(telemetryPoll))
+const telemetryHealth = await call('blue_telemetry_health', {})
+if (!telemetryHealth.sources.some((source) => source.name === 'test-jsonl' && source.alerts_total === 1)) throw new Error('遥测健康数据异常')
+const controls = await call('blue_control_scan', {})
+if (!controls.ok || controls.rows.length === 0 || typeof controls.score !== 'number') throw new Error('控制验证失败：' + JSON.stringify(controls))
+const controlList = await call('blue_control_list', {})
+if (!controlList.ok || controlList.rows.length === 0) throw new Error('控制列表失败')
+const anchor = await call('blue_audit_anchor', { actor: 'test' })
+if (!anchor.ok || !anchor.anchor.id) throw new Error('审计锚定失败')
+const anchorVerify = await call('blue_audit_anchor_verify', {})
+if (!anchorVerify.ok || !anchorVerify.anchored) throw new Error('审计锚验证失败：' + JSON.stringify(anchorVerify))
+const anchorTamperRow = store.sql('SELECT id, detail FROM timeline WHERE action <> ? ORDER BY rowid LIMIT 1').get('audit_anchor')
+store.sql('UPDATE timeline SET detail = ? WHERE id = ?').run('anchor-tamper', anchorTamperRow.id)
+const anchorBroken = await call('blue_audit_anchor_verify', {})
+if (anchorBroken.ok !== false || anchorBroken.reason !== 'chain_broken') throw new Error('锚定没有发现链篡改：' + JSON.stringify(anchorBroken))
+store.sql('UPDATE timeline SET detail = ? WHERE id = ?').run(anchorTamperRow.detail, anchorTamperRow.id)
+const controlsAfterAnchor = await call('blue_control_scan', {})
+if (!controlsAfterAnchor.rows.some((row) => row.control_key === 'audit_anchor' && row.status === 'pass')) throw new Error('控制扫描没有识别审计锚')
+const response = await call('blue_response_plan', { action: 'isolate_host', target: '10.0.0.5', rollback: '解除隔离' })
+if (!response.ok || response.task.status !== 'pending_approval') throw new Error('响应计划没有进入待审批')
+const premature = await call('blue_response_update', { id: response.action.id, status: 'applied', evidence: 'test' })
+if (premature.ok !== false) throw new Error('未审批响应被标记已执行')
+await call('blue_task_approve', { task_id: response.task.id, actor: 'tester', note: 'test approve' })
+const applied = await call('blue_response_update', { id: response.action.id, status: 'applied', evidence: '人工执行完成' })
+if (!applied.ok || applied.response.status !== 'applied') throw new Error('响应执行回填失败')
+const rolled = await call('blue_response_update', { id: response.action.id, status: 'rolled_back', evidence: '已解除' })
+if (!rolled.ok || rolled.response.status !== 'rolled_back') throw new Error('响应回滚失败')
+const responseList = await call('blue_response_list', {})
+if (!responseList.ok || responseList.responses.length === 0) throw new Error('响应列表失败')
 const badDecision = await call('blue_decision_add', { incident_id: 'INC-NOT-FOUND', decision: 'test' })
 if (badDecision.ok !== false) throw new Error('决策未校验关联案件')
 const incident2 = await call('blue_incident_open', { title: '关闭状态测试', severity: 'low' })
@@ -450,7 +484,7 @@ for (const profile of ['monitor', 'intel', 'hunt', 'ir', 'forensics', 'hardening
     get() { return undefined },
     logger: { info() {}, warn() {}, error() {} },
   }, { profile })
-  if (scoped.size === 0 || scoped.size >= 47) throw new Error(profile + ' 工具裁剪异常：' + scoped.size)
+  if (scoped.size === 0 || scoped.size >= 57) throw new Error(profile + ' 工具裁剪异常：' + scoped.size)
   if (!scoped.has('blue_task_update')) throw new Error(profile + ' 缺少任务回收工具')
   if (scoped.has('blue_autopilot')) throw new Error(profile + ' 不应拥有派发器')
   if (scoped.has('blue_task_approve')) throw new Error(profile + ' 不应拥有审批权')

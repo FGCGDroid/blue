@@ -1,6 +1,6 @@
 {
   "name": "dsh-blue-team-mode",
-  "version": "2.0.0-beta.13",
+  "version": "2.0.0-beta.14",
   "description": "CTF 网络攻防蓝队防御模式：资产盘点、告警研判、威胁狩猎、应急响应、取证分析与加固修复，内置 SQLite 事实库、独立右侧栏控制台与自主任务派发队列。",
   "license": "MIT",
   "author": "FGCGDroid",

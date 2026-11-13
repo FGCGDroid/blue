@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.0.0-beta.14 — 2026-11-13（本地试用，未发布）
+
+### Added
+
+- 文件型遥测接入：`blue_telemetry_source_add/poll/health`，按完整行 cursor 增量读取，overview 自动轮询 active 源。
+- 防线控制验证：`blue_control_scan/list`，检查审计链、审批闸、遥测健康、诱饵在线、审计锚定。
+- 审计链外部锚定：本机 Ed25519 签名链头，`blue_audit_anchor` / `blue_audit_anchor_verify`。
+- 受控响应台账：`blue_response_plan/update/list`，只生成高风险待审批任务和回滚方案，不执行命令。
+- 控制台新增「防线」页签：控制分、遥测源、响应动作。
+
+### Notes
+
+- 锚定不是外部公证；响应动作仍由人工执行。
+- 仍是本地 beta，没有发布 npm 或市场。
+
 ## 2.0.0-beta.13 — 2026-11-13（本地试用，未发布）
 
 ### Added
