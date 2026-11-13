@@ -12,7 +12,7 @@
 
 **45 个 `blue_*` 工具 · 19 个随 npm 包技能 · 6 个执行角色 · 10 个控制台页签 · 12 张事实库表**
 
-> 🧪 当前源码是 `2.0.0-beta.4` 本地试用版，**没有发布到 npm / 市场**。  
+> 🧪 当前源码是 `2.0.0-beta.5` 本地试用版，**没有发布到 npm / 市场**。  
 > 正式安装仍用 `1.5.0`；2.0 用本地 tarball 装。
 
 ---
@@ -219,6 +219,7 @@ $DSH_HOME/blue/
 - 问题反馈：[Issues](https://github.com/FGCGDroid/blue/issues)
 - 开发说明：[docs/development.md](docs/development.md)
 - 内联防御边界：[docs/inline-defense.md](docs/inline-defense.md)
+- 防守回归测试：[docs/defense-regression.md](docs/defense-regression.md)
 - 蓝队开源项目调研：[docs/blue-team-repos.md](docs/blue-team-repos.md)
 
 发版流程、测试命令和目录结构见开发说明。

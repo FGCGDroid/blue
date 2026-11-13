@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.0.0-beta.5 — 2026-11-13（本地试用，未发布）
+
+### Added
+
+- 新增 `scripts/test-ctf-defense.mjs`：本地 ctf-lab 防守回归测试，验证 M05/M06/M12/M16，只发 GET、只允许回环地址。
+- `npm run test:ctf-defense` 可输出 PASS/FAIL 矩阵。
+
+### Notes
+
+- 仍是本地 beta，没有发布 npm 或市场。
+
 ## 2.0.0-beta.4 — 2026-11-13（本地试用，未发布）
 
 ### Added
