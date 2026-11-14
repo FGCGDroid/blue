@@ -27,7 +27,7 @@ last_error: ""
 - 遥测只生成告警，不执行日志里的内容。
 - 通用 200 事件是 low；401/403/5xx/guard 命中才升级。
 
-## 24 小时 soak
+## 24 小时 soak（可暂停/恢复）
 
 脚本：
 
@@ -52,27 +52,65 @@ SQLite integrity_check
 不重启服务
 ```
 
-命令：
+### 双击继续
 
-```bash
-node scripts/soak.mjs --hours 24 --interval 60 \
-  --out "$DSH_HOME/blue/soak-beta31.jsonl"
-```
-
-短跑验收：
+直接双击：
 
 ```text
-2 个采样点
-integrity: ok
-timeline_ok: true
-sources: ctf-lab-access read=0 inserted=0
+scripts/soak-24h.cmd
 ```
 
-24 小时任务已后台启动；结果文件：
+行为：
+
+- 第一次运行从 0 开始。
+- 中途关闭窗口、退出 DSH、关机都可以。
+- 下次再双击，从上次完成时间继续。
+- 已完成 24h 后再点只会显示“已完成”，不会重复跑。
+- 查看进度双击：
+
+```text
+scripts/soak-24h-status.cmd
+```
+
+状态文件：
+
+```text
+$DSH_HOME/blue/soak-beta31.state.json
+```
+
+报告：
 
 ```text
 $DSH_HOME/blue/soak-beta31.jsonl
 ```
+
+控制台会显示：
+
+```text
+完成 Xh / 24h
+剩余 Yh
+进度 Z%
+采样 N
+状态 running/paused/completed
+```
+
+### 命令行
+
+```bash
+node scripts/soak.mjs --hours 24 --interval 60
+node scripts/soak.mjs --status
+node scripts/soak.mjs --reset
+```
+
+### 已完成进度
+
+之前旧版脚本已累计约 3 分钟采样；新脚本会从报告尾部推断 `elapsed_sec`，不会把已有进度清零。
+
+### 注意
+
+- 进度按“实际跑过的采样时间”累计，不把关机时间算进去。
+- 如果进程被强杀，最多丢失最后一个未落盘的采样周期。
+- 24h 未跑完前，2.0 仍不能叫正式版。
 
 ## 迁移 / 回滚演练
 
