@@ -3,7 +3,7 @@
  *
  * 运行：node scripts/test-tools.mjs
  */
-import { appendFileSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { appendFileSync, existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { apply } from '../lib/tools.js'
 import { BlueStore } from '../lib/store.js'
@@ -413,6 +413,12 @@ const synced = await call('blue_decoy_sync', { path: decoyEventsPath, authorized
 if (!synced.ok || synced.created !== 1 || synced.inserted !== 1) throw new Error('诱饵事件同步失败：' + JSON.stringify(synced))
 const syncedAgain = await call('blue_decoy_sync', { path: decoyEventsPath, authorized: true })
 if (syncedAgain.inserted !== 0 || syncedAgain.duplicates !== 1) throw new Error('诱饵事件未去重')
+const missingDecoyEvents = fileURLToPath(new URL('../.tmp/tools-test/missing-decoy-events.jsonl', import.meta.url))
+rmSync(missingDecoyEvents, { force: true })
+const missingSync = await call('blue_decoy_sync', { path: missingDecoyEvents, authorized: true })
+if (!missingSync.ok || missingSync.missing !== true || missingSync.read !== 0) throw new Error('缺失诱饵日志未按空文件处理：' + JSON.stringify(missingSync))
+if (!existsSync(missingDecoyEvents)) throw new Error('缺失诱饵日志没有创建占位文件')
+rmSync(missingDecoyEvents, { force: true })
 
 const tarpit = await call('blue_tarpit_plan', { ban_days: 7 })
 if (!tarpit.ok || !tarpit.fail2ban.jail.includes('bantime = 7d')) throw new Error('焦油坑方案不完整')
