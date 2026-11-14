@@ -29,8 +29,8 @@ const ctx = {
 }
 apply(ctx, { profile: 'all' })
 
-if (tools.size !== 64) {
-  throw new Error('工具数量不是 64：' + tools.size)
+if (tools.size !== 66) {
+  throw new Error('工具数量不是 66：' + tools.size)
 }
 for (const [name, definition] of tools) {
   if (definition.parameters.type !== 'object' || typeof definition.parameters.properties !== 'object') {
@@ -334,6 +334,16 @@ const cveCrlf = await call('blue_cve_scan', { text: 'POST /forgot password=%0d%0
 if (!cveCrlf.matched || !cveCrlf.hits.some((hit) => hit.cve === 'CVE-2026-48019')) throw new Error('CVE CRLF 特征未命中')
 const cveSqli = await call('blue_cve_scan', { text: 'GET /api?q=1 union select password from users' })
 if (!cveSqli.matched || !cveSqli.hits.some((hit) => hit.cve === 'CVE-2026-93952')) throw new Error('CVE SQLi 特征未命中')
+await call('blue_asset_add', { name: 'php-api', address: '10.10.0.77', service: 'PHP 8.1-FPM', criticality: 'high', tags: ['product:PHP', 'version:8.1'] })
+const cvePlan = await call('blue_cve_campaign', { create: false })
+if (!cvePlan.ok || cvePlan.planned.length < 1) throw new Error('CVE 任务计划为空')
+const cveCreated = await call('blue_cve_campaign', { create: true })
+if (!cveCreated.ok || cveCreated.created.length < 1) throw new Error('CVE 任务创建失败')
+const cveAgain = await call('blue_cve_campaign', { create: true })
+if (!cveAgain.ok || !cveAgain.skipped.some((item) => item.reason === 'duplicate')) throw new Error('CVE 任务未去重')
+const riskGraph = await call('blue_risk_graph', {})
+if (!riskGraph.ok || riskGraph.summary.assets < 1 || riskGraph.cves.length < 1) throw new Error('风险图谱数据为空')
+if (!riskGraph.assets.some((asset) => asset.risk > 0 && asset.cve_ids.length > 0)) throw new Error('风险图谱未关联 CVE')
 
 const anchorTamperRow = store.sql('SELECT id, detail FROM timeline WHERE action <> ? ORDER BY rowid LIMIT 1').get('audit_anchor')
 store.sql('UPDATE timeline SET detail = ? WHERE id = ?').run('anchor-tamper', anchorTamperRow.id)
@@ -518,7 +528,7 @@ for (const profile of ['monitor', 'intel', 'hunt', 'ir', 'forensics', 'hardening
     get() { return undefined },
     logger: { info() {}, warn() {}, error() {} },
   }, { profile })
-  if (scoped.size === 0 || scoped.size >= 64) throw new Error(profile + ' 工具裁剪异常：' + scoped.size)
+  if (scoped.size === 0 || scoped.size >= 66) throw new Error(profile + ' 工具裁剪异常：' + scoped.size)
   if (!scoped.has('blue_task_update')) throw new Error(profile + ' 缺少任务回收工具')
   if (scoped.has('blue_autopilot')) throw new Error(profile + ' 不应拥有派发器')
   if (scoped.has('blue_task_approve')) throw new Error(profile + ' 不应拥有审批权')
