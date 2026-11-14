@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.0-beta.28 — 2026-11-14（本地试用，未发布）
+
+### Docs
+
+- 新增 `docs/operational-red-lines.md`，固化三条已踩红线：诱饵 planned/active 不一致、假 flag 误报、2MB 同进程压测打崩 DSH。
+- AGENTS.md、欺骗防御技能和 README 同步红线。
+
 ## 2.0.0-beta.27 — 2026-11-14（本地试用，未发布）
 
 ### Added
