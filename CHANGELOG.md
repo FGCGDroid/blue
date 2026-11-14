@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.0-beta.30 — 2026-11-14（本地试用，未发布）
+
+### Fixed
+
+- CVE 扫描误报：BeyondTrust 规则不再匹配通用 `/api/admin`；NetScaler 规则要求上下文中出现产品名。
+- 增加告警顶层字段契约回归：`title/severity/source` 必须写入，不再静默变成“未命名告警”。
+
+### Tests
+
+- 通用 admin/api 文本不命中 BeyondTrust。
+- `blue_alert_ingest` 顶层 title/severity 契约通过。
+
 ## 2.0.0-beta.29 — 2026-11-14（本地试用，未发布）
 
 ### Docs

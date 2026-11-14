@@ -332,6 +332,12 @@ const cveCrlf = await call('blue_cve_scan', { text: 'POST /forgot password=%0d%0
 if (!cveCrlf.matched || !cveCrlf.hits.some((hit) => hit.cve === 'CVE-2026-48019')) throw new Error('CVE CRLF 特征未命中')
 const cveSqli = await call('blue_cve_scan', { text: 'GET /api?q=1 union select password from users' })
 if (!cveSqli.matched || !cveSqli.hits.some((hit) => hit.cve === 'CVE-2026-93952')) throw new Error('CVE SQLi 特征未命中')
+const cveNoise = await call('blue_cve_scan', { text: 'GET /api/admin HTTP/1.1' })
+if (cveNoise.hits.some((hit) => hit.cve === 'CVE-2026-102764')) throw new Error('通用 api/admin 不应命中 BeyondTrust')
+const contractAlert = await call('blue_alert_ingest', {
+  title: '顶层标题契约', severity: 'low', source: 'contract-test', raw: '{"event":"contract"}',
+})
+if (!contractAlert.ok || contractAlert.alerts[0].title !== '顶层标题契约' || contractAlert.alerts[0].severity !== 'low') throw new Error('告警顶层字段契约失败')
 await call('blue_asset_add', { name: 'php-api', address: '10.10.0.77', service: 'PHP 8.1-FPM', criticality: 'high', tags: ['product:PHP', 'version:8.1'] })
 const cvePlan = await call('blue_cve_campaign', { create: false })
 if (!cvePlan.ok || cvePlan.planned.length < 1) throw new Error('CVE 任务计划为空')
