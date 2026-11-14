@@ -37,7 +37,7 @@ dsh plugin --profile desktop add dsh-blue-team-mode
 
 **环境准备**：本插件不提供 nmap、tshark、suricata、zeek、yara、volatility、fail2ban 等外部工具的下载或安装；运行 `blue_preflight` 查看缺什么，工具由你自行准备。
 
-> 前置：DSH 能正常 `dsh web` 启动；Node.js ≥ 22.13（依赖内置 `node:sqlite`）。
+> 前置：DSH 能正常 `dsh web` 启动；Node.js ≥ 22.13（依赖内置 `node:sqlite`）。DSH 最低 `0.2.1-rc.1`，详见 `docs/compatibility.md`。
 > 建议跑在专用的演练机、Docker 或虚拟机里，不要直接跑在存有生产密钥的宿主机账户下。
 
 <details>
@@ -47,7 +47,7 @@ dsh plugin --profile desktop add dsh-blue-team-mode
 
 ```sh
 dsh plugin --profile desktop add \
-  https://github.com/FGCGDroid/blue/releases/download/v1.5.2/dsh-blue-team-mode-1.5.2.tgz
+  https://github.com/FGCGDroid/blue/releases/download/v1.5.3/dsh-blue-team-mode-1.5.3.tgz
 # 装完重启一次 dsh web
 ```
 
@@ -55,7 +55,7 @@ dsh plugin --profile desktop add \
 
 ```sh
 npm pack --pack-destination dist
-dsh plugin --profile desktop add ./dist/dsh-blue-team-mode-1.5.2.tgz
+dsh plugin --profile desktop add ./dist/dsh-blue-team-mode-1.5.3.tgz
 ```
 
 **从源码目录安装**：

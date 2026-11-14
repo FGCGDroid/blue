@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.5.3 — 2026-11-14
+
+### Changed
+
+- `engines.dsh` 从 `>=0.2.1-rc.5` 下调到 `>=0.2.1-rc.1`，覆盖 0.2.1 的早期 rc。
+- 新增 `docs/compatibility.md`，说明 DSH/Node 支持范围。
+- README 的 Release / 本地 tarball 版本号更新为 `1.5.3`。
+- 仅配置与文档变更，无运行时行为变更。
+
 ## 1.5.2 — 2026-11-13
 
 ### Docs
