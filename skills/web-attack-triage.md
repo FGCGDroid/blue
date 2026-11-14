@@ -46,5 +46,11 @@ enabled: true
 - 成功：响应包含文件内容、日志出现敏感路径。
 - 处置：规范化路径、白名单、禁用危险 wrapper。
 
+## HTTP 请求走私（CL+TE）
+- 特征：同时出现 `Content-Length` 和 `Transfer-Encoding`、重复长度头、`Transfer-Encoding: chunked` 与其他编码混用。
+- 风险：网关挂起、keep-alive 串包、前端放行后端按另一段解析；先把可用性当第一优先级。
+- 测试：只对隔离副本用原始 TCP，单请求、`Connection: close`、2–3 秒超时，超时立即停；不要对无重启能力的 live 目标并发测试。
+- 修复：网关直接拒绝歧义头、统一解析器、硬超时、worker 隔离。详见 `docs/request-smuggling.md`。
+
 ## 落库
 `blue_log_scan` 初筛 → `blue_finding_add` 记录（含原始请求/响应）→ 需要处置建 `ir` 任务。

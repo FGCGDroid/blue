@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.0.0-beta.27 — 2026-11-14（本地试用，未发布）
+
+### Added
+
+- 内联网关增加请求走私防线：拒绝 CL+TE、重复 Content-Length/Transfer-Encoding、非数字 Content-Length、非 chunked TE。
+- 网关设置 headersTimeout/requestTimeout/keepAliveTimeout，clientError 统一 400 关闭。
+- 新增 `docs/request-smuggling.md` 与 Web 研判技能章节：隔离副本、单请求、超时即停，不 live 打无重启目标。
+
+### Notes
+
+- 没有对 65288 做 CL+TE live 测试；当前端口也未监听。
+- 没有副本时记录 `blocked_by_availability`，不伪造成“已测试安全”。
+
 ## 2.0.0-beta.26 — 2026-11-14（本地试用，未发布）
 
 ### Fixed

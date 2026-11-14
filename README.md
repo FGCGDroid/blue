@@ -12,7 +12,7 @@
 
 **66 个 `blue_*` 工具 · 19 个随 npm 包技能 · 6 个执行角色 · 12 个控制台页签 · 17 张事实库表**
 
-> 🧪 当前源码是 `2.0.0-beta.26` 本地试用版，**没有发布到 npm / 市场**。  
+> 🧪 当前源码是 `2.0.0-beta.27` 本地试用版，**没有发布到 npm / 市场**。  
 > 正式安装仍用 `1.5.3`；2.0 用本地 tarball 装。  
 > DSH 兼容：最低 `0.2.1-rc.1`，当前验证 `0.2.2-rc.3`；详见 `docs/compatibility.md`。
 
@@ -110,6 +110,7 @@ dsh plugin --profile desktop add .
 - **欺骗防御（可选）**：金丝雀文件/URL、假管理入口、假凭据、低交互 tarpit；登记诱饵、记录命中、生成 `deception` 告警。诱饵默认自动过期（24–168 小时），但真实部署仍需人工下线。
 - **蜜罐 / 焦油坑（可选）**：`blue_tarpit_plan` 生成 Endlessh、Nginx 假路径、有界慢响应和 fail2ban 7 天 jail 配置；`blue_honeypot_ingest` 把命中转成告警和待审批封禁任务。插件不直接调用 `iptables` / `nft` / `fail2ban-client`。
 - **可选诱饵程序**：包内自带手动启动的 HTTP 诱饵，默认只监听 `127.0.0.1`，公开监听必须显式 `--allow-public`；提供 `generic/tomcat/thinkphp/wordpress` 静态主题；不执行命令、不抓指纹、不做无限响应。
+- **请求走私防线**：内联网关直接拒绝 CL+TE、重复长度头、歧义 TE，并设置 headers/request/keep-alive 硬超时；测试策略见 `docs/request-smuggling.md`，不拿无重启能力的 live 目标做实验。
 - **攻击面图谱**：`blue_risk_graph` 把资产、CVE 匹配和未关闭发现关联成风险排序图；控制台「图谱」页签直接看对外资产、风险条和关联 CVE。
 - **2026 CVE 防御包**：`blue_cve_pack` 查看 Node.js/PHP/Laravel/Ivanti/NetScaler 等补丁动作，`blue_cve_scan` 做启发式日志匹配，`blue_cve_campaign` 按资产名/服务/tag 生成 hardening 核查任务；不包含利用代码，具体版本以厂商公告为准。
 - **证据包**：`blue_evidence_export` 导出事实库快照、审计链/锚点状态和 Ed25519 签名；`blue_evidence_verify` 校验 digest 与签名，敏感字段脱敏。
