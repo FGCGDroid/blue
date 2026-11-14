@@ -261,12 +261,10 @@ const decoy = await call('blue_decoy_create', {
   kind: 'canary_file', name: '工资表诱饵', target: '10.10.0.5', authorized: true,
 })
 if (!decoy.ok || !decoy.decoy.token || decoy.decoy.status !== 'planned') throw new Error('诱饵登记失败')
-const activeDecoy = await call('blue_decoy_update', { id: decoy.decoy.id, status: 'active', note: '已部署到测试资产' })
-if (!activeDecoy.ok || activeDecoy.decoy.status !== 'active') throw new Error('诱饵状态更新失败')
 const hit = await call('blue_decoy_hit', {
   decoy: decoy.decoy.id, source: '10.10.0.9', evidence: '读取 payroll_2026.xlsx',
 })
-if (!hit.ok || hit.decoy.hit_count !== 1 || hit.alert.source !== 'deception') throw new Error('诱饵命中未落库')
+if (!hit.ok || hit.decoy.hit_count !== 1 || hit.decoy.status !== 'active' || hit.alert.source !== 'deception') throw new Error('诱饵命中未落库或未自动激活')
 const decoys = await call('blue_decoy_list', {})
 if (decoys.decoys.length !== 1) throw new Error('诱饵列表异常')
 if (!decoys.decoys[0].expires_at) throw new Error('诱饵缺少 expires_at')
