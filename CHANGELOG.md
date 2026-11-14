@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.0.0-beta.22 — 2026-11-14（本地试用，未发布）
+
+### Added
+
+- 新增 2026 CVE 防御包：12 个条目，覆盖 Node.js Brotli、PHP2Shell、Symfony Mime CRLF、VeloCloud SQLi、AnyDesk、Ivanti、BeyondTrust、NetScaler。
+- `blue_cve_pack`：按 CVE/产品查询补丁动作和缓解措施。
+- `blue_cve_scan`：启发式日志特征扫描，返回命中 CVE 和片段，不写库。
+- 控制台「防线」页签新增 CVE 防御包表。
+
+### Notes
+
+- 条目按用户提供描述建模，未联网核验受影响版本和补丁号。
+- 扫描只作线索，不等同于已利用结论。
+
 ## 2.0.0-beta.21 — 2026-11-14（本地试用，未发布）
 
 ### Changed
