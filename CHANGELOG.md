@@ -1,5 +1,68 @@
 # Changelog
 
+## 2.0.0-beta.31 — 2026-11-14（本地试用，未发布）
+
+### Fixed
+
+- 创建 engagement 时自动把 scope 中的具体 host/URL 登记为资产，避免 `blue_risk_graph` 因 assets=0 显示空白。
+- CIDR 和通配符不自动冒充在线资产；仍需人工盘点。
+- 回归测试覆盖 `scope_assets` 与图谱资产来源。
+
+## 2.0.0-beta.30 — 2026-11-14（本地试用，未发布）
+
+### Fixed
+
+- CVE 扫描误报：BeyondTrust 规则不再匹配通用 `/api/admin`；NetScaler 规则要求上下文中出现产品名。
+- 增加告警顶层字段契约回归：`title/severity/source` 必须写入，不再静默变成“未命名告警”。
+
+### Tests
+
+- 通用 admin/api 文本不命中 BeyondTrust。
+- `blue_alert_ingest` 顶层 title/severity 契约通过。
+
+## 2.0.0-beta.29 — 2026-11-14（本地试用，未发布）
+
+### Docs
+
+- 红线补充「只检测不阻断不算防守」：jwt-none 全命中仍转发导致 flag 丢失，高置信规则必须有阻断路径或明确 `not_defended`。
+- 红线补充「证据必须独立」：`attempts=0`、自加工日志、正则命中原文、格式化输出都不能单独作为结论。
+- 红线补充「含中文源码不用 PowerShell 改编码；write/edit 后跑语法检查」。
+
+## 2.0.0-beta.28 — 2026-11-14（本地试用，未发布）
+
+### Docs
+
+- 新增 `docs/operational-red-lines.md`，固化三条已踩红线：诱饵 planned/active 不一致、假 flag 误报、2MB 同进程压测打崩 DSH。
+- AGENTS.md、欺骗防御技能和 README 同步红线。
+
+## 2.0.0-beta.27 — 2026-11-14（本地试用，未发布）
+
+### Added
+
+- 内联网关增加请求走私防线：拒绝 CL+TE、重复 Content-Length/Transfer-Encoding、非数字 Content-Length、非 chunked TE。
+- 网关设置 headersTimeout/requestTimeout/keepAliveTimeout，clientError 统一 400 关闭。
+- 新增 `docs/request-smuggling.md` 与 Web 研判技能章节：隔离副本、单请求、超时即停，不 live 打无重启目标。
+
+### Notes
+
+- 没有对 65288 做 CL+TE live 测试；当前端口也未监听。
+- 没有副本时记录 `blocked_by_availability`，不伪造成“已测试安全”。
+
+## 2.0.0-beta.26 — 2026-11-14（本地试用，未发布）
+
+### Fixed
+
+- 诱饵状态与实际运行不一致：有命中的 `planned` 诱饵在列表/命中时自动升级为 `active`。
+- 控制台诱饵表增加「标记运行」按钮，调用 `blue_decoy_update` 把真实已部署的 planned 改为 active。
+- 工具描述和欺骗防御技能明确：planned 只是“已登记”，真实部署后必须改 active。
+
+## 2.0.0-beta.25 — 2026-11-14（本地试用，未发布）
+
+### Fixed
+
+- 诱饵「同步事件」在 `decoy-events.jsonl` 不存在时不再抛 ENOENT：自动创建空文件并返回 `missing=true`，控制台显示等待提示。
+- 空文件同步返回 0 条，不再走异常路径。
+
 ## 2.0.0-beta.24 — 2026-11-14（本地试用，未发布）
 
 ### Added

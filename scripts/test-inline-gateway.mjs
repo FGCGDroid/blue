@@ -1,4 +1,5 @@
 import { createServer, request as httpRequest } from 'node:http'
+import { connect } from 'node:net'
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -47,6 +48,19 @@ function request(path, options = {}) {
   })
 }
 
+function rawRequest(raw) {
+  return new Promise((resolve, reject) => {
+    const socket = connect({ host: '127.0.0.1', port: gateway.port })
+    let response = ''
+    const timer = setTimeout(() => { socket.destroy(); reject(new Error('raw request timeout')) }, 2000)
+    socket.setEncoding('utf8')
+    socket.on('connect', () => socket.write(raw))
+    socket.on('data', (chunk) => { response += chunk })
+    socket.on('end', () => { clearTimeout(timer); resolve(response) })
+    socket.on('error', (error) => { clearTimeout(timer); reject(error) })
+  })
+}
+
 const forged = Buffer.from(JSON.stringify({ alg: 'none', typ: 'JWT' })).toString('base64url')
   + '.' + Buffer.from(JSON.stringify({ role: 'admin' })).toString('base64url') + '.'
 const valid = 'eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyIjoiZ3Vlc3QifQ.signature'
@@ -67,8 +81,10 @@ cases.push(['privilege', await request('/settings', {
   body: JSON.stringify({ role: 'admin' }),
 })])
 cases.push(['upstream', await request('/upstream')])
+cases.push(['cl-te', { status: Number((await rawRequest('POST /settings HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: 4\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n0\r\n\r\n')).slice(9, 12)) }])
+cases.push(['duplicate-cl', { status: Number((await rawRequest('POST /settings HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: 4\r\nContent-Length: 5\r\nConnection: close\r\n\r\nabcd')).slice(9, 12)) }])
 
-const expected = { normal: 200, path: 403, cookie: 403, jwt: 403, proto: 403, privilege: 403, upstream: 418 }
+const expected = { normal: 200, path: 403, cookie: 403, jwt: 403, proto: 403, privilege: 403, upstream: 418, 'cl-te': 400, 'duplicate-cl': 400 }
 for (const [name, response] of cases) {
   if (response.status !== expected[name]) throw new Error(`${name}: expected ${expected[name]}, got ${response.status}`)
 }

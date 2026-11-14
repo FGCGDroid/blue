@@ -3,7 +3,7 @@
  *
  * 运行：node scripts/test-tools.mjs
  */
-import { appendFileSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { appendFileSync, existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { apply } from '../lib/tools.js'
 import { BlueStore } from '../lib/store.js'
@@ -47,6 +47,7 @@ async function call(name, args = {}) {
 
 const opened = await call('blue_engagement_open', { name: '测试靶场', scope: ['10.10.0.0/24', '*.example.test', 'http://10.10.0.5:62430/'] })
 if (!opened.ok) throw new Error('engagement_open 失败')
+if (opened.scope_assets < 1) throw new Error('scope 资产未自动登记')
 const inScope = await call('blue_scope_check', { target: 'http://a.example.test/login' })
 const inScopePort = await call('blue_scope_check', { target: 'http://10.10.0.5:62430/admin' })
 const outScope = await call('blue_scope_check', { target: '203.0.113.9' })
@@ -245,7 +246,7 @@ const escapedReport = await call('blue_report', { write: true, path: '../escape.
 if (escapedReport.ok !== false) throw new Error('报告越界路径未被拒绝')
 
 const defense = await call('blue_defense_status', {})
-if (!defense.ok || defense.stats.assets !== 1) throw new Error('defense_status 失败')
+if (!defense.ok || defense.stats.assets < 1) throw new Error('defense_status 失败')
 
 const deceptionPlan = await call('blue_deception_plan', {})
 if (!deceptionPlan.ok || deceptionPlan.templates.length < 4) throw new Error('deception_plan 不完整')
@@ -261,12 +262,10 @@ const decoy = await call('blue_decoy_create', {
   kind: 'canary_file', name: '工资表诱饵', target: '10.10.0.5', authorized: true,
 })
 if (!decoy.ok || !decoy.decoy.token || decoy.decoy.status !== 'planned') throw new Error('诱饵登记失败')
-const activeDecoy = await call('blue_decoy_update', { id: decoy.decoy.id, status: 'active', note: '已部署到测试资产' })
-if (!activeDecoy.ok || activeDecoy.decoy.status !== 'active') throw new Error('诱饵状态更新失败')
 const hit = await call('blue_decoy_hit', {
   decoy: decoy.decoy.id, source: '10.10.0.9', evidence: '读取 payroll_2026.xlsx',
 })
-if (!hit.ok || hit.decoy.hit_count !== 1 || hit.alert.source !== 'deception') throw new Error('诱饵命中未落库')
+if (!hit.ok || hit.decoy.hit_count !== 1 || hit.decoy.status !== 'active' || hit.alert.source !== 'deception') throw new Error('诱饵命中未落库或未自动激活')
 const decoys = await call('blue_decoy_list', {})
 if (decoys.decoys.length !== 1) throw new Error('诱饵列表异常')
 if (!decoys.decoys[0].expires_at) throw new Error('诱饵缺少 expires_at')
@@ -334,6 +333,12 @@ const cveCrlf = await call('blue_cve_scan', { text: 'POST /forgot password=%0d%0
 if (!cveCrlf.matched || !cveCrlf.hits.some((hit) => hit.cve === 'CVE-2026-48019')) throw new Error('CVE CRLF 特征未命中')
 const cveSqli = await call('blue_cve_scan', { text: 'GET /api?q=1 union select password from users' })
 if (!cveSqli.matched || !cveSqli.hits.some((hit) => hit.cve === 'CVE-2026-93952')) throw new Error('CVE SQLi 特征未命中')
+const cveNoise = await call('blue_cve_scan', { text: 'GET /api/admin HTTP/1.1' })
+if (cveNoise.hits.some((hit) => hit.cve === 'CVE-2026-102764')) throw new Error('通用 api/admin 不应命中 BeyondTrust')
+const contractAlert = await call('blue_alert_ingest', {
+  title: '顶层标题契约', severity: 'low', source: 'contract-test', raw: '{"event":"contract"}',
+})
+if (!contractAlert.ok || contractAlert.alerts[0].title !== '顶层标题契约' || contractAlert.alerts[0].severity !== 'low') throw new Error('告警顶层字段契约失败')
 await call('blue_asset_add', { name: 'php-api', address: '10.10.0.77', service: 'PHP 8.1-FPM', criticality: 'high', tags: ['product:PHP', 'version:8.1'] })
 const cvePlan = await call('blue_cve_campaign', { create: false })
 if (!cvePlan.ok || cvePlan.planned.length < 1) throw new Error('CVE 任务计划为空')
@@ -413,6 +418,12 @@ const synced = await call('blue_decoy_sync', { path: decoyEventsPath, authorized
 if (!synced.ok || synced.created !== 1 || synced.inserted !== 1) throw new Error('诱饵事件同步失败：' + JSON.stringify(synced))
 const syncedAgain = await call('blue_decoy_sync', { path: decoyEventsPath, authorized: true })
 if (syncedAgain.inserted !== 0 || syncedAgain.duplicates !== 1) throw new Error('诱饵事件未去重')
+const missingDecoyEvents = fileURLToPath(new URL('../.tmp/tools-test/missing-decoy-events.jsonl', import.meta.url))
+rmSync(missingDecoyEvents, { force: true })
+const missingSync = await call('blue_decoy_sync', { path: missingDecoyEvents, authorized: true })
+if (!missingSync.ok || missingSync.missing !== true || missingSync.read !== 0) throw new Error('缺失诱饵日志未按空文件处理：' + JSON.stringify(missingSync))
+if (!existsSync(missingDecoyEvents)) throw new Error('缺失诱饵日志没有创建占位文件')
+rmSync(missingDecoyEvents, { force: true })
 
 const tarpit = await call('blue_tarpit_plan', { ban_days: 7 })
 if (!tarpit.ok || !tarpit.fail2ban.jail.includes('bantime = 7d')) throw new Error('焦油坑方案不完整')
