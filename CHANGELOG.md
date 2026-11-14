@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.0.0-beta.31 — 2026-11-14（本地试用，未发布）
+
+### Fixed
+
+- 创建 engagement 时自动把 scope 中的具体 host/URL 登记为资产，避免 `blue_risk_graph` 因 assets=0 显示空白。
+- CIDR 和通配符不自动冒充在线资产；仍需人工盘点。
+- 回归测试覆盖 `scope_assets` 与图谱资产来源。
+
 ## 2.0.0-beta.30 — 2026-11-14（本地试用，未发布）
 
 ### Fixed

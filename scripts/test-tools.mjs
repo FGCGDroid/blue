@@ -47,6 +47,7 @@ async function call(name, args = {}) {
 
 const opened = await call('blue_engagement_open', { name: '测试靶场', scope: ['10.10.0.0/24', '*.example.test', 'http://10.10.0.5:62430/'] })
 if (!opened.ok) throw new Error('engagement_open 失败')
+if (opened.scope_assets < 1) throw new Error('scope 资产未自动登记')
 const inScope = await call('blue_scope_check', { target: 'http://a.example.test/login' })
 const inScopePort = await call('blue_scope_check', { target: 'http://10.10.0.5:62430/admin' })
 const outScope = await call('blue_scope_check', { target: '203.0.113.9' })
@@ -245,7 +246,7 @@ const escapedReport = await call('blue_report', { write: true, path: '../escape.
 if (escapedReport.ok !== false) throw new Error('报告越界路径未被拒绝')
 
 const defense = await call('blue_defense_status', {})
-if (!defense.ok || defense.stats.assets !== 1) throw new Error('defense_status 失败')
+if (!defense.ok || defense.stats.assets < 1) throw new Error('defense_status 失败')
 
 const deceptionPlan = await call('blue_deception_plan', {})
 if (!deceptionPlan.ok || deceptionPlan.templates.length < 4) throw new Error('deception_plan 不完整')
