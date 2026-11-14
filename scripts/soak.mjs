@@ -84,8 +84,20 @@ function printProgress(state, last = null) {
     `进度 ${percent.toFixed(1)}%`,
     `采样 ${state.samples}`,
     `状态 ${state.status}`,
+    state.pid ? `pid=${state.pid}` : '',
     last ? `integrity=${last.integrity || 'unknown'} timeline=${last.timeline_ok === false ? 'broken' : 'ok'}` : '',
   ].filter(Boolean).join(' · '))
+}
+
+function pidAlive(pid) {
+  const value = Number(pid)
+  if (!Number.isInteger(value) || value <= 0) return false
+  try {
+    process.kill(value, 0)
+    return true
+  } catch (error) {
+    return error && error.code === 'EPERM'
+  }
 }
 
 const options = argsOf(process.argv.slice(2))
@@ -136,7 +148,14 @@ if (state.status === 'completed') {
   process.exit(0)
 }
 
+if (state.status === 'running' && state.pid && state.pid !== process.pid && pidAlive(state.pid)) {
+  printProgress(state)
+  console.log(JSON.stringify({ ok: true, already_running: true, pid: state.pid, state: statePath, report }))
+  process.exit(0)
+}
+
 state.status = 'running'
+state.pid = process.pid
 state.interval_sec = options.interval
 state.report = report
 state.updated_at = iso()
@@ -201,6 +220,7 @@ try {
   }
 } finally {
   if (state.status !== 'completed') state.status = 'paused'
+  state.pid = null
   state.updated_at = iso()
   writeJsonAtomic(statePath, state)
   store.close()

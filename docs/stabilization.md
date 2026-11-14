@@ -54,10 +54,16 @@ SQLite integrity_check
 
 ### 双击继续
 
-直接双击：
+桌面快捷方式：
 
 ```text
-scripts/soak-24h.cmd
+C:\Users\86186\Desktop\蓝队24h稳定性测试.lnk
+```
+
+或直接双击：
+
+```text
+scripts\soak-24h.cmd
 ```
 
 行为：
@@ -66,10 +72,11 @@ scripts/soak-24h.cmd
 - 中途关闭窗口、退出 DSH、关机都可以。
 - 下次再双击，从上次完成时间继续。
 - 已完成 24h 后再点只会显示“已完成”，不会重复跑。
+- 如果已有一个 soak 在跑，再点会提示 `already_running`，不会两个进程同时写。
 - 查看进度双击：
 
 ```text
-scripts/soak-24h-status.cmd
+scripts\soak-24h-status.cmd
 ```
 
 状态文件：
