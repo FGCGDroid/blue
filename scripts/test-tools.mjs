@@ -29,8 +29,8 @@ const ctx = {
 }
 apply(ctx, { profile: 'all' })
 
-if (tools.size !== 62) {
-  throw new Error('工具数量不是 62：' + tools.size)
+if (tools.size !== 64) {
+  throw new Error('工具数量不是 64：' + tools.size)
 }
 for (const [name, definition] of tools) {
   if (definition.parameters.type !== 'object' || typeof definition.parameters.properties !== 'object') {
@@ -328,6 +328,13 @@ const anchor = await call('blue_audit_anchor', { actor: 'test' })
 if (!anchor.ok || !anchor.anchor.id) throw new Error('审计锚定失败')
 const anchorVerify = await call('blue_audit_anchor_verify', {})
 if (!anchorVerify.ok || !anchorVerify.anchored) throw new Error('审计锚验证失败：' + JSON.stringify(anchorVerify))
+const cvePack = await call('blue_cve_pack', { product: 'PHP' })
+if (!cvePack.ok || cvePack.items.length < 3) throw new Error('CVE 防御包过滤失败')
+const cveCrlf = await call('blue_cve_scan', { text: 'POST /forgot password=%0d%0aBcc:attacker@example.test' })
+if (!cveCrlf.matched || !cveCrlf.hits.some((hit) => hit.cve === 'CVE-2026-48019')) throw new Error('CVE CRLF 特征未命中')
+const cveSqli = await call('blue_cve_scan', { text: 'GET /api?q=1 union select password from users' })
+if (!cveSqli.matched || !cveSqli.hits.some((hit) => hit.cve === 'CVE-2026-93952')) throw new Error('CVE SQLi 特征未命中')
+
 const anchorTamperRow = store.sql('SELECT id, detail FROM timeline WHERE action <> ? ORDER BY rowid LIMIT 1').get('audit_anchor')
 store.sql('UPDATE timeline SET detail = ? WHERE id = ?').run('anchor-tamper', anchorTamperRow.id)
 const anchorBroken = await call('blue_audit_anchor_verify', {})
@@ -511,7 +518,7 @@ for (const profile of ['monitor', 'intel', 'hunt', 'ir', 'forensics', 'hardening
     get() { return undefined },
     logger: { info() {}, warn() {}, error() {} },
   }, { profile })
-  if (scoped.size === 0 || scoped.size >= 62) throw new Error(profile + ' 工具裁剪异常：' + scoped.size)
+  if (scoped.size === 0 || scoped.size >= 64) throw new Error(profile + ' 工具裁剪异常：' + scoped.size)
   if (!scoped.has('blue_task_update')) throw new Error(profile + ' 缺少任务回收工具')
   if (scoped.has('blue_autopilot')) throw new Error(profile + ' 不应拥有派发器')
   if (scoped.has('blue_task_approve')) throw new Error(profile + ' 不应拥有审批权')
