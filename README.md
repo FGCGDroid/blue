@@ -241,6 +241,12 @@ $DSH_HOME/blue/
 - 内联防御边界：[docs/inline-defense.md](docs/inline-defense.md)
 - 防守回归测试：[docs/defense-regression.md](docs/defense-regression.md)
 - 蓝队开源项目调研：[docs/blue-team-repos.md](docs/blue-team-repos.md)
+- 维护策略：[MAINTENANCE.md](MAINTENANCE.md)
+- 交接手册：[HANDOFF.md](HANDOFF.md)
+- 架构说明：[docs/architecture.md](docs/architecture.md)
+- 发布流程：[docs/release.md](docs/release.md)
+- 已知问题：[docs/known-issues.md](docs/known-issues.md)
+- 贡献指南：[CONTRIBUTING.md](CONTRIBUTING.md)
 
 发版流程、测试命令和目录结构见开发说明。
 
