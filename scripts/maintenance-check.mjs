@@ -148,7 +148,7 @@ async function updateIssue() {
   if (!token || !repo) return { ok: false, error: 'GITHUB_TOKEN/GITHUB_REPOSITORY missing' }
   const api = `https://api.github.com/repos/${repo}`
   const headers = { authorization: `Bearer ${token}`, accept: 'application/vnd.github+json', 'user-agent': 'dsh-blue-maintenance', 'content-type': 'application/json' }
-  const title = '[maintenance] 每日巡检'
+  const title = '[maintenance] 每周巡检'
   const issues = await fetch(`${api}/issues?state=open&per_page=100`, { headers, signal: AbortSignal.timeout(15000) })
   if (!issues.ok) return { ok: false, error: `list issues HTTP ${issues.status}` }
   const list = await issues.json()
