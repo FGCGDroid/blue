@@ -47,6 +47,7 @@
     "validate": "node scripts/validate.mjs",
     "check": "node scripts/check-compliance.mjs --selftest",
     "hooks": "node scripts/install-hooks.mjs",
+    "maintenance": "node scripts/maintenance-check.mjs --full",
     "test:decoy": "node scripts/test-decoy-server.mjs",
     "test:hunter": "node scripts/test-hunter.mjs",
     "test:ctf-defense": "node scripts/test-ctf-defense.mjs",
