@@ -54,7 +54,7 @@
     "test:migration": "node scripts/test-migration.mjs",
     "test:compat": "node scripts/test-compat.mjs",
     "test:e2e": "node scripts/test-ui-e2e.mjs",
-    "test": "node scripts/test-tools.mjs && node scripts/test-ui.mjs && node scripts/test-hunter.mjs && node scripts/test-inline-gateway.mjs && node scripts/test-decoy-server.mjs && node scripts/test-migration.mjs && node scripts/test-compat.mjs",
+    "test": "node scripts/test-tools.mjs && node scripts/test-ui.mjs && node scripts/test-hunter.mjs && node scripts/test-inline-gateway.mjs && node scripts/test-decoy-server.mjs && node scripts/test-migration.mjs && node scripts/test-compat.mjs && node scripts/test-otlp.mjs",
     "prepack": "node scripts/build.mjs"
   },
   "bin": {

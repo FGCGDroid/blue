@@ -29,7 +29,9 @@ const ctx = {
   get(name) { return name === 'blueTeamMode' ? { version: '1.0.0', skills: 16, root } : undefined },
 }
 applyHost(ctx)
-if (routes.length !== 1 || routes[0].path !== '/blue/api') throw new Error('Host UI 路由未注册')
+if (routes.length !== 2 || !routes.some((route) => route.path === '/blue/api') || !routes.some((route) => route.path === '/blue/otlp/v1/logs')) {
+  throw new Error('Host UI 路由未注册')
+}
 
 function callApi(payload) {
   return new Promise((resolve, reject) => {
