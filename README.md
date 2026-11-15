@@ -219,3 +219,13 @@ $DSH_HOME/blue/
 面向**授权范围内**的防守：CTF 靶场、攻防演练、企业自检、教学研究。
 
 未获授权的扫描、探测、入侵或数据获取均属违法，与本项目作者无关。MIT，见 [LICENSE](LICENSE)。
+
+
+## 维护与交接
+
+- 维护策略：[MAINTENANCE.md](MAINTENANCE.md)
+- 交接手册：[HANDOFF.md](HANDOFF.md)
+- 架构说明：[docs/architecture.md](docs/architecture.md)
+- 发布流程：[docs/release.md](docs/release.md)
+- 已知问题：[docs/known-issues.md](docs/known-issues.md)
+- 贡献指南：[CONTRIBUTING.md](CONTRIBUTING.md)
