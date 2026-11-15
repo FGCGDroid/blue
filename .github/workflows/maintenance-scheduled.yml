@@ -1,0 +1,32 @@
+name: maintenance-scheduled
+
+on:
+  schedule:
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: automation/maintenance
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Maintenance check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node scripts/maintenance-check.mjs --full --issue --report maintenance-report.md
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maintenance-report
+          path: maintenance-report.md
