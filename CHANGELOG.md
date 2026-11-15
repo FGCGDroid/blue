@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.0-beta.32 — 2026-11-15（本地试用，未发布）
+
+### Added
+
+- OTLP/HTTP JSON 日志接收器：`/blue/otlp/v1/logs`，Bearer token 保护，按 service/severity 落告警并去重。
+- ctf-lab access.jsonl 可作为真实遥测源接入。
+
+### Tests
+
+- 新增 OTLP 解析/去重/token 测试。
+- 新增可恢复 24h soak 与 1.5.3 回滚演练脚本。
+
 ## 2.0.0-beta.31 — 2026-11-14（本地试用，未发布）
 
 ### Fixed
