@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.4 — 2026-11-15
+
+### Changed
+
+- 发布元数据与市场 listing 更新到 `1.5.4`。
+- README 的 GitHub Release / 本地 tarball 链接更新为 `1.5.4`。
+- 仅文档与版本元数据变更，无运行时行为变化。
+
 ## 1.5.3 — 2026-11-14
 
 ### Changed
