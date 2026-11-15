@@ -75,7 +75,7 @@ if (full) {
 const npm = await json('https://registry.npmjs.org/dsh-blue-team-mode/latest')
 const npmVersion = npm.ok ? String(npm.data.version || '') : ''
 add('npm-latest', npm.ok ? (npmVersion === packageJson.version ? 'ok' : 'warn') : 'unknown',
-  npm.ok ? `npm latest=${npmVersion} package=${packageJson.version}` : npm.error)
+  npm.ok ? `npm 最新版本=${npmVersion}，本地版本=${packageJson.version}` : npm.error)
 
 const catalog = await json('https://cdn.jsdelivr.net/npm/dsh-plugin-catalog/index.json?x=' + Date.now())
 let catalogItem = null
@@ -90,7 +90,7 @@ add('catalog', catalog.ok
   ? (catalogVersions.includes(packageJson.version) ? 'ok' : 'warn')
   : 'unknown',
   catalog.ok
-    ? `catalog=${catalogVersions.join(', ') || 'missing'} package=${packageJson.version}`
+    ? `市场目录=${catalogVersions.join(', ') || '缺失'}，本地版本=${packageJson.version}`
     : catalog.error)
 
 const soakPath = resolve(process.env.DSH_HOME || join(process.env.USERPROFILE || process.env.HOME || tmpdir(), '.dsh'), 'blue', 'soak-beta31.state.json')
@@ -100,7 +100,7 @@ if (existsSync(soakPath)) {
     const target = Number(soak.target_hours || 24)
     const done = Number(soak.elapsed_sec || 0) / 3600
     add('soak', soak.status === 'completed' ? 'ok' : 'warn',
-      `status=${soak.status} ${done.toFixed(2)}h/${target}h left=${Math.max(target - done, 0).toFixed(2)}h samples=${soak.samples} integrity=${soak.last_integrity} timeline=${soak.last_timeline_ok}`)
+      `状态=${soak.status === 'running' ? '运行中' : soak.status === 'completed' ? '已完成' : soak.status === 'paused' ? '已暂停' : soak.status}，已完成 ${done.toFixed(2)}h / ${target}h，剩余 ${Math.max(target - done, 0).toFixed(2)}h，采样 ${soak.samples}，数据库=${soak.last_integrity}，时间线=${soak.last_timeline_ok ? '正常' : '异常'}`)
   } catch (error) {
     add('soak', 'unknown', String(error.message || error))
   }
@@ -111,16 +111,33 @@ if (existsSync(soakPath)) {
 const failed = checks.filter((item) => item.status === 'fail')
 const warnings = checks.filter((item) => item.status === 'warn' || item.status === 'unknown')
 const overall = failed.length > 0 ? 'fail' : (warnings.length > 0 ? 'warn' : 'ok')
+const CHECK_LABELS = {
+  package: '版本',
+  node: 'Node 运行时',
+  'engines.dsh': 'DSH 兼容范围',
+  tests: '完整测试',
+  build: '构建',
+  validate: '校验',
+  compat: 'DSH 兼容测试',
+  'package-dry-run': '打包预检',
+  'npm-latest': 'npm 最新版本',
+  catalog: '市场目录',
+  soak: '24h soak',
+}
+const STATUS_LABELS = { ok: '正常', warn: '提醒', unknown: '未知', fail: '失败' }
+const OVERALL_LABELS = { ok: '正常', warn: '有提醒', fail: '失败' }
 const markdown = [
   '# 维护巡检',
   '',
-  `- 时间：${new Date().toISOString()}`,
+  `- 时间：${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}（北京时间）`,
   `- 版本：${packageJson.name}@${packageJson.version}`,
-  `- 总体：${overall}`,
+  `- 总体：${OVERALL_LABELS[overall] || overall}`,
   '',
-  '| 检查 | 状态 | 详情 |',
+  '| 检查项 | 状态 | 详情 |',
   '|---|---|---|',
-  ...checks.map((item) => `| ${item.id} | ${item.status} | ${String(item.detail).replace(/\|/g, '\\|')} |`),
+  ...checks.map((item) => `| ${CHECK_LABELS[item.id] || item.id} | ${STATUS_LABELS[item.status] || item.status} | ${String(item.detail).replace(/\|/g, '\\|')} |`),
+  '',
+  '> 说明：黄色“提醒”通常表示 beta 与稳定版不一致、市场目录重建延迟或 soak 未跑完，不一定是故障。',
   '',
 ].join('\n')
 writeFileSync(reportPath, markdown, 'utf8')
