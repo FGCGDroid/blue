@@ -2,7 +2,7 @@
 
 ## 它做什么
 
-每天自动检查：
+每周自动检查：
 
 ```text
 npm test
@@ -25,7 +25,7 @@ maintenance-report.json
 如果配置了 `GITHUB_TOKEN`，会创建/更新固定 issue：
 
 ```text
-[maintenance] 每日巡检
+[maintenance] 每周巡检
 ```
 
 ## 它不做什么
@@ -48,8 +48,8 @@ maintenance-report.json
 时间：
 
 ```text
-每天 01:00 UTC
-= 北京时间 09:00
+每周一 01:00 UTC
+= 北京时间周一 09:00
 ```
 
 也可以手动：
@@ -85,18 +85,18 @@ schtasks /Create /SC DAILY /ST 09:00 /TN "DSH Blue Maintenance" `
 
 ```text
 名称：DSH Blue Maintenance
-时间：每天 09:00
+时间：每周一 09:00
 模式：Interactive only（登录后运行）
 ```
 
 下次运行：
 
 ```text
-2026-11-16 09:00
+下一个周一 09:00
 ```
 
 GitHub workflow 的 `schedule` **只会在默认分支上触发**。  
-当前 workflow 在 `2.0-dev` 工作分支时，需要手动 `workflow_dispatch`；合并到默认分支后才会每天自动跑。
+当前 workflow 在 `2.0-dev` 工作分支时，需要手动 `workflow_dispatch`；合并到默认分支后才会每周自动跑。
 
 带 issue：
 

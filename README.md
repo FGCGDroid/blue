@@ -114,7 +114,7 @@ dsh plugin --profile desktop add .
 - **范围自动入库**：创建 engagement 时自动把 scope 中的具体主机登记为资产，避免“开了目标但图谱空白”；CIDR/通配符仍只作为范围，不冒充在线资产。
 - **请求走私防线**：内联网关直接拒绝 CL+TE、重复长度头、歧义 TE，并设置 headers/request/keep-alive 硬超时；测试策略见 `docs/request-smuggling.md`，不拿无重启能力的 live 目标做实验。
 - **OTLP/HTTP 日志接收器**：设置 `BLUE_OTLP_TOKEN` 后，`/blue/otlp/v1/logs` 接收 OTLP JSON，按 service/severity 落成告警；不支持 protobuf，详见 `docs/otel.md`。
-- **维护巡检**：`scripts/maintenance-check.mjs` 每天检查测试、构建、npm latest、catalog 和 soak；只报告/开 issue，不发布、不合并。见 `docs/maintenance-bot.md`。
+- **维护巡检**：`scripts/maintenance-check.mjs` 每周检查测试、构建、npm latest、catalog 和 soak；只报告/开 issue，不发布、不合并。见 `docs/maintenance-bot.md` 和 `MAINTENANCE.md`。
 - **攻击面图谱**：`blue_risk_graph` 把资产、CVE 匹配和未关闭发现关联成风险排序图；控制台「图谱」页签直接看对外资产、风险条和关联 CVE。
 - **2026 CVE 防御包**：`blue_cve_pack` 查看 Node.js/PHP/Laravel/Ivanti/NetScaler 等补丁动作，`blue_cve_scan` 做启发式日志匹配，`blue_cve_campaign` 按资产名/服务/tag 生成 hardening 核查任务；不包含利用代码，具体版本以厂商公告为准。
 - **证据包**：`blue_evidence_export` 导出事实库快照、审计链/锚点状态和 Ed25519 签名；`blue_evidence_verify` 校验 digest 与签名，敏感字段脱敏。
