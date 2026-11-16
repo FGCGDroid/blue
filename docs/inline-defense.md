@@ -1,0 +1,172 @@
+# 内联防御：为什么旁路代理防不住
+
+这不是插件功能问题，是部署拓扑问题。
+
+## 结论
+
+```text
+攻击者直连 63487
+代理监听 63488
+```
+
+这两个端口是平行关系。攻击者不走 63488，代理就看不到，也拦不住。
+
+**只要被防守服务仍然直接暴露，任何旁路代理都只是观测点，不是防线。**
+
+## 三种真正的内联方式
+
+### 1. 服务只绑回环，代理对外
+
+```text
+客户端 → 80/443 → 反向代理 → 127.0.0.1:63487
+```
+
+要求：
+
+- 服务监听改成 `127.0.0.1:63487`
+- 公网只开放代理端口
+- 主机防火墙只允许代理访问服务端口
+
+如果服务不能改监听，这一条不成立。
+
+### 2. 同端口接管
+
+```text
+客户端 → 63487 → 内联代理 → 127.0.0.1:其他端口
+```
+
+本质是端口重定向，不是另起一个 63488。  
+Windows 上可用：
+
+- 服务自身支持 `--listen`
+- 应用内中间件
+- 前置负载均衡/反向代理
+- `netsh interface portproxy`（需要端口空闲，且要管理员）
+
+如果原服务占着 63487，`netsh portproxy` 不能直接接管同一个监听。
+
+### 3. 服务内置中间件
+
+在应用里加：
+
+```text
+请求 → 认证/JWT 校验 → 访问日志 → 业务
+```
+
+这是最可靠的，因为不依赖外部端口和权限。  
+但它要求能改服务代码或配置。
+
+## 可选网关
+
+如果上游服务能改成只监听内网/回环，可以让网关对外：
+
+```powershell
+node scripts/inline-gateway.mjs `
+  --listen 127.0.0.1:63487 `
+  --upstream http://127.0.0.1:63488 `
+  --guard strict
+```
+
+它会：
+
+- 拒绝 `./`、`../`、`%2e`、`%2f`、`//`、`%00`
+- 拒绝重复 `token/session/auth` Cookie
+- 拒绝 JWT `alg=none`
+- 拒绝 JSON 里的 `__proto__` / `constructor` / `prototype`
+- 拒绝 `isAdmin` / `role` / `staff` 等权限字段
+- 写 `inline-gateway.jsonl`，不记录 body/Cookie
+- 403 只返回 `request blocked`
+
+默认只允许回环监听和回环上游；公开监听要显式 `--allow-public`。  
+它不会替你改端口，也不会自动把上游藏起来。
+
+## 访问日志
+
+没有访问日志，就没有时间线、没有源 IP、没有状态码、没有 UA。
+
+最低字段：
+
+```text
+remote, method, uri, status, user_agent, bytes, duration_ms, event_time
+```
+
+来源可以是：
+
+- 服务自身中间件
+- Nginx/Apache access log
+- 反向代理
+- WAF/EDR
+
+插件不能给一个“不落日志的内存服务”凭空补日志。  
+它能做的是接收、归一化、检测、落库。
+
+## 插件能做什么，不能做什么
+
+能做：
+
+- 接入访问日志/告警
+- 规则检测、IOC 匹配、案件归并
+- 生成处置任务
+- 记录决策和证据
+- 生成报告
+
+不能做：
+
+- 把 63488 的代理变成 63487 的必经路径
+- 在没有权限的 Windows 上改服务监听
+- 给同进程服务注入中间件
+- 替代 EDR/WAF/防火墙
+
+## 2.0 beta 已补的部分
+
+- `blue_scope_check` 支持 URL / `host:port` / CIDR
+- `blue_alert_ingest` 支持顶层字段和独立 `event_time`
+- 重复告警返回 `updated`，不再假报 `ingested`
+- 日志规则补 HTTP 401、JWT `alg=none`、`Process.Start`
+- `blue_log_scan` 支持 `custom_rules`
+- `blue_decoy_update` 支持 `planned → active`
+- 诱饵日志目录不可写时回退 workspace / `BLUE_LOG_DIR`
+- 新增可选 `scripts/inline-gateway.mjs`：同一入口做路径/Cookie/JWT/JSON 检查、写访问日志、再转发上游
+- ctf-lab 题目服务新增 `access.jsonl`，蓝队用 `blue_access_log_ingest` 消费
+- ctf-lab 可选 `CTF_LAB_GUARD=jwt-none` 或 `strict`，在服务中间件里直接阻断
+- `CTF_LAB_GUARD=strict` 还会阻断重复 `token` Cookie 和路径规范化绕过；403 不回显规则名
+
+ctf-lab 的访问日志默认在：
+
+```text
+$DSH_HOME/ctf-lab/access.jsonl
+```
+
+启用阻断：
+
+```powershell
+$env:CTF_LAB_GUARD = "strict"
+```
+
+也可以持久化到：
+
+```text
+$DSH_HOME\ctf-lab\guard.json
+```
+
+内容：
+
+```json
+{"mode":"strict"}
+```
+
+或在重启后调用 ctf-lab API：
+
+```json
+{"op":"guard","mode":"strict"}
+```
+
+不设置环境变量、也没有 guard.json 时，靶场保持原本的漏洞行为，方便做红队测试。
+
+仍然没有解决：
+
+- 服务不落日志
+- 服务与 DSH 同 PID、不能改监听
+- 旁路端口可绕过
+
+这三条只能在部署层解决。

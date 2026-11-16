@@ -10,7 +10,11 @@
 > 本仓库是蓝队编排、事实记录与辅助研判的工程实现，**不包含攻击、漏洞利用或未授权探测代码**。
 > 使用者必须自行确保对目标拥有书面授权，并遵守比赛规则与当地法律。
 
-**37 个 `blue_*` 工具 · 19 个随 npm 包技能 · 6 个执行角色 · 9 个控制台页签 · 10 张事实库表**
+**66 个 `blue_*` 工具 · 19 个随 npm 包技能 · 6 个执行角色 · 12 个控制台页签 · 17 张事实库表**
+
+> 🧪 当前源码是 `2.0.0-beta.32` 本地试用版，**没有发布到 npm / 市场**。  
+> 正式安装仍用 `1.5.3`；2.0 用本地 tarball 装。  
+> DSH 兼容：最低 `0.2.1-rc.1`，当前验证 `0.2.2-rc.3`；详见 `docs/compatibility.md`。
 
 ---
 
@@ -47,7 +51,7 @@ dsh plugin --profile desktop add dsh-blue-team-mode
 
 ```sh
 dsh plugin --profile desktop add \
-  https://github.com/FGCGDroid/blue/releases/download/v1.5.0/dsh-blue-team-mode-1.5.0.tgz
+  https://github.com/FGCGDroid/blue/releases/download/v1.5.2/dsh-blue-team-mode-1.5.2.tgz
 # 装完重启一次 dsh web
 ```
 
@@ -55,7 +59,7 @@ dsh plugin --profile desktop add \
 
 ```sh
 npm pack --pack-destination dist
-dsh plugin --profile desktop add ./dist/dsh-blue-team-mode-1.5.0.tgz
+dsh plugin --profile desktop add ./dist/dsh-blue-team-mode-1.5.2.tgz
 ```
 
 **从源码目录安装**：
@@ -99,16 +103,39 @@ dsh plugin --profile desktop add .
 - **开工前预检**：`blue_preflight` 检查本机工具链和 key，缺什么、能降级到什么方案，一次说清；不假装工具可用。
 - **风险闸**：高风险动作（隔离、封禁、删除、改防火墙、杀进程、重置凭据）进入 `pending_approval`，必须人工批准后才能派发；不会自动执行。
 - **自主派发**：`blue_autopilot` 生成候选任务、按并发名额领取、派给对应角色；子智能体回报后查库核对，再回收闭环。带轮次上限和冷却。
-- **右侧常驻控制台**：态势 / 告警 / 资产 / 发现 / 任务 / IOC / 诱饵 / 时间线 / 报告 九个页签，支持拖拽调宽和全屏浏览。
+- **右侧常驻控制台**：态势 / 案件 / 防线 / 图谱 / 告警 / 资产 / 发现 / 任务 / IOC / 诱饵 / 时间线 / 报告 十二个页签，支持拖拽调宽和全屏浏览；前台每 2 秒自动刷新，后台暂停。
 - **面板跟着会话走**：多会话并行时，左侧切到哪个会话，右侧就显示该会话绑定的防守目标；没绑定的会话回落到最近一个活跃目标。
 - **任务书**：每个任务带目标、已知事实、约束、验收标准和期望输出，统一由 TaskSpec 渲染，避免“让子智能体自己猜”。
 - **报告**：从事实库生成 Markdown，包含态势、关键资产、告警研判、脆弱性、IOC、任务与时间线；只允许写到 `$DSH_HOME/blue/reports/`。
 - **欺骗防御（可选）**：金丝雀文件/URL、假管理入口、假凭据、低交互 tarpit；登记诱饵、记录命中、生成 `deception` 告警。诱饵默认自动过期（24–168 小时），但真实部署仍需人工下线。
 - **蜜罐 / 焦油坑（可选）**：`blue_tarpit_plan` 生成 Endlessh、Nginx 假路径、有界慢响应和 fail2ban 7 天 jail 配置；`blue_honeypot_ingest` 把命中转成告警和待审批封禁任务。插件不直接调用 `iptables` / `nft` / `fail2ban-client`。
 - **可选诱饵程序**：包内自带手动启动的 HTTP 诱饵，默认只监听 `127.0.0.1`，公开监听必须显式 `--allow-public`；提供 `generic/tomcat/thinkphp/wordpress` 静态主题；不执行命令、不抓指纹、不做无限响应。
+- **运行红线**：诱饵部署后要写回 active、假 flag 不是泄露、禁止对 DSH 同进程目标做 2MB 压测；详见 `docs/operational-red-lines.md`。
+- **范围自动入库**：创建 engagement 时自动把 scope 中的具体主机登记为资产，避免“开了目标但图谱空白”；CIDR/通配符仍只作为范围，不冒充在线资产。
+- **请求走私防线**：内联网关直接拒绝 CL+TE、重复长度头、歧义 TE，并设置 headers/request/keep-alive 硬超时；测试策略见 `docs/request-smuggling.md`，不拿无重启能力的 live 目标做实验。
+- **OTLP/HTTP 日志接收器**：设置 `BLUE_OTLP_TOKEN` 后，`/blue/otlp/v1/logs` 接收 OTLP JSON，按 service/severity 落成告警；不支持 protobuf，详见 `docs/otel.md`。
+- **维护巡检**：`scripts/maintenance-check.mjs` 每周检查测试、构建、npm latest、catalog 和 soak；只报告/开 issue，不发布、不合并。见 `docs/maintenance-bot.md` 和 `MAINTENANCE.md`。
+- **攻击面图谱**：`blue_risk_graph` 把资产、CVE 匹配和未关闭发现关联成风险排序图；控制台「图谱」页签直接看对外资产、风险条和关联 CVE。
+- **2026 CVE 防御包**：`blue_cve_pack` 查看 Node.js/PHP/Laravel/Ivanti/NetScaler 等补丁动作，`blue_cve_scan` 做启发式日志匹配，`blue_cve_campaign` 按资产名/服务/tag 生成 hardening 核查任务；不包含利用代码，具体版本以厂商公告为准。
+- **证据包**：`blue_evidence_export` 导出事实库快照、审计链/锚点状态和 Ed25519 签名；`blue_evidence_verify` 校验 digest 与签名，敏感字段脱敏。
+- **低指纹诱饵**：按主题返回 Server / X-Powered-By / ETag / Last-Modified / Set-Cookie，补齐 favicon、robots、CSS 和登录后假面板；响应里不再写 `synthetic decoy` 这类自曝字符串。
+- **50579 式欺骗**：`/robots.txt` 返回死线索，`/flag` 返回 200 格式合法的假 flag，真路径 `/backup/flag.txt` 固定 403；保护表优先于诱饵表，并先规范化路径再匹配。
+- **诱饵可配置**：`--lures` 控制暴露哪些诱饵，`--token` 写入金丝雀标识，`--tls-cert/--tls-key` 可挂真实证书启用 HTTPS；页面构建号和资源版本随机化。
 - **自动化流量标注**：诱饵服务按来源 IP 维护 1 秒行为窗口，命中高频请求、路径扫描或工具 UA 时打上 `automation_burst` / `path_sweep` / `automation_tool` 标签；只做研判，不自动封禁。
+- **诱饵状态与日志回退**：`blue_decoy_update` 可把诱饵从 `planned` 更新为 `active`；`blue_decoy_sync` 把外部 JSONL 事件同步进事实库；默认日志目录不可写时回退到 workspace，也可用 `BLUE_LOG_DIR` 指定。
 - **执行摘要**：报告开头用事实库数字概括关键资产、未闭环高危告警、待审批任务和诱饵命中，方便直接发给人看。
-- **ATT&CK 覆盖映射**：`blue_attack_coverage` 把内置 13 条日志规则映射到技术和战术，标出未映射规则；明确说明这不是全量覆盖。
+- **案件与决策记录**：`blue_incident_*` 把多条告警/发现/任务归到同一案件；`blue_decision_*` 记录决策、理由、置信度和证据，方便复盘。
+- **接入字段可回退**：`blue_alert_ingest` 支持顶层 `title/severity/note`，并单独保存 `event_time`，重复投递返回 `updated` 而不是假 `ingested`。
+- **范围支持 URL / host:port**：`blue_scope_check` 同时识别 CIDR、`host:port` 和 URL，避免把真实目标误判为范围外。
+- **日志规则补齐**：增加 JWT `alg=none`、HTTP 401 登录失败、`Process.Start` 型 ASPX 马；支持 `custom_rules` 自定义字段规则。
+- **可选内联网关**：`scripts/inline-gateway.mjs` 在同一入口检查路径、重复 Cookie、JWT `alg=none`、原型污染和权限字段，写访问日志后再转发；不自动改端口。
+- **ctf-lab 访问日志接入**：ctf-lab 的题目服务会写 `access.jsonl`，`blue_access_log_ingest` 把 401/403/5xx/404 转成告警；设置 `CTF_LAB_GUARD=jwt-none` 或 `strict` 可启用内联阻断。
+- **Sigma-lite 检测**：`blue_detection_rule_add` 用 JSON selection + all/any 写规则，`blue_detection_scan` 扫描遥测源，遥测轮询会自动套用启用规则。
+- **遥测接入**：`blue_telemetry_source_add/poll/health` 增量读取 JSONL/access log，按 cursor 去重落告警，overview 自动轮询 active 源。
+- **防线控制验证**：`blue_control_scan` 检查审计链、审批闸、遥测源健康、诱饵在线和审计锚定，输出控制分。
+- **受控响应台账**：`blue_response_plan` 只生成高风险待审批任务和回滚方案，`blue_response_update` 回填执行/回滚证据，不执行命令。
+- **审计链**：时间线按 SHA-256 哈希链串联，`blue_audit_verify` 能发现事后改记录、插队或断链；只证明库内一致性，不是外部公证。
+- **ATT&CK 覆盖映射**：`blue_attack_coverage` 把内置 16 条日志规则映射到技术和战术，标出未映射规则；明确说明这不是全量覆盖。
 - **数据只在本机**：全部落在 `$DSH_HOME/blue/`，无遥测、无上报、无云端同步。
 
 ---
@@ -120,6 +147,9 @@ dsh plugin --profile desktop add .
 | 页签 | 内容 | 可执行操作 |
 | --- | --- | --- |
 | 态势 | 资产/告警/发现/IOC/任务统计、关键告警、任务队列 | 规划任务、刷新、调整并发、生成报告 |
+| 案件 | 级别、标题、状态、负责人、摘要 | 调查、控制、关闭 |
+| 防线 | 控制分、控制项、检测规则、CVE 防御包、遥测源、响应动作 | 验证防线、拉取遥测、生成 CVE 任务、导出证据 |
+| 图谱 | 资产风险分、对外/内部、关联 CVE、关联发现 | 按风险排序查看 |
 | 告警 | 级别、来源、状态、时间 | 确认、标误报、转处置任务 |
 | 资产 | 关键级别、地址、端口、服务、状态 | 新增/更新资产 |
 | 发现 | 严重级别、类型、状态 | 标记已修复、接受风险 |
@@ -208,7 +238,15 @@ $DSH_HOME/blue/
 - 安全问题：[SECURITY](SECURITY.md)
 - 问题反馈：[Issues](https://github.com/FGCGDroid/blue/issues)
 - 开发说明：[docs/development.md](docs/development.md)
+- 内联防御边界：[docs/inline-defense.md](docs/inline-defense.md)
+- 防守回归测试：[docs/defense-regression.md](docs/defense-regression.md)
 - 蓝队开源项目调研：[docs/blue-team-repos.md](docs/blue-team-repos.md)
+- 维护策略：[MAINTENANCE.md](MAINTENANCE.md)
+- 交接手册：[HANDOFF.md](HANDOFF.md)
+- 架构说明：[docs/architecture.md](docs/architecture.md)
+- 发布流程：[docs/release.md](docs/release.md)
+- 已知问题：[docs/known-issues.md](docs/known-issues.md)
+- 贡献指南：[CONTRIBUTING.md](CONTRIBUTING.md)
 
 发版流程、测试命令和目录结构见开发说明。
 
@@ -219,13 +257,3 @@ $DSH_HOME/blue/
 面向**授权范围内**的防守：CTF 靶场、攻防演练、企业自检、教学研究。
 
 未获授权的扫描、探测、入侵或数据获取均属违法，与本项目作者无关。MIT，见 [LICENSE](LICENSE)。
-
-
-## 维护与交接
-
-- 维护策略：[MAINTENANCE.md](MAINTENANCE.md)
-- 交接手册：[HANDOFF.md](HANDOFF.md)
-- 架构说明：[docs/architecture.md](docs/architecture.md)
-- 发布流程：[docs/release.md](docs/release.md)
-- 已知问题：[docs/known-issues.md](docs/known-issues.md)
-- 贡献指南：[CONTRIBUTING.md](CONTRIBUTING.md)
