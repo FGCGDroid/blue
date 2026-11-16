@@ -78,7 +78,7 @@ RedEye 的演示模式、VanGuard 的 HTML 报告都强调“给非技术人看�
 blue_attack_coverage
 ```
 
-它把内置 13 条日志规则映射到 ATT&CK 技术，输出：
+它把内置 16 条日志规则映射到 ATT&CK 技术，输出：
 
 - 覆盖了哪些技术
 - 每个战术下有多少技术

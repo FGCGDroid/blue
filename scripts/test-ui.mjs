@@ -4,7 +4,7 @@
  * 运行：node scripts/test-ui.mjs
  */
 import { PassThrough } from 'node:stream'
-import { rmSync } from 'node:fs'
+import { rmSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { BlueStore } from '../lib/store.js'
 import { apply as applyHost } from '../lib/ui.js'
@@ -29,7 +29,9 @@ const ctx = {
   get(name) { return name === 'blueTeamMode' ? { version: '1.0.0', skills: 16, root } : undefined },
 }
 applyHost(ctx)
-if (routes.length !== 1 || routes[0].path !== '/blue/api') throw new Error('Host UI 路由未注册')
+if (routes.length !== 2 || !routes.some((route) => route.path === '/blue/api') || !routes.some((route) => route.path === '/blue/otlp/v1/logs')) {
+  throw new Error('Host UI 路由未注册')
+}
 
 function callApi(payload) {
   return new Promise((resolve, reject) => {
@@ -54,6 +56,26 @@ if (overview.status !== 200 || !overview.body.ok || overview.body.engagement.nam
   throw new Error('overview 失败：' + JSON.stringify(overview.body))
 }
 if (overview.body.alerts.length !== 1 || overview.body.assets.length !== 1) throw new Error('overview 数据不完整')
+const uiIncident = store.addIncident(engagement.id, { title: '控制台案件', severity: 'high' })
+const updatedIncident = await callApi({ op: 'updateIncident', session: 'S1', incident: uiIncident.id, status: 'contained' })
+if (!updatedIncident.body.ok || updatedIncident.body.incident.status !== 'contained') throw new Error('updateIncident 失败')
+if (!updatedIncident.body.snapshot.incidents.some((item) => item.id === uiIncident.id && item.status === 'contained')) {
+  throw new Error('updateIncident 未刷新 snapshot')
+}
+const decoyLog = fileURLToPath(new URL('../.tmp/ui-test/decoy-events.jsonl', import.meta.url))
+writeFileSync(decoyLog, JSON.stringify({
+  at: '2026-11-13T19:03:00+08:00',
+  decoy: 'ui-decoy',
+  remote: '127.0.0.1',
+  method: 'GET',
+  path: '/admin',
+  status: 200,
+}) + '\n')
+const syncedDecoy = await callApi({ op: 'syncDecoys', session: 'S1', path: decoyLog, authorized: true })
+if (!syncedDecoy.body.ok || syncedDecoy.body.created !== 1 || syncedDecoy.body.inserted !== 1) {
+  throw new Error('syncDecoys 失败：' + JSON.stringify(syncedDecoy.body))
+}
+if (!syncedDecoy.body.snapshot.decoys.some((item) => item.name === 'ui-decoy')) throw new Error('syncDecoys 未刷新 snapshot')
 
 const opened = await callApi({ op: 'openEngagement', session: 'S1', name: '控制台测试二', scope: '10.0.0.0/24' })
 if (!opened.body.ok || opened.body.engagement.name !== '控制台测试二') throw new Error('openEngagement 失败')

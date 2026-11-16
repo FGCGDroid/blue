@@ -42,10 +42,26 @@ try {
   const admin = await fetch(base + '/admin')
   const adminText = await admin.text()
   if (admin.status !== 200 || !adminText.includes('Tomcat Manager')) throw new Error('假管理页失败')
+  if (!String(admin.headers.get('server') || '').includes('Apache-Coyote')) throw new Error('Tomcat 主题 Server 头不匹配')
+  if (adminText.includes('synthetic') || adminText.includes('decoy')) throw new Error('假管理页自曝诱饵')
 
   const git = await fetch(base + '/.git/config')
   const gitText = await git.text()
   if (git.status !== 200 || !gitText.includes('repositoryformatversion')) throw new Error('假 .git 失败')
+
+  const robots = await fetch(base + '/robots.txt')
+  const robotsText = await robots.text()
+  if (robots.status !== 200 || !robotsText.includes('/admin/') || robotsText.includes('/backup/')) throw new Error('robots 死线索异常')
+
+  const fakeFlag = await fetch(base + '/flag')
+  const fakeFlagText = await fakeFlag.text()
+  if (fakeFlag.status !== 200 || !/^flag\{[^}]+\}$/.test(fakeFlagText)) throw new Error('假 flag 格式异常')
+  const protectedFlag = await fetch(base + '/backup/flag.txt')
+  if (protectedFlag.status !== 403) throw new Error('真 flag 路径没有被保护')
+  for (const variant of ['/./flag', '/x/../flag', '/%66lag', '/fl%61g']) {
+    const normalized = await fetch(base + variant)
+    if (normalized.status !== 200 || (await normalized.text()) !== fakeFlagText) throw new Error('路径规范化漏了 ' + variant)
+  }
 
   const backup = await fetch(base + '/backup.sql')
   const backupText = await backup.text()
@@ -53,7 +69,7 @@ try {
 
   const shell = await fetch(base + '/shell.php')
   const shellText = await shell.text()
-  if (shell.status !== 200 || !shellText.includes('synthetic decoy') || shellText.includes('exec')) throw new Error('假 shell 不应执行')
+  if (shell.status !== 200 || shellText.includes('synthetic') || shellText.includes('exec')) throw new Error('假 shell 不应执行或自曝')
 
   await fetch(base + '/admin', {
     method: 'POST',
@@ -87,6 +103,15 @@ try {
 
   child.kill('SIGTERM')
   child = null
+
+  const limited = start(['--port', '0', '--log', join(root, 'limited.jsonl'), '--lures', 'admin,git', '--token', 'canary-test'])
+  const limitedBase = await waitForUrl(limited)
+  const limitedGit = await fetch(limitedBase + '/.git/config')
+  const limitedGitText = await limitedGit.text()
+  if (limitedGit.status !== 200 || !limitedGitText.includes('canary-test')) throw new Error('金丝雀标识未写入假 git')
+  const limitedBackup = await fetch(limitedBase + '/backup.sql')
+  if (limitedBackup.status !== 404) throw new Error('--lures 未关闭 backup 诱饵')
+  limited.kill('SIGTERM')
 
   const blocked = start(['--host', '0.0.0.0', '--port', '0', '--log', join(root, 'blocked.jsonl')])
   const exitCode = await new Promise((resolve) => blocked.on('exit', resolve))
