@@ -24,6 +24,16 @@
 
 ```text
 scripts/test-v3-hardening.mjs
+lab/scenarios/acceptance.mjs
+```
+
+本地靶场：
+
+```text
+lab/start.mjs                 一键起上游 + 网关
+lab/upstream/server.js        受保护后台、JWT none、echo、canary
+lab/gateway/start.js          3.0 网关
+lab/scenarios/acceptance.mjs  路径/内容/canary 验收
 ```
 
 覆盖：

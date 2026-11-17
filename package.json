@@ -55,6 +55,8 @@
     "test:v3:response": "node scripts/test-v3-response.mjs",
     "test:v3:anchor": "node scripts/test-v3-anchor.mjs",
     "rollback:v3": "node scripts/rollback-v3.mjs",
+    "lab": "node lab/start.mjs",
+    "test:lab": "node lab/scenarios/acceptance.mjs",
     "test:v3:path": "node scripts/test-v3-path.mjs",
     "test:v3:gateway": "node scripts/test-v3-gateway.mjs",
     "vectors": "node scripts/generate-vectors.mjs",

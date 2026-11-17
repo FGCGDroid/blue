@@ -87,6 +87,7 @@ v3/ui/*                  Host API 与 2.0 兼容视图（M4）
 ```bash
 npm.cmd run check:v3
 npm.cmd run test:v3
+npm.cmd run test:lab
 node scripts/parity.mjs --engine=2.0
 node v3/gateway.js --check
 node scripts/rollback-v3.mjs --root <data-dir>
