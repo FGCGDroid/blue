@@ -1,9 +1,9 @@
 # v3 —— 3.0 骨架与 M3 内核
 
-> 状态：M0 契约、M1 全目录骨架、M2 数据层全部 repo + 回滚、M3 路径阻断内核已完成
+> 状态：M0 契约、M1 全目录骨架、M2 数据层全部 repo + 回滚、M3 路径阻断、M3.5 响应执行/外锚内核已完成
 > 分支：`3.0-dev`
 > 入口：`v3/index.js`
-> 规模：105 个 JS；23 个工具组；计划 73 个工具（现有 66 + 新增 7）
+> 规模：107 个 JS；23 个工具组；计划 73 个工具（现有 66 + 新增 7）
 > 说明：3.0 代码与 2.0 `lib/` 并行，暂不写入 npm `files`，也不改 `cordis.patch.yml`。
 
 ## 这是什么
@@ -25,6 +25,9 @@ v3/domain/incident|decoy|response/  状态机
 v3/domain/evidence/hash.js          timeline 哈希
 v3/domain/shared/        errors、canonical JSON、时间
 v3/domain/gateway/       规范化、策略、决策、走私头、内容检查
+v3/domain/response/       manual/mock 执行适配器
+v3/app/response/          dry-run/apply/rollback/verify
+v3/app/evidence/anchor.js 锚定 + 注入式 sink 推送
 v3/infra/sqlite/         17 张表 schema + 2.0 迁移 + 备份
 v3/infra/sqlite/repos/tasks.js     建任务/审批/状态迁移
 v3/infra/sqlite/repos/timeline.js  追加/读取/验证哈希链
@@ -35,6 +38,7 @@ v3/infra/sqlite/repos/responses.js 响应台账/审批后执行/回滚
 v3/infra/sqlite/repos/evidence.js  Ed25519 时间线锚定/验证
 v3/infra/sqlite/repos/telemetry.js 遥测源/cursor/错误
 v3/infra/gateway/        server、read-body、forward、decision-log、canary
+v3/infra/evidence/       anchor-sink（file / https 白名单）
 v3/infra/policy/         策略加载/保存/热加载
 v3/infra/metrics/        计数器 + /metrics 渲染
 v3/infra/fs/safe-path.js 路径闸
@@ -55,11 +59,21 @@ canary：保护路径变体全部 400/403，上游 0 命中
 热加载：mtime 变化，非法策略保留旧策略
 ```
 
+M3.5 已实现：
+
+```text
+响应执行：dry-run / apply / rollback / verify
+适配器：manual（默认，只打印人工命令）+ mock（测试）
+审批闸：未审批不能执行；执行/回滚必须有证据
+外锚：file JSONL + https 白名单；不跟随重定向
+sink 失败不阻塞本地锚点
+```
+
 还是占位：
 
 ```text
-v3/app/*                 用例（tasks/create、tasks/approve 已有占位）
-v3/infra/evidence/*      证据包、外锚 sink（M3.5）
+v3/app/*                 其余用例（tasks/create、tasks/approve 已有占位）
+v3/infra/evidence/bundle.js  证据包（M4）
 v3/infra/telemetry/*     文件遥测、OTLP、检测（M4）
 v3/tools/*.js            23 个组的 register（M4）
 v3/ui/*                  Host API 与 2.0 兼容视图（M4）
@@ -81,7 +95,7 @@ node scripts/rollback-v3.mjs --root <data-dir>
 当前结果：
 
 ```text
-✓ v3 分层检查通过（105 个 JS）
+✓ v3 分层检查通过（107 个 JS）
 ✓ v3 骨架测试通过
 ✓ v3 数据层测试通过：新库/审批/时间线/重开/2.0 迁移
 ✓ v3 事实/案件仓储通过
@@ -89,6 +103,8 @@ node scripts/rollback-v3.mjs --root <data-dir>
 ✓ v3 迁移回滚通过
 ✓ v3 路径契约通过（40 条）
 ✓ v3 网关集成通过：阻断/放行/canary/body/内容/日志/metrics/热加载
+✓ v3 响应执行通过：dry-run/审批/人工回填/回滚/mock
+✓ v3 外锚通过：file sink/白名单校验/混合失败不阻塞
 ✓ 2.0 parity 基线通过
 ```
 
@@ -108,7 +124,7 @@ tools 里不能出现 SQL 字符串
 
 ```text
 M2  已完成：8 个 repo + 迁移回滚
-M3.5 响应执行器、外锚 sink
+M3.5 已完成：manual/mock 执行器 + file/https 外锚
 M4  工具迁移：73 个工具定义
 M5  控制台
 ```

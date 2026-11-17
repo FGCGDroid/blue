@@ -54,7 +54,15 @@ export class EvidenceRepo {
       target: chain.head || '(empty)',
       detail: `anchor=${id} key=${keyId} checked=${chain.checked}`,
     })
-    return { id, head: chain.head || '', key_id: keyId, checked: chain.checked }
+    return {
+      id,
+      head: chain.head || '',
+      key_id: keyId,
+      checked: chain.checked,
+      signature,
+      public_key: publicKey,
+      created_at: new Date().toISOString(),
+    }
   }
 
   verify(engagementId) {

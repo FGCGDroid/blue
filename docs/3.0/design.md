@@ -1436,6 +1436,8 @@ K4 指标可抓取，策略摘要可见
 
 ### M3.5 跨越能力（4 周）
 
+状态：已完成（2026-11-17；manual/mock 执行器、dry-run/apply/rollback、file/https 外锚）。
+
 ```text
 response_execute：dry-run / apply / rollback
 response_verify
