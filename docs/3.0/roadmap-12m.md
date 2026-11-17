@@ -158,4 +158,5 @@ M5       2027-09 ~ 2027-12
 
 ```text
 docs/4.0/README.md
+docs/4.0/sequencing.md
 ```
