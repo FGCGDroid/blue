@@ -1,54 +1,72 @@
 # v3 —— 3.0 骨架
 
-> 状态：M0 契约、M1 骨架已完成；M2 数据层基础已开始
+> 状态：M0 契约、M1 全目录骨架已完成；M2 数据层基础已开始
 > 分支：`3.0-dev`
 > 入口：`v3/index.js`
+> 规模：102 个 JS；23 个工具组；计划 73 个工具（现有 66 + 新增 7）
 > 说明：3.0 代码与 2.0 `lib/` 并行，暂不写入 npm `files`，也不改 `cordis.patch.yml`。
 
 ## 这是什么
 
-这是 3.0 的目录、分层与数据层基础，不是可用的 3.0。
+这是 3.0 的完整目录骨架，不是可用的 3.0。
 
 已经真实存在：
 
 ```text
 v3/index.js              Cordis 入口（blueTeamModeV3）
-v3/store.js              事实库入口（blueTeamV3），已打开 SQLite
-v3/tools.js              工具入口（0 个工具）
+v3/store.js              事实库入口（blueTeamV3），已打开 SQLite，装配 8 个 repo
+v3/tools.js              工具入口（23 组串起来，0 个工具注册）
 v3/ui.js                 Host API 入口（0 条路由）
 v3/gateway.js            网关 CLI，只支持 --check
-v3/bootstrap/config.js   环境变量解析与校验
-v3/domain/task/states.js 任务状态机（从 2.0 原样搬）
-v3/domain/task/risk.js   风险分级（从 2.0 原样搬）
-v3/domain/evidence/hash.js  timeline 哈希（从 2.0 原样搬）
+v3/bootstrap/            配置、依赖容器、生命周期
+v3/ports/                9 个接口声明
+v3/domain/task/          状态机、风险分级、模型常量、不变量
+v3/domain/incident|decoy|response/  状态机
+v3/domain/evidence/hash.js          timeline 哈希
+v3/domain/shared/        errors、canonical JSON、时间
 v3/infra/sqlite/         17 张表 schema + 2.0 迁移 + 备份
 v3/infra/sqlite/repos/tasks.js     建任务/审批/状态迁移
 v3/infra/sqlite/repos/timeline.js  追加/读取/验证哈希链
+v3/infra/metrics/counters.js       计数器
+v3/infra/fs/safe-path.js           路径闸
+v3/tools/catalog.js      73 个工具名与分组
+v3/tools/index.js        23 个工具组清单
 ```
 
 还是占位：
 
 ```text
-v3/domain/gateway/*      路径规范化、策略、决策
-v3/app/*                 用例（tasks 已有占位，M4 接 repo）
-v3/infra/gateway/*       网关监听
-v3/infra/metrics/*       /metrics、/healthz
-v3/infra/evidence/*      外锚 sink
-v3/infra/sqlite/repos/*  资产/告警/发现/IOC/案件/诱饵 repo
-v3/tools/*               66 + 7 个工具
-v3/ui/*                  Host API
+v3/domain/gateway/*      路径规范化、策略、决策（M3）
+v3/app/*                 用例（tasks/create、tasks/approve 已有占位）
+v3/infra/gateway/*       网关监听、读 body、转发、canary（M3）
+v3/infra/metrics/server.js  /metrics 渲染（M3）
+v3/infra/evidence/*      证据包、锚定、外锚 sink（M2/M3.5）
+v3/infra/policy/*        策略文件加载与热加载（M3）
+v3/infra/telemetry/*     文件遥测、OTLP、检测（M4）
+v3/infra/sqlite/repos/*  facts/incidents/decoys/responses/evidence/telemetry（M2 剩余）
+v3/tools/*.js            23 个组的 register（M4）
+v3/ui/*                  Host API 与 2.0 兼容视图（M4）
 ```
 
 占位函数一律抛 `NOT_IMPLEMENTED`，不会静默返回假结果。
+工具组现在不注册任何工具，避免出现“名字有了、实现是假的”。
 
 ## 检查
 
 ```bash
-node scripts/check-v3-layers.mjs
-node scripts/test-v3-skeleton.mjs
-node scripts/test-v3-db.mjs
+npm.cmd run check:v3
+npm.cmd run test:v3
 node scripts/parity.mjs --engine=2.0
 node v3/gateway.js --check
+```
+
+当前结果：
+
+```text
+✓ v3 分层检查通过（102 个 JS）
+✓ v3 骨架测试通过
+✓ v3 数据层测试通过：新库/审批/时间线/重开/2.0 迁移
+✓ 2.0 parity 基线通过
 ```
 
 分层检查规则：
@@ -66,10 +84,10 @@ tools 里不能出现 SQL 字符串
 ## 下一步
 
 ```text
-M2  继续：facts repo、案件/诱饵/响应 repo、回滚脚本、迁移 fixture 扩展
+M2  继续：facts/incidents/decoys/responses/evidence/telemetry repo、回滚脚本、fixture 扩展
 M3  路径阻断：normalize + policy + gateway + metrics
 M3.5 响应执行、外锚 sink
-M4  工具迁移
+M4  工具迁移：73 个工具定义
 ```
 
 ## 不要做

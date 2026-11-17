@@ -9,7 +9,42 @@ tools 不做业务判断
 所有工具经 safe 包装，错误返回 { ok:false, error }
 ```
 
-骨架阶段 0 个工具。  
-M4 按 14 组迁入：现有 66 个 + 新增 7 个（策略 3、网关 1、响应执行 2、外锚 1）。
+骨架阶段：
 
-当前占位文件只有本 README，避免出现“注册了但没实现”的假工具。
+```text
+23 个工具组文件
+73 个工具名（现有 66 + 新增 7）
+0 个工具注册
+```
+
+文件：
+
+```text
+catalog.js   名称与分组，73 个
+index.js     23 个组的 register 清单
+session.js   会话/目标
+asset.js     资产
+alert.js     告警
+finding.js   发现
+ioc.js       IOC
+task.js      任务/自主
+incident.js  案件
+decision.js  决策
+timeline.js  时间线
+report.js    报告
+decoy.js     欺骗
+detection.js 检测规则
+telemetry.js 遥测
+control.js   控制验证
+cve.js       CVE
+risk.js      攻击面/风险图
+evidence.js  证据
+audit.js     审计/锚定/外锚
+response.js  响应计划
+response-exec.js 响应执行
+policy.js    策略
+gateway.js   网关
+hunt.js      狩猎/取证/加固
+```
+
+M4 才写 `defineTool`，现在不注册假工具。

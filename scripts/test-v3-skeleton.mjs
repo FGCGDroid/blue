@@ -18,12 +18,18 @@ import { join } from 'node:path'
 
 import { apply as applyIndex } from '../v3/index.js'
 import { apply as applyStore } from '../v3/store.js'
+import { apply as applyTools } from '../v3/tools.js'
 import { main as gatewayMain } from '../v3/gateway.js'
 import { loadConfig } from '../v3/bootstrap/config.js'
 import { canTransitionTask, TASK_STATUS } from '../v3/domain/task/states.js'
 import { inferRisk, initialStatusForRisk } from '../v3/domain/task/risk.js'
 import { timelineHash } from '../v3/domain/evidence/hash.js'
 import { notImplemented } from '../v3/domain/shared/errors.js'
+import { assertTaskInvariants } from '../v3/domain/task/invariants.js'
+import { createCounters } from '../v3/infra/metrics/counters.js'
+import { isWithin } from '../v3/infra/fs/safe-path.js'
+import { ALL_TOOL_NAMES, EXISTING_TOOL_NAMES, NEW_TOOL_NAMES } from '../v3/tools/catalog.js'
+import { TOOL_MODULES } from '../v3/tools/index.js'
 import { checkV3Layers } from './check-v3-layers.mjs'
 
 function fakeCtx() {
@@ -96,6 +102,36 @@ try {
   assert.throws(
     () => notImplemented('demo', 'M3'),
     (error) => error.code === 'NOT_IMPLEMENTED',
+  )
+
+  assert.equal(ALL_TOOL_NAMES.length, 73)
+  assert.equal(EXISTING_TOOL_NAMES.length, 66)
+  assert.equal(NEW_TOOL_NAMES.length, 7)
+  assert.equal(TOOL_MODULES.length, 23)
+
+  const toolsCtx = fakeCtx()
+  toolsCtx.tools = {
+    register() {
+      throw new Error('骨架阶段不应注册任何工具')
+    },
+  }
+  applyTools(toolsCtx)
+
+  const counters = createCounters()
+  counters.inc('demo', { b: 2, a: 1 })
+  assert.deepEqual(counters.snapshot(), { 'demo{a=1,b=2}': 1 })
+
+  assert.equal(isWithin(tmp, join(tmp, 'child')), true)
+  assert.equal(isWithin(tmp, join(tmp, '..', 'outside')), false)
+
+  assert.doesNotThrow(() => assertTaskInvariants({
+    title: 't', risk_level: 'low', status: 'queued', requires_approval: 0,
+  }))
+  assert.throws(
+    () => assertTaskInvariants({
+      title: 't', risk_level: 'high', status: 'queued', requires_approval: 0,
+    }),
+    (error) => error.code === 'TASK_INVARIANT',
   )
 
   const originalLog = console.log

@@ -10,6 +10,12 @@ import { join } from 'node:path'
 import { SqliteDb } from './infra/sqlite/db.js'
 import { TimelineRepo } from './infra/sqlite/repos/timeline.js'
 import { TaskRepo } from './infra/sqlite/repos/tasks.js'
+import { FactsRepo } from './infra/sqlite/repos/facts.js'
+import { IncidentsRepo } from './infra/sqlite/repos/incidents.js'
+import { DecoysRepo } from './infra/sqlite/repos/decoys.js'
+import { ResponsesRepo } from './infra/sqlite/repos/responses.js'
+import { EvidenceRepo } from './infra/sqlite/repos/evidence.js'
+import { TelemetryRepo } from './infra/sqlite/repos/telemetry.js'
 
 export const name = 'blue-store-v3'
 
@@ -23,6 +29,13 @@ export class BlueStoreV3 {
     this.db = new SqliteDb(join(root, 'blue.db')).open()
     this.timeline = new TimelineRepo(this.db)
     this.tasks = new TaskRepo(this.db, this.timeline)
+    // M2 剩余：这些 repo 已占位，方法会在补实现前抛 NOT_IMPLEMENTED。
+    this.facts = new FactsRepo(this.db)
+    this.incidents = new IncidentsRepo(this.db)
+    this.decoys = new DecoysRepo(this.db)
+    this.responses = new ResponsesRepo(this.db)
+    this.evidenceRepo = new EvidenceRepo(this.db)
+    this.telemetry = new TelemetryRepo(this.db)
     this.closed = false
   }
 
