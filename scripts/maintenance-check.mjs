@@ -77,7 +77,21 @@ const npmVersion = npm.ok ? String(npm.data.version || '') : ''
 add('npm-latest', npm.ok ? (npmVersion === packageJson.version ? 'ok' : 'warn') : 'unknown',
   npm.ok ? `npm 最新版本=${npmVersion}，本地版本=${packageJson.version}` : npm.error)
 
-const catalog = await json('https://cdn.jsdelivr.net/npm/dsh-plugin-catalog/index.json?x=' + Date.now())
+const catalogMeta = await json('https://registry.npmjs.org/dsh-plugin-catalog/latest')
+const catalogVersion = catalogMeta.ok ? String(catalogMeta.data.version || '') : ''
+const catalogUrls = []
+if (catalogVersion) {
+  catalogUrls.push(`https://cdn.jsdelivr.net/npm/dsh-plugin-catalog@${encodeURIComponent(catalogVersion)}/index.json`)
+  catalogUrls.push(`https://unpkg.com/dsh-plugin-catalog@${encodeURIComponent(catalogVersion)}/index.json`)
+}
+// 不带 @version 的 jsDelivr URL 会缓存 @latest 的旧内容；只作最后兜底。
+catalogUrls.push('https://cdn.jsdelivr.net/npm/dsh-plugin-catalog/index.json?x=' + Date.now())
+let catalog = { ok: false, error: 'catalog unavailable' }
+for (const url of catalogUrls) {
+  const result = await json(url)
+  if (result.ok) { catalog = result; break }
+  catalog = result
+}
 let catalogItem = null
 if (catalog.ok) {
   const list = Array.isArray(catalog.data.plugins) ? catalog.data.plugins : (Array.isArray(catalog.data.entries) ? catalog.data.entries : [])
@@ -90,7 +104,7 @@ add('catalog', catalog.ok
   ? (catalogVersions.includes(packageJson.version) ? 'ok' : 'warn')
   : 'unknown',
   catalog.ok
-    ? `市场目录=${catalogVersions.join(', ') || '缺失'}，本地版本=${packageJson.version}`
+    ? `市场目录=${catalogVersions.join(', ') || '缺失'}，索引版本=${catalogVersion || '未知'}，本地版本=${packageJson.version}`
     : catalog.error)
 
 const soakPath = resolve(process.env.DSH_HOME || join(process.env.USERPROFILE || process.env.HOME || tmpdir(), '.dsh'), 'blue', 'soak-beta31.state.json')
