@@ -1,8 +1,8 @@
 # 蓝队插件 3.0 立项书
 
-> 状态：M0 契约、M1 骨架、M2 数据层（tasks/timeline/facts/incidents）、M3 路径阻断已完成（105 个 JS）
+> 状态：M0 契约、M1 骨架、M2 数据层全部 repo + 回滚、M3 路径阻断已完成（105 个 JS）
 > 立项日期：2026-11-17
-> 代码状态：路径规范化/策略/独立网关/指标可运行；decoys/responses/evidence/telemetry repo、工具、UI、外锚仍占位
+> 代码状态：8 个 repo、迁移/回滚、路径/策略/独立网关/指标可运行；工具、UI、响应执行、外锚仍占位
 > 维护线：2.0 继续维护，只修 P0、安全和 DSH 兼容
 > 作者仍在维护本项目；本文是开发计划，不是交接声明。
 
@@ -242,9 +242,9 @@ K5 证据外锚：外部 sink 可验证，sink 失败不阻塞主流程
 
 M0 契约基线已完成。
 M1 骨架已完成（`v3/`，104 个 JS）。
-M2 数据层：schema、2.0 迁移、备份、tasks/timeline/facts/incidents repo 已完成。
+M2 数据层已完成：8 个 repo、2.0 迁移、备份与回滚。
 M3 路径阻断已完成：40 条向量、独立网关、canary、metrics、热加载。
-下一步：补 decoys/responses/evidence/telemetry repo，再进 M3.5 响应执行与外锚。
+下一步：M3.5 响应执行器与外锚 sink。
 已定：没有真实 2.0 数据，M2 用合成 fixture；网关独立进程、独立端口 `127.0.0.1:8787`。
 
 相关文档：

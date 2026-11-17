@@ -1,6 +1,6 @@
 # v3 —— 3.0 骨架与 M3 内核
 
-> 状态：M0 契约、M1 全目录骨架、M2 数据层（tasks/timeline/facts/incidents）、M3 路径阻断内核已完成
+> 状态：M0 契约、M1 全目录骨架、M2 数据层全部 repo + 回滚、M3 路径阻断内核已完成
 > 分支：`3.0-dev`
 > 入口：`v3/index.js`
 > 规模：105 个 JS；23 个工具组；计划 73 个工具（现有 66 + 新增 7）
@@ -30,6 +30,10 @@ v3/infra/sqlite/repos/tasks.js     建任务/审批/状态迁移
 v3/infra/sqlite/repos/timeline.js  追加/读取/验证哈希链
 v3/infra/sqlite/repos/facts.js     资产/告警/发现/IOC
 v3/infra/sqlite/repos/incidents.js 案件/案件关联
+v3/infra/sqlite/repos/decoys.js    诱饵/命中/自动 active/到期
+v3/infra/sqlite/repos/responses.js 响应台账/审批后执行/回滚
+v3/infra/sqlite/repos/evidence.js  Ed25519 时间线锚定/验证
+v3/infra/sqlite/repos/telemetry.js 遥测源/cursor/错误
 v3/infra/gateway/        server、read-body、forward、decision-log、canary
 v3/infra/policy/         策略加载/保存/热加载
 v3/infra/metrics/        计数器 + /metrics 渲染
@@ -55,9 +59,8 @@ canary：保护路径变体全部 400/403，上游 0 命中
 
 ```text
 v3/app/*                 用例（tasks/create、tasks/approve 已有占位）
-v3/infra/evidence/*      证据包、锚定、外锚 sink（M3.5）
+v3/infra/evidence/*      证据包、外锚 sink（M3.5）
 v3/infra/telemetry/*     文件遥测、OTLP、检测（M4）
-v3/infra/sqlite/repos/*  decoys/responses/evidence/telemetry（M2 剩余）
 v3/tools/*.js            23 个组的 register（M4）
 v3/ui/*                  Host API 与 2.0 兼容视图（M4）
 ```
@@ -72,14 +75,18 @@ npm.cmd run check:v3
 npm.cmd run test:v3
 node scripts/parity.mjs --engine=2.0
 node v3/gateway.js --check
+node scripts/rollback-v3.mjs --root <data-dir>
 ```
 
 当前结果：
 
 ```text
-✓ v3 分层检查通过（104 个 JS）
+✓ v3 分层检查通过（105 个 JS）
 ✓ v3 骨架测试通过
 ✓ v3 数据层测试通过：新库/审批/时间线/重开/2.0 迁移
+✓ v3 事实/案件仓储通过
+✓ v3 剩余仓储通过：诱饵/响应/锚定/遥测源
+✓ v3 迁移回滚通过
 ✓ v3 路径契约通过（40 条）
 ✓ v3 网关集成通过：阻断/放行/canary/body/内容/日志/metrics/热加载
 ✓ 2.0 parity 基线通过
@@ -100,9 +107,10 @@ tools 里不能出现 SQL 字符串
 ## 下一步
 
 ```text
-M2  继续：decoys/responses/evidence/telemetry repo、回滚脚本、fixture 扩展
-M3.5 响应执行、外锚 sink
+M2  已完成：8 个 repo + 迁移回滚
+M3.5 响应执行器、外锚 sink
 M4  工具迁移：73 个工具定义
+M5  控制台
 ```
 
 ## 不要做

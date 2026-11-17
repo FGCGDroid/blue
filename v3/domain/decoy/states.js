@@ -1,4 +1,8 @@
 /** 诱饵状态机（3.0 骨架，从 2.0 lib/store.js 原样搬）。 */
+export const DECOY_KINDS = Object.freeze([
+  'canary_file', 'canary_url', 'fake_admin', 'fake_credential', 'tarpit',
+])
+
 export const DECOY_STATUSES = Object.freeze(['planned', 'active', 'retired'])
 
 export const DECOY_TRANSITIONS = Object.freeze({
