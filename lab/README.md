@@ -3,6 +3,20 @@
 > 只用于自己的机器/隔离环境，全部合成数据。  
 > 不装 Docker，不需要公网服务器。
 
+## 双击 CMD
+
+不用记命令，直接双击：
+
+```text
+lab\start.cmd       启动靶场，Ctrl+C 停止
+lab\test.cmd        验收 + 40 条路径契约
+lab\vectors.cmd     只跑 40 条路径契约
+lab\soak-60s.cmd    60 秒 soak
+lab\soak-24h.cmd    24 小时 soak，日志写 .run\soak-24h.log
+```
+
+CMD 会先检查 `node` 是否在 PATH；失败会停住让你看错误。
+
 ## 快速开始
 
 一键模式（当前 Node 进程里起两个独立端口）：
