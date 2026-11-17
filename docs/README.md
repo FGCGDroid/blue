@@ -16,6 +16,7 @@ docs/3.0-contract.md      3.0 行为契约与 M0 向量
 docs/3.0/design.md        3.0 详细设计
 docs/3.0/backlog.md       3.0/3.1/3.2 需求分层
 docs/3.0/decisions.md     3.0 架构决策记录
+docs/4.0/README.md        4.0 立项评估（未立项，2028-Q1 复评）
 ```
 
 按任务查：

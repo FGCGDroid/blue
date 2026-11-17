@@ -259,6 +259,7 @@ docs/3.0-contract.md     行为契约与 M0 向量说明
 docs/3.0/design.md       详细设计：分层、数据、路径阻断、工具迁移
 docs/3.0/backlog.md      需求分层与验收
 docs/3.0/decisions.md    架构决策记录
+docs/4.0/README.md       4.0 立项评估（未立项）
 v3/README.md             M1 骨架说明与检查命令
 docs/operational-red-lines.md   2.0 踩过的坑
 ```
