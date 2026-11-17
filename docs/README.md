@@ -10,6 +10,10 @@ docs/tool-map.md          66 个工具怎么分组、怎么拆、怎么加
 docs/state-machines.md    任务/案件/诱饵/响应/告警状态怎么迁移
 docs/development.md       开发环境、目录、测试
 docs/known-issues.md      已知坑与结构债
+docs/3.0/README.md        3.0 立项书、范围、里程碑
+docs/3.0/design.md        3.0 详细设计
+docs/3.0/backlog.md       3.0/3.1/3.2 需求分层
+docs/3.0/decisions.md     3.0 架构决策记录
 ```
 
 按任务查：
@@ -27,6 +31,7 @@ docs/known-issues.md      已知坑与结构债
 | 跑 soak/回滚 | `docs/stabilization.md` |
 | 发版 | `docs/release.md`、`docs/release-2.0.md` |
 | 看运行红线 | `docs/operational-red-lines.md` |
+| 看 3.0 计划 | `docs/3.0/README.md` |
 | 看维护机器人 | `docs/maintenance-bot.md`、`MAINTENANCE.md` |
 
 不要先读：

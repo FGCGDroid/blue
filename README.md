@@ -15,6 +15,7 @@
 > ✅ 当前稳定版是 `2.0.0`，已发布到 npm。
 > 从 `1.5.4` 升级前先备份 `$DSH_HOME/blue/blue.db`；回滚见 `docs/release-2.0.md`。
 > DSH 兼容：最低 `0.2.1-rc.1`，当前验证 `0.2.2-rc.3`；详见 `docs/compatibility.md`。
+> 🧭 3.0 已立项，尚未开工；目标是 2.0 的能力超集，范围见 `docs/3.0/README.md`，详细设计见 `docs/3.0/design.md`。
 
 ---
 
