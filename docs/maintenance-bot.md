@@ -120,17 +120,17 @@ fail     测试/构建/打包失败
 ## 典型报告
 
 ```text
-npm latest=1.5.4 package=2.0.0-beta.32   warn
-catalog=1.5.2 package=2.0.0-beta.32     warn
-soak=2.53h/24h running                  warn
+npm latest=2.0.0 package=2.0.0          ok
+catalog=1.5.4 package=2.0.0             warn
+soak=24h/24h completed                  ok
 ```
 
-这不是故障，是提醒：
+`warn` 不是故障，是提醒：
 
 ```text
-beta 和 stable 本来就不是同一个版本
 catalog 可能还没重建
-soak 还没跑完
+catalog 的版本来自上游 probe，不是 npm 发布后立刻更新
+soak 如果显示 running，说明本地 state 被重置或还没跑到 24h
 ```
 
 ## 权限

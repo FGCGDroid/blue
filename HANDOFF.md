@@ -6,8 +6,8 @@
 
 ```text
 项目：dsh-blue-team-mode
-稳定版：1.5.4
-实验版：2.0.0-beta.32（本地，未发 npm）
+稳定版：2.0.0
+beta：2.0.0-beta.32（历史）
 协议：MIT
 ```
 
@@ -166,7 +166,7 @@ GitHub tag/release
 
 ```text
 市场 catalog 可能滞后
-24h soak 未完成
+soak 按实际采样时间累计，墙钟中间可暂停
 CVE 数据未外部核验
 审计锚定仍偏本地
 没有 RBAC / 静态加密

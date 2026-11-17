@@ -1,6 +1,6 @@
-# 2.0 发布说明（草案）
+# 2.0 发布说明
 
-> 状态：beta.32 已发布；24h soak 未完成前，**不要**把本文当正式稳定版公告。
+> 状态：`2.0.0` 已发布为稳定版；`2.0.0-beta.32` 保留在 beta 通道。
 
 ## 一句话
 
@@ -95,17 +95,17 @@ scope 中具体 host/URL 自动登记资产
 保留 1.5.4 tarball
 ```
 
-### 安装 beta
+### 安装 2.0.0
 
 ```sh
-dsh plugin --profile desktop add dsh-blue-team-mode@2.0.0-beta.32
+dsh plugin --profile desktop add dsh-blue-team-mode@2.0.0
 ```
 
 或：
 
 ```sh
 dsh plugin --profile desktop add \
-  https://github.com/FGCGDroid/blue/releases/download/v2.0.0-beta.32/dsh-blue-team-mode-2.0.0-beta.32.tgz
+  https://github.com/FGCGDroid/blue/releases/download/v2.0.0/dsh-blue-team-mode-2.0.0.tgz
 ```
 
 ### 升级后验证
@@ -131,8 +131,8 @@ timeline 连续
 ## 已知问题
 
 ```text
-24h soak 未完成
-市场 catalog 曾因上游重名冻结，现已恢复
+soak 按实际采样时间累计，墙钟中间有暂停
+市场 catalog 可能仍显示 1.5.4，等待重建
 CVE 未外部核验
 审计锚定仍偏本地
 没有 RBAC / 静态加密
@@ -142,16 +142,16 @@ OTLP 没有持久队列
 ## 发布前必须
 
 ```text
-[ ] 24h soak completed
-[ ] integrity ok
-[ ] timeline true
-[ ] npm test 全绿
-[ ] build/validate 全绿
-[ ] 迁移/回滚演练通过
-[ ] tarball 可安装
-[ ] CHANGELOG 更新
-[ ] README 版本号更新
-[ ] 已知问题写清楚
+[x] 24h soak completed（实际采样 24h）
+[x] integrity ok
+[x] timeline true
+[x] npm test 全绿
+[x] build/validate 全绿
+[x] 迁移/回滚演练通过
+[x] tarball 可安装
+[x] CHANGELOG 更新
+[x] README 版本号更新
+[x] 已知问题写清楚
 ```
 
 ## 发布命令（完成后再执行）

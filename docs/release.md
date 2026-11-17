@@ -3,19 +3,19 @@
 ## 当前发布状态
 
 ```text
-稳定版：1.5.4
-npm latest：1.5.4
-GitHub Release：v1.5.4
-实验版：2.0.0-beta.32（本地，未发 npm）
-市场 catalog：可能仍显示 1.5.2
+稳定版：2.0.0
+npm latest：2.0.0
+GitHub Release：v2.0.0
+beta：2.0.0-beta.32
+市场 catalog：可能仍显示 1.5.4，等待重建
 ```
 
 ## 分支
 
 ```text
-main                默认分支，1.5.x 稳定线
-release/1.5.4       1.5.4 稳定提交
-2.0-dev             2.0 beta
+main                默认分支，2.0.x 稳定线
+release/1.5.4       1.5.4 历史稳定提交
+2.0-dev             2.0 beta 历史分支
 automation/maintenance  巡检脚本
 ```
 
@@ -25,8 +25,8 @@ automation/maintenance  巡检脚本
 ## 版本号
 
 ```text
-稳定：1.5.x
-测试：2.0.0-beta.x
+稳定：2.0.x
+测试：2.0.0-beta.x（历史）
 ```
 
 规则：
@@ -88,9 +88,9 @@ GitHub Release 标记 prerelease
 ## GitHub Release
 
 ```text
-tag: v1.5.4
-name: v1.5.4 — ...
-asset: dsh-blue-team-mode-1.5.4.tgz
+tag: v2.0.0
+name: v2.0.0 — 蓝队防御模式稳定版
+asset: dsh-blue-team-mode-2.0.0.tgz
 prerelease: false
 ```
 

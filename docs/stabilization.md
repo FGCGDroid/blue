@@ -147,13 +147,22 @@ restored: assets=1, timeline checked=3, engagement=rollback-drill
 ok: true
 ```
 
-## 仍然不是正式版
+## 2.0.0 发布门槛
+
+本次 2.0.0 已满足：
 
 ```text
-24h soak 尚未跑完
+24h 实际采样完成
+integrity ok
+timeline true
+```
+
+仍然后续要补：
+
+```text
 真实告警源只有 ctf-lab 一个
 没有 Wazuh/Elastic/OTel 实接
 没有 RBAC/加密存储
 ```
 
-这些跑完之前，2.0 仍是 beta。
+这些是 2.0 之后的欠债，不是 2.0.0 的阻塞项。

@@ -1,13 +1,13 @@
 # 已知问题与欠债
 
-> 最后更新：2026-11-15  
+> 最后更新：2026-11-17  
 > 这些不是“以后再说”，是接盘者必须先知道的坑。
 
 ## 1. 市场 catalog 滞后
 
 ```text
-npm latest：1.5.4
-catalog：1.5.2
+npm latest：2.0.0
+catalog：可能仍显示 1.5.4
 ```
 
 原因：
@@ -30,23 +30,28 @@ catalog 由 awesome-dsh-plugin 的 probe 生成
 改 main 的 YAML 只改描述，不改 versions
 ```
 
-## 2. 24h soak 未完成
+## 2. soak 是“实际采样时间”，不是连续墙钟
 
-当前：
+2.0.0 的结果：
 
 ```text
-约 9h / 24h
+elapsed_sec：86400（24h 实际采样）
+samples：1442
+integrity：ok
+timeline：true
+alerts：0
 ```
 
 限制：
 
 ```text
-soak 只在本机运行
-关机就暂停
+墙钟跨度约 53h
+中间有 3 段暂停（约 10h / 25h / 6.7h）
+关机、休眠、退出都不计入进度
 ```
 
-不是失败，是还没跑完。  
-在 24h 完成前，2.0 不能叫正式稳定版。
+这是 `docs/stabilization.md` 的既定口径，不是失败；  
+但不要把“24h soak”理解成连续 24 小时墙钟。
 
 ## 3. CVE 数据未核验
 

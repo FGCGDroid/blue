@@ -1,6 +1,29 @@
 # Changelog
 
-## 2.0.0-beta.32 — 2026-11-15（本地试用，未发布）
+## 2.0.0 — 2026-11-17
+
+### Added
+
+- 2.0 稳定版：66 个 `blue_*` 工具、12 个控制台页签、17 张事实库表、6 个执行角色。
+- 高风险任务强制 `pending_approval`，新增人工审批与审计；不再允许 `pending_approval` 直接派发。
+- SQLite WAL、timeline 哈希链、Ed25519 证据签名、幂等迁移与 1.5.3 回滚演练。
+- CL+TE / 重复长度 / 歧义 TE 直接拒绝；JWT none、路径、Cookie 规则。
+- 诱饵 planned/active 校准，假 flag 不按真泄露处理。
+- JSONL 增量遥测与 OTLP/HTTP JSON 接收器，Bearer token 保护。
+- CVE 防御包、CVE 任务生成、资产—CVE—发现风险图。
+- 中英文本地化与独立右侧栏控制台。
+
+### Tests
+
+- 可恢复 24h soak 完成：1442 个采样，`integrity=ok`，`timeline=true`，`alerts=0`。
+- `npm test` 8 组测试、`build`、`validate`、迁移/回滚演练、合规自测、`npm pack --dry-run` 全部通过。
+
+### Notes
+
+- soak 按实际采样时间累计；本次墙钟跨度约 53h，中间有 3 段暂停，符合 `docs/stabilization.md` 的可暂停/恢复口径。
+- 已知限制仍包括 CVE 未外部核验、审计锚定偏本地、无 RBAC/静态加密、OTLP 无持久队列。
+
+## 2.0.0-beta.32 — 2026-11-15（beta 通道）
 
 ### Added
 
