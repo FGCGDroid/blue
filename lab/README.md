@@ -13,6 +13,7 @@ lab\test.cmd        验收 + 40 条路径契约
 lab\vectors.cmd     只跑 40 条路径契约
 lab\soak-60s.cmd    60 秒 soak
 lab\soak-24h.cmd    24 小时 soak，日志写 .run\soak-24h.log
+lab\status.cmd      查看 24h soak 的已跑时间、ETA、计数
 ```
 
 CMD 会先检查 `node` 是否在 PATH；失败会停住让你看错误。
@@ -229,5 +230,6 @@ lab/policy.json               保护 /admin，允许 /admin/login
 lab/scenarios/acceptance.mjs  自动验收
 lab/scenarios/vectors.mjs     40 条路径契约
 lab/scenarios/soak.mjs        限速 soak
+lab/status.cmd                24h soak 状态/ETA
 lab/.run/                     日志，已 gitignore
 ```
