@@ -124,6 +124,77 @@ canary
 
 这些等 3.0-rc 前用独立香港服务器补。
 
+## 40 条路径契约
+
+```bash
+npm.cmd run test:lab:vectors
+```
+
+实现方式：
+
+```text
+原始 TCP 写请求行，避免 fetch/URL 先规范化 ..、%2e、//
+从网关决策日志断言 decision / canonical / reason
+不只看 HTTP 状态
+```
+
+预期：
+
+```text
+✓ 本地靶场 40 条路径契约通过（决策日志 38 条）
+```
+
+其中空 request-target 和相对路径 `admin` 会被 Node HTTP parser 直接拒绝，没有决策日志，只断言 400/连接关闭。
+
+## Soak
+
+默认 60 秒、40 rps：
+
+```bash
+npm.cmd run soak:lab
+```
+
+24 小时：
+
+```bash
+npm.cmd run soak:lab:24h
+```
+
+自定义：
+
+```bash
+node lab/scenarios/soak.mjs --duration 600 --concurrency 4 --rate 40
+```
+
+Soak 断言：
+
+```text
+safe 200
+attack 400/403
+upstream admin = 0
+upstream canary = 0
+errors = 0
+```
+
+输出包含：
+
+```text
+requests / blocked / allowed
+upstream 命中
+heap_delta_mb
+决策日志路径
+```
+
+本地 smoke 结果：
+
+```text
+60s / 4 并发 / 40 rps
+safe=1298 attack=650 blocked=650 errors=0
+upstream admin=0 canary=0
+```
+
+24h 建议在独立机器或空闲时跑，别在 DSH 所在进程里加压。
+
 ## 安全边界
 
 ```text
@@ -142,5 +213,7 @@ lab/upstream/server.js        受保护上游
 lab/gateway/start.js          3.0 网关
 lab/policy.json               保护 /admin，允许 /admin/login
 lab/scenarios/acceptance.mjs  自动验收
+lab/scenarios/vectors.mjs     40 条路径契约
+lab/scenarios/soak.mjs        限速 soak
 lab/.run/                     日志，已 gitignore
 ```

@@ -165,6 +165,8 @@ export async function startGateway(config, deps = {}) {
     decision.canonical_path = normalized.canonical
     decision.query = normalized.query
     const verdict = evaluatePolicy(normalized.canonical, policy)
+    decision.reason = verdict.reason
+    decision.rule_id = verdict.rule_id
     if (verdict.decision === 'block') {
       block(403, verdict.reason, verdict.rule_id)
       return
