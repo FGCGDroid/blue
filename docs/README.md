@@ -4,7 +4,7 @@
 
 ```text
 README.md                 用户安装与功能
-HANDOFF.md                接盘入口、第一周、权限、发版
+MAINTAINERS.md            维护入口、第一周、权限、发版
 docs/architecture.md      整体结构、数据流、扩展点
 docs/tool-map.md          66 个工具怎么分组、怎么拆、怎么加
 docs/state-machines.md    任务/案件/诱饵/响应/告警状态怎么迁移

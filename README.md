@@ -243,7 +243,7 @@ $DSH_HOME/blue/
 - 蓝队开源项目调研：[docs/blue-team-repos.md](docs/blue-team-repos.md)
 - 维护策略：[MAINTENANCE.md](MAINTENANCE.md)
 - 文档索引：[docs/README.md](docs/README.md)
-- 交接手册：[HANDOFF.md](HANDOFF.md)
+- 维护者手册：[MAINTAINERS.md](MAINTAINERS.md)
 - 架构说明：[docs/architecture.md](docs/architecture.md)
 - 工具地图与拆分规则：[docs/tool-map.md](docs/tool-map.md)
 - 状态机与迁移规则：[docs/state-machines.md](docs/state-machines.md)

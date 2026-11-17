@@ -5,7 +5,7 @@
 ```text
 README.md
 MAINTENANCE.md
-HANDOFF.md
+MAINTAINERS.md
 docs/architecture.md
 docs/tool-map.md
 docs/state-machines.md
