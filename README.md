@@ -12,8 +12,8 @@
 
 **66 个 `blue_*` 工具 · 19 个随 npm 包技能 · 6 个执行角色 · 12 个控制台页签 · 17 张事实库表**
 
-> ✅ 当前稳定版是 `2.0.0`，已发布到 npm。  
-> 从 `1.5.4` 升级前先备份 `$DSH_HOME/blue/blue.db`；回滚见 `docs/release-2.0.md`。  
+> ✅ 当前稳定版是 `2.0.0`，已发布到 npm。
+> 从 `1.5.4` 升级前先备份 `$DSH_HOME/blue/blue.db`；回滚见 `docs/release-2.0.md`。
 > DSH 兼容：最低 `0.2.1-rc.1`，当前验证 `0.2.2-rc.3`；详见 `docs/compatibility.md`。
 
 ---
@@ -242,8 +242,11 @@ $DSH_HOME/blue/
 - 防守回归测试：[docs/defense-regression.md](docs/defense-regression.md)
 - 蓝队开源项目调研：[docs/blue-team-repos.md](docs/blue-team-repos.md)
 - 维护策略：[MAINTENANCE.md](MAINTENANCE.md)
+- 文档索引：[docs/README.md](docs/README.md)
 - 交接手册：[HANDOFF.md](HANDOFF.md)
 - 架构说明：[docs/architecture.md](docs/architecture.md)
+- 工具地图与拆分规则：[docs/tool-map.md](docs/tool-map.md)
+- 状态机与迁移规则：[docs/state-machines.md](docs/state-machines.md)
 - 发布流程：[docs/release.md](docs/release.md)
 - 已知问题：[docs/known-issues.md](docs/known-issues.md)
 - 贡献指南：[CONTRIBUTING.md](CONTRIBUTING.md)

@@ -1,5 +1,8 @@
 # 架构说明
 
+> 改工具前先看 [tool-map.md](tool-map.md)；改任务/审批/诱饵/响应状态前先看 [state-machines.md](state-machines.md)。
+> 这两份是维护者手册，本文只给整体结构和入口。
+
 ## 一、整体
 
 这是一个 DSH Cordis 插件，不是独立服务。
@@ -39,7 +42,57 @@ DSH Host
 | 图谱 | `lib/graph.js` | 资产—CVE—发现风险图 |
 | 资产导入 | `lib/inventory.js` | scope → 资产 |
 
-## 三、数据流
+## 三、工具与状态机
+
+### 工具
+
+66 个 `blue_*`，按事实域分组：
+
+| 组 | 数量 | 代表工具 |
+|---|---:|---|
+| 目标 / 门禁 | 5 | `blue_engagement_open`、`blue_defense_selfcheck` |
+| 案件 / 决策 | 6 | `blue_incident_*`、`blue_decision_*` |
+| 资产 / 告警 / 发现 | 8 | `blue_asset_*`、`blue_alert_*`、`blue_finding_*` |
+| IOC | 3 | `blue_ioc_*` |
+| 任务 / 派发 | 5 | `blue_task_*`、`blue_autopilot` |
+| 时间线 / 状态 / 目录 | 4 | `blue_timeline`、`blue_defense_status` |
+| 日志 / 样本 / 加固 / 处置 / 报告 | 5 | `blue_log_scan`、`blue_report` |
+| 欺骗 / 诱饵 / 蜜罐 | 9 | `blue_decoy_*`、`blue_honeypot_ingest` |
+| CVE / 风险 / ATT&CK | 5 | `blue_cve_*`、`blue_risk_graph` |
+| 审计 / 证据 | 5 | `blue_audit_*`、`blue_evidence_*` |
+| 遥测 / 检测 | 6 | `blue_telemetry_*`、`blue_detection_*` |
+| 控制 / 响应 | 5 | `blue_control_*`、`blue_response_*` |
+
+工具注册链路、参数 DSL、角色白名单、拆分规则、新增步骤：
+[`docs/tool-map.md`](tool-map.md)。
+
+### 状态机
+
+任务状态机的唯一来源是 `lib/judge.js`：
+
+```text
+queued → dispatched → running → done
+  │          │           ├→ blocked
+  │          ├→ done/blocked/cancelled
+  └→ cancelled
+pending_approval → queued（只有 approveTask）
+pending_approval → cancelled
+```
+
+硬规则：
+
+```text
+high 任务创建即 pending_approval
+pending_approval 不能直接 dispatched
+high 没有 approved_at 不能 dispatched
+审批必须写 approved_by/at + timeline approval
+终态不再迁移
+```
+
+完整迁移表、字段、迁移步骤、案件/诱饵/响应状态机：
+[`docs/state-machines.md`](state-machines.md)。
+
+## 四、数据流
 
 ### 工具调用
 
@@ -92,7 +145,7 @@ blue_evidence_export
 → JSON 文件
 ```
 
-## 四、数据库
+## 五、数据库
 
 17 张表：
 
@@ -140,20 +193,39 @@ prev_hash / hash
 sha256(JSON.stringify([prev_hash, engagement_id, at, actor, action, target, detail]))
 ```
 
-不要直接改历史行。  
+不要直接改历史行。
 要改就追加新事件。
 
-## 五、扩展点
+## 六、扩展点
 
 ### 加一个工具
 
 ```text
-lib/tools.js
-→ register(defineTool({ name, description, parameters, execute }))
-→ 加入 lib/playbooks.js 的 ALL_TOOLS
-→ 如需给角色，检查 ROLE_TOOLS
-→ 更新 count / README / 测试
+1. 定边界：名字 / 读或写 / 写哪张表 / 风险 / 角色 / 是否需要审批
+2. lib/tools.js 对应分区 register(defineTool({...}))
+3. lib/playbooks.js 加 ALL_TOOLS，并检查 ROLE_TOOLS 排除列表
+4. 需要 UI 才动 lib/ui.js + lib/client.js + locale
+5. scripts/test-tools.mjs 加成功/失败/越权用例，并更新工具数 66
+6. README / docs/tool-map.md / docs/architecture.md 同步
+7. build + validate + npm test
 ```
+
+完整模板、拆分判断、常见坑：[`docs/tool-map.md`](tool-map.md)。
+
+### 改一个状态
+
+```text
+1. lib/judge.js 改 TASK_STATUS / 分类数组 / TASK_TRANSITIONS
+2. lib/store.js 改 createTask / updateTask / approveTask 的 guard 和时间戳
+3. lib/plan.js 改 initialStatusForRisk / 候选状态
+4. lib/tools.js 改 autopilot 过滤、审批工具
+5. lib/ui.js / lib/client.js 改 op、按钮、文案、颜色
+6. 加 test-tools / test-ui / test-migration 用例
+7. 同步 docs/state-machines.md
+```
+
+不要在 `client.js` 或 `tools.js` 里复制迁移表。
+完整迁移表和不变量：[`docs/state-machines.md`](state-machines.md)。
 
 ### 加一张表
 
@@ -161,7 +233,7 @@ lib/tools.js
 lib/store.js
 → CREATE TABLE IF NOT EXISTS
 → 加索引
-→ 加迁移
+→ migrate() 幂等补列
 → 加 CRUD
 → test-migration / test-rollback
 ```
@@ -184,10 +256,10 @@ snapshot() 提供数据
 lib/<connector>.js
 ```
 
-不要直接塞进 `tools.js`。  
+不要直接塞进 `tools.js`。
 连接器只负责“把外部事件转成 alert/telemetry”，不负责 UI。
 
-## 六、安全边界
+## 七、安全边界
 
 必须保持：
 
@@ -209,7 +281,7 @@ high 风险任务 → pending_approval
 把 token 写进日志
 ```
 
-## 七、测试地图
+## 八、测试地图
 
 | 测试 | 覆盖 |
 |---|---|
@@ -222,8 +294,10 @@ high 风险任务 → pending_approval
 | `test-rollback.mjs` | 1.5.3 → beta → 回滚 |
 | `test-compat.mjs` | DSH 版本兼容 |
 | `test-otlp.mjs` | OTLP 解析/去重/token |
+| `test-ctf-defense.mjs` | 内联网关真的挡住 JWT none/路径/Cookie |
+| `test-ui-e2e.mjs` | 真实浏览器审批（需运行中的 Web + URL） |
 
-## 八、不要动的部分
+## 九、不要动的部分
 
 ```text
 timeline 哈希算法
@@ -234,15 +308,17 @@ store 迁移的幂等性
 
 这些一改，历史数据或安全语义就断了。
 
-## 九、当前已知结构债
+## 十、当前已知结构债
 
 ```text
-tools.js 过大
-client.js 过大
+tools.js 约 2748 行
+client.js 约 1848 行
+store.js 约 1484 行
 CVE 数据未版本化
 OTLP 没有队列
 没有 RBAC
 没有静态加密
+告警/发现状态机未强制
 ```
 
 详见 `docs/known-issues.md`。

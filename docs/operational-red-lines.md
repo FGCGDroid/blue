@@ -95,6 +95,26 @@ flag 被提交
 - 跑 `blue_risk_graph` 前确认 assets > 0；图谱空白先查资产盘点，不要先怀疑代码。
 - 资产是“库存”，不是“在线证明”，也不是“有漏洞证明”。
 
+## 8. 审批状态不能绕
+
+已经修过的坑：
+
+```text
+pending_approval 被直接改成 dispatched
+high 任务未审批 but 手工写成 queued
+前端按钮直接改状态
+```
+
+规则：
+
+- `pending_approval` 只能由 `blue_task_approve` / 控制台审批改成 `queued`。
+- 没有 `approved_at` 的 high 任务，`updateTask` 拒绝 `dispatched`，`autopilot` 也不领取。
+- 改角色导致风险升级时，任务退回 `pending_approval`，审批字段清空。
+- 不要在 `client.js` 里改状态；只调用 Host API。
+- 状态迁移表只允许在 `lib/judge.js` 维护。
+
+详见 `docs/state-machines.md`。
+
 ## 记录方式
 
 ```text

@@ -26,12 +26,13 @@ beta：2.0.0-beta.32（历史）
 1. README.md
 2. MAINTENANCE.md
 3. docs/architecture.md
-4. docs/schema.md（如果存在；没有就看 lib/store.js）
-5. docs/release.md
-6. docs/known-issues.md
+4. docs/tool-map.md
+5. docs/state-machines.md
+6. docs/release.md
+7. docs/known-issues.md
 ```
 
-不要一上来读 `lib/tools.js`。  
+不要一上来读 `lib/tools.js`。
 那是最大的一坨，不是入口。
 
 ## 代码入口
@@ -56,6 +57,18 @@ DSH session
 → /blue/api
 → client.js
 ```
+
+## 改动入口
+
+| 要改什么 | 先看 | 主要文件 |
+|---|---|---|
+| 新增一个 `blue_*` 工具 | `docs/tool-map.md` | `lib/tools.js`、`lib/playbooks.js`、`scripts/test-tools.mjs` |
+| 改任务/审批状态 | `docs/state-machines.md` | `lib/judge.js`、`lib/store.js`、`lib/plan.js`、`lib/tools.js` |
+| 改案件/诱饵/响应状态 | `docs/state-machines.md` | `lib/store.js`、`lib/response.js` |
+| 加一张表 | `docs/architecture.md` | `lib/store.js`、`scripts/test-migration.mjs` |
+| 加控制台页签/按钮 | `docs/development.md` | `lib/ui.js`、`lib/client.js`、`locale/*.json` |
+| 改检测规则 | `docs/defense-regression.md` | `lib/playbooks.js`、`lib/detection.js` |
+| 发版 | `docs/release.md` | `package.json`、`CHANGELOG.md`、`README.md` |
 
 ## 第一周任务
 
@@ -133,7 +146,7 @@ DSH profile：本机安装目录
 市场 catalog：awesome-dsh-plugin 的 admin 才能触发重建
 ```
 
-不要把 token 写进仓库、issue、聊天记录。  
+不要把 token 写进仓库、issue、聊天记录。
 正确做法：
 
 ```text

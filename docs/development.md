@@ -129,15 +129,54 @@ docs/              截图和说明
 - 不把外部工具打包进插件
 - 不做自动攻击或漏洞利用
 
+## 新增工具 / 改状态机
+
+不要直接改 `tools.js` 里的大函数。先看：
+
+```text
+docs/tool-map.md        工具怎么拆、怎么注册、写哪张表、角色怎么放
+docs/state-machines.md  任务/案件/诱饵/响应/告警状态怎么迁移
+```
+
+最短路径：
+
+```text
+新增工具：
+  定边界 → tools.js 定义 → playbooks.js 白名单
+  → 测试 + 工具数 66 → README/工具地图
+
+改任务状态：
+  judge.js 枚举/迁移 → store.js guard/时间戳
+  → plan.js 初始状态 → tools.js autopilot
+  → ui.js/client.js 文案按钮 → 测试/文档
+```
+
+具体代码模板、拆分判断、常见坑见 `docs/tool-map.md`。
+状态迁移表、字段、迁移步骤见 `docs/state-machines.md`。
+
 ## 怎么跑测试
 
 ```powershell
+# 全量
+npm test
+
+# 单跑
 node scripts/test-tools.mjs
 node scripts/test-ui.mjs
 node scripts/test-hunter.mjs
+node scripts/test-inline-gateway.mjs
 node scripts/test-decoy-server.mjs
+node scripts/test-migration.mjs
+node scripts/test-rollback.mjs
+node scripts/test-compat.mjs
+node scripts/test-otlp.mjs
+
+# 构建/校验/合规
 node scripts/build.mjs
 node scripts/validate.mjs
+node scripts/check-compliance.mjs --selftest
 ```
 
+`test-tools.mjs` 会断言工具数是 **66**；新增/删除工具必须同步。
 测试用临时 SQLite 和假数据，不碰真实主机。
+需要真实浏览器时用 `test-ui-e2e.mjs`，前置一个运行中的 DSH Web 和 `BLUE_E2E_URL`。
