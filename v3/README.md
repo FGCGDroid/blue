@@ -123,11 +123,15 @@ tools 里不能出现 SQL 字符串
 ## 下一步
 
 ```text
-M2  已完成：8 个 repo + 迁移回滚
-M3.5 已完成：manual/mock 执行器 + file/https 外锚
-M4  工具迁移：73 个工具定义
-M5  控制台
+2026-12  加固月：soak、文档、回滚演练、M4 设计评审
+2027-01  M4.0 注册框架 + session/asset/alert
+2027-02  M4.1 finding/ioc/task/incident
+...
+2027-08  3.0.0
+2027-12  3.1.0-rc
 ```
+
+完整月度计划见 [`../docs/3.0/roadmap-12m.md`](../docs/3.0/roadmap-12m.md)。
 
 ## 不要做
 
