@@ -1414,6 +1414,8 @@ verifyTimeline 通过
 
 ### M3 路径阻断 + 策略（8 周）
 
+状态：已完成（2026-11-17；40 条向量、独立网关、canary、metrics、热加载）。
+
 ```text
 normalize
 policy engine：validate / test / diff / reload
