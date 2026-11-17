@@ -1,0 +1,422 @@
+{
+  "schema": "dsh-blue-v3/path@1",
+  "authority": "3.0-contract",
+  "note": "这是 3.0 的对抗契约，不是 2.0 行为快照；2.0 只检查 %2e/%2f、点段、//、NUL。",
+  "policy": {
+    "id": "default",
+    "version": 1,
+    "default_action": "allow",
+    "case_insensitive": true,
+    "max_path_length": 4096,
+    "reject_semicolon": true,
+    "protected": [
+      {
+        "id": "admin",
+        "prefix": "/admin",
+        "action": "block",
+        "allow": [
+          "/admin/login"
+        ]
+      }
+    ],
+    "deny": [
+      {
+        "id": "git",
+        "prefix": "/.git",
+        "action": "block"
+      },
+      {
+        "id": "svn",
+        "prefix": "/.svn",
+        "action": "block"
+      },
+      {
+        "id": "env",
+        "prefix": "/.env",
+        "action": "block"
+      },
+      {
+        "id": "server-status",
+        "prefix": "/server-status",
+        "action": "block"
+      },
+      {
+        "id": "actuator-env",
+        "prefix": "/actuator/env",
+        "action": "block"
+      },
+      {
+        "id": "actuator-heapdump",
+        "prefix": "/actuator/heapdump",
+        "action": "block"
+      },
+      {
+        "id": "pprof",
+        "prefix": "/debug/pprof",
+        "action": "block"
+      }
+    ]
+  },
+  "vectors": [
+    {
+      "id": "p01",
+      "input": "/admin",
+      "expect": {
+        "decision": "block",
+        "canonical": "/admin",
+        "reason": "PROTECTED_PREFIX"
+      }
+    },
+    {
+      "id": "p02",
+      "input": "/admin/",
+      "expect": {
+        "decision": "block",
+        "canonical": "/admin",
+        "reason": "PROTECTED_PREFIX"
+      }
+    },
+    {
+      "id": "p03",
+      "input": "//admin",
+      "expect": {
+        "decision": "block",
+        "canonical": "/admin",
+        "reason": "PROTECTED_PREFIX"
+      }
+    },
+    {
+      "id": "p04",
+      "input": "/./admin",
+      "expect": {
+        "decision": "block",
+        "canonical": null,
+        "reason": "DOT_SEGMENT"
+      }
+    },
+    {
+      "id": "p05",
+      "input": "/foo/../admin",
+      "expect": {
+        "decision": "block",
+        "canonical": null,
+        "reason": "DOT_SEGMENT"
+      }
+    },
+    {
+      "id": "p06",
+      "input": "/%61dmin",
+      "expect": {
+        "decision": "block",
+        "canonical": "/admin",
+        "reason": "PROTECTED_PREFIX"
+      }
+    },
+    {
+      "id": "p07",
+      "input": "/%2e%2e/admin",
+      "expect": {
+        "decision": "block",
+        "canonical": null,
+        "reason": "DOT_SEGMENT"
+      }
+    },
+    {
+      "id": "p08",
+      "input": "/%252e%252e/admin",
+      "expect": {
+        "decision": "block",
+        "canonical": null,
+        "reason": "DOUBLE_ENCODED"
+      }
+    },
+    {
+      "id": "p09",
+      "input": "/admin%2f..%2fpublic",
+      "expect": {
+        "decision": "block",
+        "canonical": null,
+        "reason": "ENCODED_SEPARATOR"
+      }
+    },
+    {
+      "id": "p10",
+      "input": "/ADMIN",
+      "expect": {
+        "decision": "block",
+        "canonical": "/ADMIN",
+        "reason": "PROTECTED_PREFIX"
+      }
+    },
+    {
+      "id": "p11",
+      "input": "/admin;foo",
+      "expect": {
+        "decision": "block",
+        "canonical": null,
+        "reason": "MATRIX_PARAM"
+      }
+    },
+    {
+      "id": "p12",
+      "input": "/admin%00",
+      "expect": {
+        "decision": "block",
+        "canonical": null,
+        "reason": "CONTROL_CHAR"
+      }
+    },
+    {
+      "id": "p13",
+      "input": "/admin%09",
+      "expect": {
+        "decision": "block",
+        "canonical": null,
+        "reason": "CONTROL_CHAR"
+      }
+    },
+    {
+      "id": "p14",
+      "input": "/admin%0d%0a",
+      "expect": {
+        "decision": "block",
+        "canonical": null,
+        "reason": "CONTROL_CHAR"
+      }
+    },
+    {
+      "id": "p15",
+      "input": "/admin\\..\\public",
+      "expect": {
+        "decision": "block",
+        "canonical": null,
+        "reason": "BACKSLASH"
+      }
+    },
+    {
+      "id": "p16",
+      "input": "http://host/admin",
+      "expect": {
+        "decision": "block",
+        "canonical": "/admin",
+        "reason": "PROTECTED_PREFIX"
+      }
+    },
+    {
+      "id": "p17",
+      "input": "/../admin",
+      "expect": {
+        "decision": "block",
+        "canonical": null,
+        "reason": "DOT_SEGMENT"
+      }
+    },
+    {
+      "id": "p18",
+      "input": "/%c0%ae%c0%ae/admin",
+      "expect": {
+        "decision": "block",
+        "canonical": null,
+        "reason": "BAD_UTF8"
+      }
+    },
+    {
+      "id": "p19",
+      "input": "/admin.",
+      "expect": {
+        "decision": "block",
+        "canonical": null,
+        "reason": "SUSPICIOUS_SEGMENT"
+      }
+    },
+    {
+      "id": "p20",
+      "input": "/admin%20",
+      "expect": {
+        "decision": "block",
+        "canonical": null,
+        "reason": "SUSPICIOUS_SEGMENT"
+      }
+    },
+    {
+      "id": "p21",
+      "input": "/public",
+      "expect": {
+        "decision": "allow",
+        "canonical": "/public",
+        "reason": "DEFAULT_ALLOW"
+      }
+    },
+    {
+      "id": "p22",
+      "input": "/public/%2e",
+      "expect": {
+        "decision": "block",
+        "canonical": null,
+        "reason": "DOT_SEGMENT"
+      }
+    },
+    {
+      "id": "p23",
+      "input": "/administrator",
+      "expect": {
+        "decision": "allow",
+        "canonical": "/administrator",
+        "reason": "DEFAULT_ALLOW"
+      }
+    },
+    {
+      "id": "p24",
+      "input": "/admin/login",
+      "expect": {
+        "decision": "allow",
+        "canonical": "/admin/login",
+        "reason": "ALLOW_RULE"
+      }
+    },
+    {
+      "id": "p25",
+      "input": "/.git/config",
+      "expect": {
+        "decision": "block",
+        "canonical": "/.git/config",
+        "reason": "DENY_RULE"
+      }
+    },
+    {
+      "id": "p26",
+      "input": "/.GIT/config",
+      "expect": {
+        "decision": "block",
+        "canonical": "/.GIT/config",
+        "reason": "DENY_RULE"
+      }
+    },
+    {
+      "id": "p27",
+      "input": "/server-status",
+      "expect": {
+        "decision": "block",
+        "canonical": "/server-status",
+        "reason": "DENY_RULE"
+      }
+    },
+    {
+      "id": "p28",
+      "input": "/actuator/env",
+      "expect": {
+        "decision": "block",
+        "canonical": "/actuator/env",
+        "reason": "DENY_RULE"
+      }
+    },
+    {
+      "id": "p29",
+      "input": "/debug/pprof/heap",
+      "expect": {
+        "decision": "block",
+        "canonical": "/debug/pprof/heap",
+        "reason": "DENY_RULE"
+      }
+    },
+    {
+      "id": "p30",
+      "input": "/admin%2Flogin",
+      "expect": {
+        "decision": "block",
+        "canonical": null,
+        "reason": "ENCODED_SEPARATOR"
+      }
+    },
+    {
+      "id": "p31",
+      "input": "/admin/login/../secret",
+      "expect": {
+        "decision": "block",
+        "canonical": null,
+        "reason": "DOT_SEGMENT"
+      }
+    },
+    {
+      "id": "p32",
+      "input": "/admin//login",
+      "expect": {
+        "decision": "allow",
+        "canonical": "/admin/login",
+        "reason": "ALLOW_RULE"
+      }
+    },
+    {
+      "id": "p33",
+      "input": "/%2e/admin",
+      "expect": {
+        "decision": "block",
+        "canonical": null,
+        "reason": "DOT_SEGMENT"
+      }
+    },
+    {
+      "id": "p34",
+      "input": "/admin/%2e%2e/public",
+      "expect": {
+        "decision": "block",
+        "canonical": null,
+        "reason": "DOT_SEGMENT"
+      }
+    },
+    {
+      "id": "p35",
+      "input": "/admin%5c..%5cpublic",
+      "expect": {
+        "decision": "block",
+        "canonical": null,
+        "reason": "ENCODED_SEPARATOR"
+      }
+    },
+    {
+      "id": "p36",
+      "input": "/admin?x=1",
+      "expect": {
+        "decision": "block",
+        "canonical": "/admin",
+        "reason": "PROTECTED_PREFIX"
+      }
+    },
+    {
+      "id": "p37",
+      "input": "/admin#frag",
+      "expect": {
+        "decision": "block",
+        "canonical": null,
+        "reason": "FRAGMENT"
+      }
+    },
+    {
+      "id": "p38",
+      "input": "/",
+      "expect": {
+        "decision": "allow",
+        "canonical": "/",
+        "reason": "DEFAULT_ALLOW"
+      }
+    },
+    {
+      "id": "p39",
+      "input": "",
+      "expect": {
+        "decision": "block",
+        "canonical": null,
+        "reason": "EMPTY"
+      }
+    },
+    {
+      "id": "p40",
+      "input": "admin",
+      "expect": {
+        "decision": "block",
+        "canonical": null,
+        "reason": "NOT_ORIGIN_FORM"
+      }
+    }
+  ]
+}

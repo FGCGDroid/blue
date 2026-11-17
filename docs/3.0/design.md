@@ -733,6 +733,7 @@ normalizeRequestPath(rawUrl, policy) -> {
 4. 以 * 开头：拒绝 ASTERISK_FORM
 5. 不含 / 开头：拒绝 NOT_ORIGIN_FORM
 6. 按第一个 ? 切分 path 与 query
+6.1 path 含 # → 拒绝 FRAGMENT
 7. path 中不允许控制字符（0x00-0x1f、0x7f）
 8. path 中不允许反斜杠
 8.1 原始 path 含 %2f 或 %5c（大小写不敏感）→ 拒绝 ENCODED_SEPARATOR
@@ -1353,6 +1354,8 @@ node scripts/validate.mjs
 
 ### M0 契约基线（2 周）
 
+状态：已完成（2026-11-17，`docs/3.0-contract.md`）。
+
 ```text
 docs/3.0-contract.md
 test/vectors/state.json
@@ -1371,6 +1374,8 @@ scripts/parity.mjs
 ```
 
 ### M1 骨架（2 周）
+
+状态：已完成（2026-11-17，`v3/`）。
 
 ```text
 v3/ 目录

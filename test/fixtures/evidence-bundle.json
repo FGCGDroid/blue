@@ -1,0 +1,223 @@
+{
+  "schema": "dsh-blue-evidence/v1",
+  "generated_at": "2026-11-17T12:59:38.596Z",
+  "package": {
+    "name": "dsh-blue-team-mode",
+    "version": "2.0.0"
+  },
+  "engagement": {
+    "id": "ENG-2D2CDD5C",
+    "name": "3.0 证据向量",
+    "scope": [
+      "https://example.test"
+    ],
+    "note": "synthetic fixture",
+    "status": "active",
+    "created_at": "2026-11-17T12:59:38.590Z"
+  },
+  "integrity": {
+    "timeline": {
+      "ok": true,
+      "checked": 6,
+      "head": "cf18705c9f116f6f357c21336b3a377ea7372301efedbce7bef00552266e19fa",
+      "broken_at": null,
+      "reason": ""
+    },
+    "anchors": {
+      "ok": false,
+      "anchored": false,
+      "reason": "no_anchor",
+      "checked": 0,
+      "chain_ok": true
+    }
+  },
+  "data": {
+    "assets": [
+      {
+        "id": "AST-426F5CE3",
+        "engagement_id": "ENG-2D2CDD5C",
+        "dedupe": "fc26cb312111cd2367ec4250fc03f03f",
+        "name": "web-01",
+        "kind": "host",
+        "address": "10.0.0.5",
+        "port": 443,
+        "service": "https",
+        "criticality": "high",
+        "owner": "",
+        "tags": [],
+        "evidence": "",
+        "status": "in_scope",
+        "created_at": "2026-11-17T12:59:38.593Z",
+        "updated_at": "2026-11-17T12:59:38.593Z"
+      }
+    ],
+    "alerts": [
+      {
+        "id": "ALT-C4D208D1",
+        "engagement_id": "ENG-2D2CDD5C",
+        "fingerprint": "2f6c56f3ca4f6ea4bc14baf638f7f2d2",
+        "external_id": "",
+        "title": "fixture alert",
+        "severity": "high",
+        "source": "fixture",
+        "confidence": "medium",
+        "task_id": null,
+        "incident_id": null,
+        "status": "open",
+        "assignee": "",
+        "note": "",
+        "raw": "{\"event\":\"synthetic\"}",
+        "event_time": null,
+        "created_at": "2026-11-17T12:59:38.594Z",
+        "updated_at": "2026-11-17T12:59:38.594Z"
+      }
+    ],
+    "findings": [
+      {
+        "id": "FND-5EA0AFF5",
+        "engagement_id": "ENG-2D2CDD5C",
+        "asset_id": null,
+        "title": "fixture finding",
+        "severity": "high",
+        "category": "webshell",
+        "status": "open",
+        "confidence": "medium",
+        "source": "",
+        "task_id": null,
+        "incident_id": null,
+        "cve": "",
+        "evidence": "synthetic evidence",
+        "recommendation": "remove",
+        "created_at": "2026-11-17T12:59:38.594Z",
+        "updated_at": "2026-11-17T12:59:38.594Z"
+      }
+    ],
+    "incidents": [],
+    "decisions": [],
+    "tasks": [
+      {
+        "id": "TSK-86F5F8AC",
+        "engagement_id": "ENG-2D2CDD5C",
+        "role": "ir",
+        "title": "隔离主机 10.0.0.5",
+        "brief": "synthetic high risk task",
+        "priority": "P2",
+        "status": "pending_approval",
+        "risk_level": "high",
+        "requires_approval": 1,
+        "approved_by": null,
+        "approved_at": null,
+        "approval_note": null,
+        "scope": "",
+        "constraints": "[]",
+        "expected_output": "{}",
+        "assignee": "",
+        "asset_id": null,
+        "alert_id": null,
+        "incident_id": null,
+        "acceptance": "",
+        "result": "",
+        "note": "",
+        "created_at": "2026-11-17T12:59:38.595Z",
+        "updated_at": "2026-11-17T12:59:38.595Z",
+        "dispatched_at": null,
+        "completed_at": null
+      }
+    ],
+    "iocs": [],
+    "decoys": [],
+    "decoy_hits": [],
+    "controls": [],
+    "telemetry": [],
+    "detection_rules": [],
+    "audit_anchors": [],
+    "timeline": [
+      {
+        "id": "TL-281FD82F",
+        "engagement_id": "ENG-2D2CDD5C",
+        "at": "2026-11-17T12:59:38.595Z",
+        "actor": "tester",
+        "action": "note",
+        "target": "fixture",
+        "detail": "synthetic timeline",
+        "prev_hash": "c7b93cb7782588c713a3c55265baa5538dc45699d369aff846bf7f37f10b172f",
+        "hash": "cf18705c9f116f6f357c21336b3a377ea7372301efedbce7bef00552266e19fa"
+      },
+      {
+        "id": "TL-AB4B9BD4",
+        "engagement_id": "ENG-2D2CDD5C",
+        "at": "2026-11-17T12:59:38.595Z",
+        "actor": "commander",
+        "action": "task_create",
+        "target": "隔离主机 10.0.0.5",
+        "detail": "role=ir priority=P2 risk=high status=pending_approval",
+        "prev_hash": "647fd0389a17e0bd4a34b94be9ed2e9636b65fb5c0edd9ea3bd522eed1b2a2f5",
+        "hash": "c7b93cb7782588c713a3c55265baa5538dc45699d369aff846bf7f37f10b172f"
+      },
+      {
+        "id": "TL-473D223C",
+        "engagement_id": "ENG-2D2CDD5C",
+        "at": "2026-11-17T12:59:38.595Z",
+        "actor": "commander",
+        "action": "finding_add",
+        "target": "fixture finding",
+        "detail": "severity=high category=webshell",
+        "prev_hash": "be252b60f3b9d705bf81ddae90961f66d7809a69258f2d818f3796157f44bb3a",
+        "hash": "647fd0389a17e0bd4a34b94be9ed2e9636b65fb5c0edd9ea3bd522eed1b2a2f5"
+      },
+      {
+        "id": "TL-54E4C63F",
+        "engagement_id": "ENG-2D2CDD5C",
+        "at": "2026-11-17T12:59:38.594Z",
+        "actor": "monitor",
+        "action": "alert_ingest",
+        "target": "fixture alert",
+        "detail": "severity=high source=fixture",
+        "prev_hash": "43a9307492f239f3a0fc33aa64ffaf7b3718f85db08186bbe8ce86a8901abd61",
+        "hash": "be252b60f3b9d705bf81ddae90961f66d7809a69258f2d818f3796157f44bb3a"
+      },
+      {
+        "id": "TL-4D009BF9",
+        "engagement_id": "ENG-2D2CDD5C",
+        "at": "2026-11-17T12:59:38.594Z",
+        "actor": "commander",
+        "action": "asset_add",
+        "target": "web-01 (10.0.0.5)",
+        "detail": "kind=host criticality=high",
+        "prev_hash": "f210912654839137d74eb771a54be2776318eada31587ad61186c9da9d315c0d",
+        "hash": "43a9307492f239f3a0fc33aa64ffaf7b3718f85db08186bbe8ce86a8901abd61"
+      },
+      {
+        "id": "TL-FD140092",
+        "engagement_id": "ENG-2D2CDD5C",
+        "at": "2026-11-17T12:59:38.592Z",
+        "actor": "commander",
+        "action": "engagement_open",
+        "target": "3.0 证据向量",
+        "detail": "synthetic fixture",
+        "prev_hash": null,
+        "hash": "f210912654839137d74eb771a54be2776318eada31587ad61186c9da9d315c0d"
+      }
+    ]
+  },
+  "counts": {
+    "assets": 1,
+    "alerts": 1,
+    "findings": 1,
+    "incidents": 0,
+    "timeline": 6
+  },
+  "limitations": [
+    "证据包是事实库快照，不包含原始磁盘、内存或完整网络流量。",
+    "敏感键和常见凭据字段已脱敏；脱敏会降低部分原始证据价值。",
+    "签名只能证明包内容与签名时一致，不能证明采集过程未被操控。"
+  ],
+  "actor": "tester",
+  "digest": "681388f5b41ebed810f6c3f35196f1e37a8d01b3e9d5c08ab2425c62e90fb96d",
+  "signature": {
+    "algorithm": "ed25519",
+    "key_id": "2fbf38aa286fc8ae",
+    "public_key": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAOfddDR0Q1DBfQf5vLl2AIsHQj0eqlNPApf7N0P+TWxQ=\n-----END PUBLIC KEY-----\n",
+    "value": "oeP+qxcJKh76yxRgzOLoKqpxowMFo27FzNZzamMAxOS3GAIvcE/qD99UoHuAyZIEDubECb/RWJ9803bSyesfDw=="
+  }
+}

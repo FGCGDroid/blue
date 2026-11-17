@@ -1,0 +1,118 @@
+{
+  "schema": "dsh-blue-v3/risk@1",
+  "note": "只用 2.0 inferRisk 计算；3.0.0 不允许改判定。",
+  "cases": [
+    {
+      "id": "r01",
+      "input": {
+        "role": "ir",
+        "title": "隔离主机 10.0.0.5"
+      },
+      "expected_risk": "high",
+      "expected_status": "pending_approval",
+      "actual_risk": "high",
+      "actual_status": "pending_approval"
+    },
+    {
+      "id": "r02",
+      "input": {
+        "role": "ir",
+        "title": "查看告警日志"
+      },
+      "expected_risk": "medium",
+      "expected_status": "queued",
+      "actual_risk": "medium",
+      "actual_status": "queued"
+    },
+    {
+      "id": "r03",
+      "input": {
+        "role": "hardening",
+        "title": "修改防火墙规则"
+      },
+      "expected_risk": "high",
+      "expected_status": "pending_approval",
+      "actual_risk": "high",
+      "actual_status": "pending_approval"
+    },
+    {
+      "id": "r04",
+      "input": {
+        "role": "hardening",
+        "title": "检查防火墙规则并给出建议"
+      },
+      "expected_risk": "medium",
+      "expected_status": "queued",
+      "actual_risk": "medium",
+      "actual_status": "queued"
+    },
+    {
+      "id": "r05",
+      "input": {
+        "role": "monitor",
+        "title": "确认日志接入"
+      },
+      "expected_risk": "low",
+      "expected_status": "queued",
+      "actual_risk": "low",
+      "actual_status": "queued"
+    },
+    {
+      "id": "r06",
+      "input": {
+        "role": "hunt",
+        "title": "查找 WebShell 痕迹"
+      },
+      "expected_risk": "low",
+      "expected_status": "queued",
+      "actual_risk": "low",
+      "actual_status": "queued"
+    },
+    {
+      "id": "r07",
+      "input": {
+        "role": "monitor",
+        "title": "例行检查",
+        "risk_level": "high"
+      },
+      "expected_risk": "high",
+      "expected_status": "pending_approval",
+      "actual_risk": "high",
+      "actual_status": "pending_approval"
+    },
+    {
+      "id": "r08",
+      "input": {
+        "role": "ir",
+        "title": "隔离主机",
+        "risk_level": "low"
+      },
+      "expected_risk": "high",
+      "expected_status": "pending_approval",
+      "actual_risk": "high",
+      "actual_status": "pending_approval"
+    },
+    {
+      "id": "r09",
+      "input": {
+        "role": "ir",
+        "title": "删除可疑文件"
+      },
+      "expected_risk": "high",
+      "expected_status": "pending_approval",
+      "actual_risk": "high",
+      "actual_status": "pending_approval"
+    },
+    {
+      "id": "r10",
+      "input": {
+        "role": "intel",
+        "title": "整理 IOC 清单"
+      },
+      "expected_risk": "low",
+      "expected_status": "queued",
+      "actual_risk": "low",
+      "actual_status": "queued"
+    }
+  ]
+}

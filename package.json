@@ -47,6 +47,8 @@
     "validate": "node scripts/validate.mjs",
     "check:v3": "node scripts/check-v3-layers.mjs",
     "test:v3": "node scripts/test-v3-skeleton.mjs",
+    "vectors": "node scripts/generate-vectors.mjs",
+    "parity": "node scripts/parity.mjs --engine=2.0",
     "check": "node scripts/check-compliance.mjs --selftest",
     "hooks": "node scripts/install-hooks.mjs",
     "maintenance": "node scripts/maintenance-check.mjs --full",

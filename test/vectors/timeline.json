@@ -1,0 +1,42 @@
+{
+  "schema": "dsh-blue-v3/timeline@1",
+  "note": "prev_hash 为空串时按 \"\" 参与哈希；与 2.0 BlueStore.timelineHash 一致。",
+  "chain": [
+    {
+      "row": {
+        "engagement_id": "ENG-TEST",
+        "at": "2026-01-01T00:00:00.000Z",
+        "actor": "tester",
+        "action": "engagement_open",
+        "target": "example.test",
+        "detail": "fixture"
+      },
+      "prev_hash": "",
+      "expected_hash": "b7c1f1732c2870ec3d5dcb55d6b1e5be75477e85cc3d19c2c35490fc9730c559"
+    },
+    {
+      "row": {
+        "engagement_id": "ENG-TEST",
+        "at": "2026-01-01T00:00:01.000Z",
+        "actor": "tester",
+        "action": "note",
+        "target": "task-1",
+        "detail": "chain step 2"
+      },
+      "prev_hash": "b7c1f1732c2870ec3d5dcb55d6b1e5be75477e85cc3d19c2c35490fc9730c559",
+      "expected_hash": "490caf7614ca8a92eef29a3b70e9c43c53bd8fc9bd4dffe34f1fd5327050e7d1"
+    },
+    {
+      "row": {
+        "engagement_id": "ENG-TEST",
+        "at": "2026-01-01T00:00:02.000Z",
+        "actor": "tester",
+        "action": "approval",
+        "target": "task-1",
+        "detail": "decision=approved risk=high"
+      },
+      "prev_hash": "490caf7614ca8a92eef29a3b70e9c43c53bd8fc9bd4dffe34f1fd5327050e7d1",
+      "expected_hash": "24036eae2553fcd182405be74f49cf2af8285ecec57f5de689a712a8f7b24a2c"
+    }
+  ]
+}
