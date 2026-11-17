@@ -1393,7 +1393,7 @@ v3/index.js 能挂载
 
 ### M2 数据层（3–4 周）
 
-状态：进行中（基础已完成：schema、2.0 迁移、备份、tasks/timeline repo）。
+状态：进行中（schema、2.0 迁移、备份、tasks/timeline/facts/incidents repo 已完成）。
 
 ```text
 sqlite db + migrations

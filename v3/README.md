@@ -1,9 +1,9 @@
 # v3 —— 3.0 骨架与 M3 内核
 
-> 状态：M0 契约、M1 全目录骨架、M2 数据层基础、M3 路径阻断内核已完成
+> 状态：M0 契约、M1 全目录骨架、M2 数据层（tasks/timeline/facts/incidents）、M3 路径阻断内核已完成
 > 分支：`3.0-dev`
 > 入口：`v3/index.js`
-> 规模：104 个 JS；23 个工具组；计划 73 个工具（现有 66 + 新增 7）
+> 规模：105 个 JS；23 个工具组；计划 73 个工具（现有 66 + 新增 7）
 > 说明：3.0 代码与 2.0 `lib/` 并行，暂不写入 npm `files`，也不改 `cordis.patch.yml`。
 
 ## 这是什么
@@ -28,6 +28,8 @@ v3/domain/gateway/       规范化、策略、决策、走私头、内容检查
 v3/infra/sqlite/         17 张表 schema + 2.0 迁移 + 备份
 v3/infra/sqlite/repos/tasks.js     建任务/审批/状态迁移
 v3/infra/sqlite/repos/timeline.js  追加/读取/验证哈希链
+v3/infra/sqlite/repos/facts.js     资产/告警/发现/IOC
+v3/infra/sqlite/repos/incidents.js 案件/案件关联
 v3/infra/gateway/        server、read-body、forward、decision-log、canary
 v3/infra/policy/         策略加载/保存/热加载
 v3/infra/metrics/        计数器 + /metrics 渲染
@@ -55,7 +57,7 @@ canary：保护路径变体全部 400/403，上游 0 命中
 v3/app/*                 用例（tasks/create、tasks/approve 已有占位）
 v3/infra/evidence/*      证据包、锚定、外锚 sink（M3.5）
 v3/infra/telemetry/*     文件遥测、OTLP、检测（M4）
-v3/infra/sqlite/repos/*  facts/incidents/decoys/responses/evidence/telemetry（M2 剩余）
+v3/infra/sqlite/repos/*  decoys/responses/evidence/telemetry（M2 剩余）
 v3/tools/*.js            23 个组的 register（M4）
 v3/ui/*                  Host API 与 2.0 兼容视图（M4）
 ```
@@ -98,7 +100,7 @@ tools 里不能出现 SQL 字符串
 ## 下一步
 
 ```text
-M2  继续：facts/incidents/decoys/responses/evidence/telemetry repo、回滚脚本、fixture 扩展
+M2  继续：decoys/responses/evidence/telemetry repo、回滚脚本、fixture 扩展
 M3.5 响应执行、外锚 sink
 M4  工具迁移：73 个工具定义
 ```

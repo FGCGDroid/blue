@@ -30,8 +30,8 @@ export class BlueStoreV3 {
     this.timeline = new TimelineRepo(this.db)
     this.tasks = new TaskRepo(this.db, this.timeline)
     // M2 剩余：这些 repo 已占位，方法会在补实现前抛 NOT_IMPLEMENTED。
-    this.facts = new FactsRepo(this.db)
-    this.incidents = new IncidentsRepo(this.db)
+    this.facts = new FactsRepo(this.db, this.timeline)
+    this.incidents = new IncidentsRepo(this.db, this.timeline)
     this.decoys = new DecoysRepo(this.db)
     this.responses = new ResponsesRepo(this.db)
     this.evidenceRepo = new EvidenceRepo(this.db)
