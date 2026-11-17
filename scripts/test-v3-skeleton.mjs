@@ -53,6 +53,7 @@ try {
   const storeCtx = fakeCtx()
   applyStore(storeCtx, { root: tmp })
   assert.equal(storeCtx.provided.get('blueTeamV3').root, tmp)
+  storeCtx.provided.get('blueTeamV3').close()
 
   const config = loadConfig({ BLUE_GATEWAY_PORT: '8787' })
   assert.equal(config.host, '127.0.0.1')
