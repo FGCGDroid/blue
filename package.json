@@ -45,6 +45,8 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "validate": "node scripts/validate.mjs",
+    "check:v3": "node scripts/check-v3-layers.mjs",
+    "test:v3": "node scripts/test-v3-skeleton.mjs",
     "check": "node scripts/check-compliance.mjs --selftest",
     "hooks": "node scripts/install-hooks.mjs",
     "maintenance": "node scripts/maintenance-check.mjs --full",
