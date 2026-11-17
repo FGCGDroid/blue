@@ -14,6 +14,7 @@ lab\vectors.cmd     只跑 40 条路径契约
 lab\soak-60s.cmd    60 秒 soak
 lab\soak-24h.cmd    24 小时 soak，日志写 .run\soak-24h.log
 lab\status.cmd      查看 24h soak 的已跑时间、ETA、计数
+lab\watch.cmd       实时刷新 24h soak 状态，Ctrl+C 只退出观察
 ```
 
 CMD 会先检查 `node` 是否在 PATH；失败会停住让你看错误。
@@ -210,6 +211,34 @@ upstream admin=0 canary=0
 
 24h 建议在独立机器或空闲时跑，别在 DSH 所在进程里加压。
 
+## 实时看进度
+
+双击：
+
+```text
+lab\watch.cmd
+```
+
+每 2 秒刷新一次：
+
+```text
+已跑多久
+开始时间
+预计完成时间
+剩余小时
+safe / attack / blocked / errors
+实际速率
+日志多久没更新
+```
+
+`Ctrl+C` 只退出观察，不会停止 soak。
+
+也可以单次看：
+
+```text
+lab\status.cmd
+```
+
 ## 安全边界
 
 ```text
@@ -231,5 +260,7 @@ lab/scenarios/acceptance.mjs  自动验收
 lab/scenarios/vectors.mjs     40 条路径契约
 lab/scenarios/soak.mjs        限速 soak
 lab/status.cmd                24h soak 状态/ETA
+lab/watch.cmd                 实时刷新状态
+lab/watch.ps1                 实时观察实现
 lab/.run/                     日志，已 gitignore
 ```
