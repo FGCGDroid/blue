@@ -5,7 +5,7 @@
  *   - 打开/关闭 blue.db
  *   - 建基础 schema
  *   - 2.0 -> 3.0 幂等迁移
- *   - 迁移前备份
+ *   - 迁移前备份（只备份非 3.0 库）
  *   - 事务与预编译语句缓存
  *
  * 不做业务判断；任务/时间线逻辑在 repos。
@@ -40,7 +40,8 @@ export class SqliteDb {
     const existed = existsSync(this.file) && statSync(this.file).size > 0
     this.db = new DatabaseSync(this.file)
 
-    if (existed) this.backupBeforeMigration()
+    const existingVersion = existed ? this.readSchemaVersion() : ''
+    if (existed && existingVersion !== '3.0') this.backupBeforeMigration()
 
     try {
       this.db.exec(BASE_SCHEMA)
@@ -65,6 +66,14 @@ export class SqliteDb {
       this.close()
       throw error
     }
+  }
+
+  /** 在 schema 建表之前读版本；没有 meta 表就是 2.0/空库。 */
+  readSchemaVersion() {
+    const table = this.db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'meta'").get()
+    if (table === undefined) return ''
+    const row = this.db.prepare("SELECT value FROM meta WHERE key = 'schema_version'").get()
+    return row === undefined ? '' : String(row.value)
   }
 
   backupBeforeMigration() {

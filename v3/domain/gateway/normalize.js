@@ -40,6 +40,9 @@ export function normalizeRequestPath(rawUrl, policy = {}) {
       return reject('', 'BAD_ABSOLUTE_FORM', 'invalid absolute-form url')
     }
     if (parsed.hash !== '') return reject(parsed.search.slice(1), 'FRAGMENT', 'fragment not allowed')
+    if (parsed.username !== '' || parsed.password !== '') {
+      return reject(parsed.search.slice(1), 'ABSOLUTE_CREDENTIALS', 'absolute-form credentials not allowed')
+    }
     value = parsed.pathname + parsed.search
   }
 
@@ -50,6 +53,8 @@ export function normalizeRequestPath(rawUrl, policy = {}) {
   const pathPart = question >= 0 ? value.slice(0, question) : value
   const query = question >= 0 ? value.slice(question + 1) : ''
 
+  if (CONTROL.test(query)) return reject(query, 'CONTROL_CHAR', 'control character in query')
+  if (/%0d|%0a|%00/i.test(query)) return reject(query, 'CONTROL_CHAR', 'encoded control in query')
   if (pathPart.includes('#')) return reject(query, 'FRAGMENT', 'fragment not allowed')
   if (CONTROL.test(pathPart)) return reject(query, 'CONTROL_CHAR', 'control character in path')
   if (pathPart.includes('\\')) return reject(query, 'BACKSLASH', 'backslash in path')

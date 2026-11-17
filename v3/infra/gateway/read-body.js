@@ -20,6 +20,7 @@ export function readBody(req, maxBytes = 1024 * 1024) {
       bytes: size,
       tooLarge,
     }))
+    req.on('aborted', () => reject(Object.assign(new Error('request aborted'), { code: 'REQUEST_ABORTED' })))
     req.on('error', reject)
   })
 }

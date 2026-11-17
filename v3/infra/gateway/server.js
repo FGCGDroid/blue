@@ -124,11 +124,11 @@ export async function startGateway(config, deps = {}) {
     const finish = (status, upstreamStatus = 0) => {
       decision.upstream_status = upstreamStatus || 0
       decision.duration_ms = Date.now() - started
-      if (decision.decision === 'block' || logAllow) {
+      if (decision.decision === 'block' || status >= 500 || logAllow) {
         const result = appendDecision(logPath, decision)
         if (!result.ok) counters.inc('blue_gateway_log_errors_total')
       }
-      if (status >= 400) {
+      if (decision.decision === 'block') {
         counters.inc('blue_gateway_blocked_total', { rule: decision.rule_id || decision.reason })
       }
     }

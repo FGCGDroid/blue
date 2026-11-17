@@ -34,7 +34,7 @@ export function loadConfig(env = process.env) {
     throw new BlueError('CONFIG_MODE', 'BLUE_GATEWAY_MODE 必须是 off / observe / enforce')
   }
 
-  const host = String(env.BLUE_GATEWAY_HOST || '127.0.0.1').trim()
+  const host = String(env.BLUE_GATEWAY_HOST || '127.0.0.1').trim().toLowerCase()
   const port = Number(env.BLUE_GATEWAY_PORT ?? 8787)
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     throw new BlueError('CONFIG_PORT', 'BLUE_GATEWAY_PORT 必须是 1..65535 的整数')
@@ -54,6 +54,12 @@ export function loadConfig(env = process.env) {
   }
   if (upstream.protocol !== 'http:' && upstream.protocol !== 'https:') {
     throw new BlueError('CONFIG_UPSTREAM', 'BLUE_GATEWAY_UPSTREAM 只支持 http/https')
+  }
+  if (upstream.username !== '' || upstream.password !== '') {
+    throw new BlueError('CONFIG_UPSTREAM', 'BLUE_GATEWAY_UPSTREAM 不能带用户名/密码')
+  }
+  if (upstream.pathname !== '/' || upstream.search !== '' || upstream.hash !== '') {
+    throw new BlueError('CONFIG_UPSTREAM', 'BLUE_GATEWAY_UPSTREAM 只接受 origin，不能带 path/query/fragment')
   }
   const allowPublicUpstream = truthy(env.BLUE_GATEWAY_ALLOW_PUBLIC_UPSTREAM)
   if (!LOOPBACK.has(upstream.hostname) && !allowPublicUpstream) {

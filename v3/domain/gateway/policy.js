@@ -62,12 +62,15 @@ function normalizeRule(rule, field, options = {}) {
   }
   const normalized = { id, prefix, action: 'block' }
   if (options.allow === true) {
+    if (rule.allow !== undefined && !Array.isArray(rule.allow)) {
+      invalid(`${field}.allow 必须是数组`)
+    }
     const allow = Array.isArray(rule.allow) ? rule.allow : []
-    normalized.allow = allow.map((item) => {
+    normalized.allow = allow.map((item, index) => {
       if (typeof item !== 'string' || !item.startsWith('/')) {
-        invalid(`${field}.allow 必须是绝对路径`)
+        invalid(`${field}.allow[${index}] 必须是绝对路径`)
       }
-      return item.length > 1 && item.endsWith('/') ? item.slice(0, -1) : item
+      return normalizePrefix(item, `${field}.allow[${index}]`)
     })
   }
   return normalized
@@ -94,6 +97,12 @@ export function validatePolicy(input) {
 
   const seenIds = new Set()
   const seenPrefixes = new Set()
+  if (input.protected !== undefined && !Array.isArray(input.protected)) {
+    invalid('protected 必须是数组')
+  }
+  if (input.deny !== undefined && !Array.isArray(input.deny)) {
+    invalid('deny 必须是数组')
+  }
   const protectedRules = (Array.isArray(input.protected) ? input.protected : []).map((rule, index) => {
     const normalized = normalizeRule(rule, `protected[${index}]`, { allow: true })
     if (seenIds.has(normalized.id)) invalid(`重复规则 id：${normalized.id}`)

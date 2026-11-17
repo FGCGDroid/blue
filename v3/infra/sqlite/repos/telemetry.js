@@ -4,7 +4,7 @@
  * 只登记文件源与 cursor；真正读取/解析在 infra/telemetry 和 app。
  */
 import { createHash } from 'node:crypto'
-import { statSync } from 'node:fs'
+import { realpathSync, statSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { resolve } from 'node:path'
 import { BlueError } from '../../../domain/shared/errors.js'
@@ -22,8 +22,17 @@ function allowedRoots() {
   return roots
 }
 
+function realPathIfExists(path) {
+  try {
+    return realpathSync(path)
+  } catch {
+    return path
+  }
+}
+
 function allowedPath(target) {
-  return allowedRoots().some((root) => isWithin(root, target))
+  const real = realPathIfExists(target)
+  return allowedRoots().some((root) => isWithin(realPathIfExists(root), real))
 }
 
 export class TelemetryRepo {
@@ -36,7 +45,13 @@ export class TelemetryRepo {
     if (!/^[A-Za-z0-9._-]{1,64}$/.test(name)) {
       throw new BlueError('TELEMETRY_NAME', '遥测源名称只能是 1-64 位字母数字._-')
     }
-    const path = resolve(asText(input.path).trim())
+    const requested = resolve(asText(input.path).trim())
+    let path
+    try {
+      path = realpathSync(requested)
+    } catch {
+      throw new BlueError('TELEMETRY_PATH', `遥测源不存在：${requested}`)
+    }
     if (!allowedPath(path)) {
       throw new BlueError('TELEMETRY_PATH', `遥测日志只允许来自 DSH/blue、ctf-lab、当前工作区或 BLUE_TELEMETRY_ROOT：${path}`)
     }

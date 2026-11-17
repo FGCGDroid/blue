@@ -255,6 +255,7 @@ M3.5 已完成：manual/mock 响应执行器、dry-run/apply/rollback、file/htt
 
 ```text
 docs/3.0/roadmap-12m.md  一年节奏与月度目标
+docs/3.0/hardening-2026-12.md  2026-12 加固记录
 docs/3.0-contract.md     行为契约与 M0 向量说明
 docs/3.0/design.md       详细设计：分层、数据、路径阻断、工具迁移
 docs/3.0/backlog.md      需求分层与验收

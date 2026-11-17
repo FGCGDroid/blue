@@ -49,6 +49,33 @@ export function validateSink(sink) {
   throw new BlueError('ANCHOR_SINK', `不支持的 sink 类型：${sink.kind}`)
 }
 
+async function readReceipt(response) {
+  if (!response.body) return ''
+  const reader = response.body.getReader()
+  const chunks = []
+  let total = 0
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      const remaining = 4096 - total
+      if (remaining <= 0) {
+        await reader.cancel()
+        break
+      }
+      chunks.push(Buffer.from(value.subarray(0, remaining)))
+      total += Math.min(value.byteLength, remaining)
+      if (value.byteLength >= remaining) {
+        await reader.cancel()
+        break
+      }
+    }
+  } finally {
+    reader.releaseLock?.()
+  }
+  return Buffer.concat(chunks).toString('utf8')
+}
+
 export async function pushAnchor(sink, anchor) {
   let normalized
   try {
@@ -75,7 +102,7 @@ export async function pushAnchor(sink, anchor) {
       redirect: 'error',
       signal: AbortSignal.timeout(5000),
     })
-    const text = await response.text()
+    const text = await readReceipt(response)
     if (!response.ok) {
       return { ok: false, kind: 'https', status: response.status, error: `HTTP ${response.status}`, receipt: text.slice(0, 300) }
     }

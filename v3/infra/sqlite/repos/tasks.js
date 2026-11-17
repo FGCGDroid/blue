@@ -12,9 +12,8 @@ import { nowIso } from '../../../domain/shared/time.js'
 
 const PRIORITIES = new Set(['P0', 'P1', 'P2', 'P3'])
 const PATCH_FIELDS = new Set([
-  'title', 'brief', 'priority', 'status', 'assignee', 'acceptance', 'result', 'note',
+  'title', 'brief', 'priority', 'assignee', 'acceptance', 'result', 'note',
   'scope', 'constraints', 'expected_output', 'asset_id', 'alert_id', 'incident_id',
-  'dispatched_at', 'completed_at',
 ])
 
 function newId() {
@@ -58,6 +57,8 @@ export class TaskRepo {
     if (![TASK_STATUS.QUEUED, TASK_STATUS.PENDING_APPROVAL].includes(status)) {
       throw new BlueError('TASK_STATUS', `新任务不能直接进入 ${status}`)
     }
+    // 即使调用方建的是 low 的 pending_approval，也必须带审批标记。
+    const approvalRequired = status === TASK_STATUS.PENDING_APPROVAL ? 1 : requires
 
     const id = newId()
     const at = nowIso()
@@ -70,7 +71,7 @@ export class TaskRepo {
       priority: asPriority(input.priority),
       status,
       risk_level: risk,
-      requires_approval: requires,
+      requires_approval: approvalRequired,
       approved_by: null,
       approved_at: null,
       approval_note: null,
@@ -203,15 +204,18 @@ export class TaskRepo {
     if (current.status !== TASK_STATUS.PENDING_APPROVAL) {
       throw new BlueError('TASK_NOT_PENDING', `任务不在待审批状态：${id}`)
     }
-    const actor = asText(options.actor, 'commander')
-    const note = asText(options.note)
+    const actor = asText(options.actor, 'commander').trim() || 'commander'
+    const note = asText(options.note).slice(0, 2000)
     const at = nowIso()
 
     this.db.transaction(() => {
-      this.db.sql(`UPDATE tasks
+      const info = this.db.sql(`UPDATE tasks
         SET status = ?, approved_by = ?, approved_at = ?, approval_note = ?, updated_at = ?
         WHERE id = ? AND status = ?`)
         .run(TASK_STATUS.QUEUED, actor, at, note, at, id, TASK_STATUS.PENDING_APPROVAL)
+      if (Number(info.changes) !== 1) {
+        throw new BlueError('TASK_NOT_PENDING', `任务已被处理，审批失败：${id}`)
+      }
       this.timeline.append(current.engagement_id, {
         actor,
         action: 'approval',
