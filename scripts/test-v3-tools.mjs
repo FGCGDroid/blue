@@ -4,7 +4,7 @@
  * 只使用临时 SQLite，不连接真实目标。
  */
 import assert from 'node:assert/strict'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { BlueStoreV3 } from '../v3/store.js'
@@ -58,9 +58,13 @@ const expected = [
   'blue_ioc_add', 'blue_ioc_list', 'blue_ioc_check',
   'blue_task_create', 'blue_task_update', 'blue_task_approve', 'blue_task_list', 'blue_autopilot',
   'blue_incident_open', 'blue_incident_list', 'blue_incident_update', 'blue_incident_attach',
+  'blue_decision_add', 'blue_decision_list', 'blue_timeline', 'blue_report',
+  'blue_deception_plan', 'blue_decoy_create', 'blue_decoy_hit', 'blue_decoy_list',
+  'blue_decoy_update', 'blue_decoy_sync', 'blue_tarpit_plan',
+  'blue_honeypot_ingest', 'blue_access_log_ingest',
 ]
 assert.deepEqual([...registered.keys()].sort(), expected.slice().sort())
-assert.equal(registered.size, 26)
+assert.equal(registered.size, 39)
 
 try {
   const exec = makeExec()
@@ -304,16 +308,136 @@ try {
   assert.equal(attached.ok, true)
   assert.equal(attached.attached.length, 3)
 
+  const decision = await call('blue_decision_add', {
+    decision: '将合成登录事件升级为调查',
+    rationale: '告警与发现指向同一路径',
+    incident_id: incident.incident.id,
+    confidence: 'high',
+  }, exec)
+  assert.equal(decision.ok, true)
+  const decisions = await call('blue_decision_list', { incident_id: incident.incident.id }, exec)
+  assert.equal(decisions.count, 1)
+
+  const timelineAdd = await call('blue_timeline', {
+    actor: 'commander',
+    event: 'containment',
+    target: 'app.example.test',
+    detail: '合成时间线',
+  }, exec)
+  assert.equal(timelineAdd.ok, true)
+  const timelineList = await call('blue_timeline', { mode: 'list', limit: 10 }, exec)
+  assert.ok(timelineList.timeline.length >= 1)
+
+  const report = await call('blue_report', {}, exec)
+  assert.equal(report.ok, true)
+  assert.ok(report.markdown.includes('蓝队防守报告'))
+  assert.ok(report.bytes > 100)
+
+  const reportWrite = await call('blue_report', { write: true }, exec)
+  assert.equal(reportWrite.ok, false)
+  assert.equal(reportWrite.code, 'NOT_IMPLEMENTED')
+
+  const plan = await call('blue_deception_plan', {}, exec)
+  assert.equal(plan.ok, true)
+  assert.equal(plan.templates.length, 5)
+
+  const deniedDecoy = await call('blue_decoy_create', {
+    kind: 'canary_url',
+    name: 'denied',
+    target: 'https://app.example.test/denied',
+    authorized: false,
+  }, exec)
+  assert.equal(deniedDecoy.code, 'DECOY_AUTH')
+
+  const outOfScopeDecoy = await call('blue_decoy_create', {
+    kind: 'canary_url',
+    name: 'outside',
+    target: 'https://192.0.2.10/outside',
+    authorized: true,
+  }, exec)
+  assert.equal(outOfScopeDecoy.code, 'DECOY_SCOPE')
+
+  const decoy = await call('blue_decoy_create', {
+    kind: 'canary_url',
+    name: 'canary-1',
+    target: 'https://app.example.test/canary',
+    authorized: true,
+    ttl_hours: 24,
+  }, exec)
+  assert.equal(decoy.ok, true)
+  assert.equal(decoy.decoy.status, 'planned')
+
+  const hit = await call('blue_decoy_hit', {
+    decoy: decoy.decoy.id,
+    source: '198.51.100.9',
+    evidence: 'GET /canary',
+  }, exec)
+  assert.equal(hit.ok, true)
+
+  const decoys = await call('blue_decoy_list', {}, exec)
+  assert.ok(decoys.decoys.length >= 1)
+
+  const active = await call('blue_decoy_update', {
+    id: decoy.decoy.id,
+    status: 'active',
+    note: '人工确认已部署',
+  }, exec)
+  assert.equal(active.decoy.status, 'active')
+
+  const syncPath = join(root, 'decoy-events.jsonl')
+  writeFileSync(syncPath, JSON.stringify({
+    decoy: 'canary-1',
+    source: '198.51.100.10',
+    evidence: 'GET /canary?x=1',
+    event_key: 'evt-decoy-1',
+  }) + '\n', 'utf8')
+  const synced = await call('blue_decoy_sync', {
+    path: syncPath,
+    authorized: true,
+    max_events: 10,
+  }, exec)
+  assert.equal(synced.ok, true)
+  assert.equal(synced.synced, 1)
+
+  const tarpit = await call('blue_tarpit_plan', { ssh_port: 2222, ban_days: 7 }, exec)
+  assert.equal(tarpit.ok, true)
+  assert.ok(tarpit.endlessh.config.includes('Port 2222'))
+
+  const honeypot = await call('blue_honeypot_ingest', {
+    target: 'https://app.example.test/honeypot',
+    source_ip: '198.51.100.11',
+    payload: 'synthetic probe',
+    path: '/honeypot',
+  }, exec)
+  assert.equal(honeypot.ok, true)
+  assert.equal(honeypot.approval_required, true)
+  assert.equal(honeypot.task.status, 'pending_approval')
+
+  const accessPath = join(root, 'access.jsonl')
+  writeFileSync(accessPath, [
+    JSON.stringify({ status: 401, path: '/admin/login', remote: '198.51.100.12', at: '2026-11-18T00:00:00Z' }),
+    JSON.stringify({ status: 200, path: '/public', remote: '198.51.100.13', at: '2026-11-18T00:00:01Z' }),
+    JSON.stringify({ status: 404, path: '/admin%2f..%2fpublic', remote: '198.51.100.14', at: '2026-11-18T00:00:02Z' }),
+  ].join('\n') + '\n', 'utf8')
+  const access = await call('blue_access_log_ingest', {
+    path: accessPath,
+    max_events: 10,
+    max_alerts: 10,
+  }, exec)
+  assert.equal(access.ok, true)
+  assert.equal(access.suspicious, 2)
+  assert.equal(access.ingested, 2)
+
   const preflight = await call('blue_preflight', {}, exec)
   assert.equal(preflight.ok, true)
   assert.equal(preflight.db.schema_version, '3.0')
-  assert.equal(preflight.tools.registered, 26)
+  assert.equal(preflight.tools.registered, 39)
 
   const catalog = await call('blue_tool_catalog', {}, exec)
-  assert.equal(catalog.registered, 26)
+  assert.equal(catalog.registered, 39)
   assert.equal(catalog.planned, 73)
 
-  console.log('✓ v3 M4.1 工具契约通过：session 6 / asset 2 / alert 3 / finding 3 / ioc 3 / task 5 / incident 4，共 26 个')
+  console.log('✓ v3 M4.2 工具契约通过：session 6 / asset 2 / alert 3 / finding 3 / ioc 3 / task 5 / incident 4 / decision 2 / timeline 1 / report 1 / decoy 9，共 39 个')
 } finally {
   store.close()
   rmSync(root, { recursive: true, force: true })

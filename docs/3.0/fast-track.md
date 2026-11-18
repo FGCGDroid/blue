@@ -13,8 +13,8 @@
 | --- | --- | --- |
 | M4.0 | 注册框架 + session/asset/alert 11 个工具 | **完成 2026-11-18** |
 | M4.1 | finding/ioc/task/incident 15 个 | **完成 2026-11-18（26/73）** |
-| M4.2 | decision/timeline/report/decoy 13 个 | 11/19 ~ 11/25 |
-| M4.3 | detection/telemetry/control/cve/risk 13 个 | 12/10 ~ 12/16 |
+| M4.2 | decision/timeline/report/decoy 13 个 | **完成 2026-11-18（39/73）** |
+| M4.3 | detection/telemetry/control/cve/risk 13 个 | 11/19 ~ 11/25 |
 | M4.4 | evidence/audit/response/response-exec 12 个 | 12/17 ~ 12/23 |
 | M4.5 | policy/gateway/hunt 9 个 + 73 契约收口 | 12/24 ~ 12/30 |
 | M4 退出 | 73 工具全绿 | 12/31 |
