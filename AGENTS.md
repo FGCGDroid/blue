@@ -46,6 +46,7 @@
 - 只检测不阻断不算防守：`jwt-none` 曾 R1/R2/R3 全命中但请求仍被转发，flag 丢失。高置信规则必须有阻断路径；没有就写 `not_defended`，不能写“已检测”。
 - 证据必须独立：`attempts=0` 不能证明没人尝试；自己加工的日志不能当原始证据；正则命中不等于解析成功；403/200 必须原始响应 + 多次复测。
 - 含中文源码不用 PowerShell 改编码；整文件用 `write`，定点用 `edit`，改完跑语法检查。
+- 改 `presets/**` 或 `skills/**` 后，必须运行 `node scripts/build.mjs`，并把重新生成的 `cordis.patch.yml` 一起提交；否则 CI 的 `Generated patch is committed` 会红叉。
 - 详细版：`docs/operational-red-lines.md`。
 
 ## 0. 实现前事实（历史，已过时）
