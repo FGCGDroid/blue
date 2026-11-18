@@ -10,9 +10,9 @@
 | # | 任务 | 目标 | 状态 | 下一步 |
 |---|---|---|---|---|
 | 1 | 重启 DSH 并验收 | 全局 | 待重启 | 验聚合、close 解绑、blocked 状态机 |
-| 2 | 处理 honeypot 告警/案件 | ENG-91A24788 | open | 判 ALT-7F6345E2；决定 INC-0D6BC875 |
-| 3 | js-reverse 失守处置 | ENG-FFAB4D9C | open critical | FND-B1B174E0 / INC-09998935 评估关闭或保留 |
-| 4 | 52012 critical 资产身份 | ENG-50221978 | open | 确认服务/owner，补证据 |
+| 2 | 处理 honeypot 告警/案件 | ENG-91A24788 | open | ALT-7F6345E2=open/low；FND-B43F3B09=open/medium；INC-0D6BC875=open，结案需 .env 移出 Web 根 + 归因维持疑似 |
+| 3 | js-reverse 失守处置 | ENG-FFAB4D9C | 已收口 | 63400 已停；finding accepted；INC-09998935 closed |
+| 4 | 52012 critical 资产身份 | ENG-50221978 | 已确认离线 | 2026-11-19 实测 52012 不监听；资产标 retired，finding fixed |
 | 5 | BlueLab admin 弱口令 | ENG-354EC1D5 | 已完成但弱 | `qiuyanqi` 只限本机；暴露前换强口令 |
 
 ### 1. 重启后三条验收
@@ -33,8 +33,8 @@ blue_engagement_open action=close engagement=别的目标
 | # | 任务 | 目标 | 状态 | 下一步 |
 |---|---|---|---|---|
 | 6 | 日志接入任务 | ENG-354 / TSK-00085FC3 | queued | 确认 ctf-lab-access 是否覆盖；done 或保留 |
-| 7 | 主机基线缺口 | ENG-354 / FND-CCCC93B1 | open medium | 接受风险或另开维护窗口，不动 135/139/445/3306 |
-| 8 | /admin 限速 | ENG-354 / FND-8944173C | open low | accepted 或 P2 任务加限速 |
+| 7 | 主机基线缺口 | ENG-354 / FND-CCCC93B1 | accepted | 维护窗口另开，现在不动主机 |
+| 8 | /admin 限速 | ENG-354 / FND-8944173C | accepted | 低危，不另开 P2 |
 | 9 | 高危端口收敛 | ENG-6FE / TSK-3903E423 | blocked high | 保持 blocked，写清维护窗口，不 cancel |
 | 10 | 路径枚举检测缺口 | ENG-6FE / FND-6CD197A1 | open medium | 补频率+路径规则，或 accepted |
 | 11 | 平台缺陷 finding 回写 | ENG-50CCFFED | 7 open | 已修项标 fixed，526B 保留 open |
@@ -120,8 +120,8 @@ digest b0ba99db...
 | ENG-15D4DBE6 | active | 保留，本场 |
 | ENG-50CCFFED | active | 保留，finding 回写 |
 | ENG-91A24788 | active | P0 研判 |
-| ENG-FFAB4D9C | active | P0 js-reverse |
-| ENG-50221978 | active | critical 资产身份 |
+| ENG-FFAB4D9C | active | 实例已停，finding accepted，incident closed；可进清理候选 |
+| ENG-50221978 | active | 资产离线，已 retired；finding fixed |
 | ENG-354EC1D5 | active | 2 finding + 1 queued |
 | ENG-6FE471DA | active | 1 blocked high |
 | ENG-803C99DF | active | 3 queued，保留 |
@@ -141,11 +141,9 @@ digest b0ba99db...
 1 重启 DSH
 2 跑三条验收
 3 ENG-91 告警/案件
-4 ENG-FFAB4D9C 失守
-5 ENG-502 critical 身份
-6 ENG-354 两个 finding + 1 queued
-7 ENG-50 finding 回写
-8 ENG-6FE blocked 保持
-9 清理 0/0/0 目标
-10 最后才看 gateway / T1071 / T1041
+4 ENG-354 两个 finding + 1 queued
+5 ENG-50 finding 回写
+6 ENG-6FE blocked 保持
+7 清理 0/0/0 目标
+8 最后才看 gateway / T1071 / T1041
 ```
