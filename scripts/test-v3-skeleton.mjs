@@ -120,7 +120,7 @@ try {
     },
   }
   applyTools(toolsCtx)
-  assert.equal(registered.length, 11)
+  assert.equal(registered.length, 26)
   storeCtx.provided.get('blueTeamV3').close()
 
   const counters = createCounters()

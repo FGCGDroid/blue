@@ -9,13 +9,13 @@ tools 不做业务判断
 所有工具经 safe 包装，错误返回 { ok:false, error }
 ```
 
-M4.0 状态：
+M4.1 状态：
 
 ```text
 23 个工具组文件
 73 个工具名（现有 66 + 新增 7）
-11 个工具已注册
-session 6 / asset 2 / alert 3
+26 个工具已注册
+session 6 / asset 2 / alert 3 / finding 3 / ioc 3 / task 5 / incident 4
 ```
 
 文件：
@@ -29,6 +29,10 @@ context.js   会话绑定、目标解析、scope
 session.js   M4.0：会话/目标 6 个
 asset.js     M4.0：资产 2 个
 alert.js     M4.0：告警 3 个
+finding.js   M4.1：发现 3 个
+ioc.js       M4.1：IOC 3 个
+task.js      M4.1：任务/自主 5 个
+incident.js  M4.1：案件 4 个
 ```
 finding.js   发现
 ioc.js       IOC
@@ -52,4 +56,4 @@ gateway.js   网关
 hunt.js      狩猎/取证/加固
 ```
 
-M4.0 的 11 个工具已注册；其余组在 M4.1+ 按契约迁移，不注册假工具。
+M4.0/M4.1 的 26 个工具已注册；其余组在 M4.2+ 按契约迁移，不注册假工具。

@@ -59,7 +59,7 @@ export function register(registerTool, env = {}) {
 
   registerTool(defineTool({
     name: 'blue_alert_triage',
-    description: '研判一条告警：更新状态/级别/负责人/结论。真阳性应 clear 到 contained，假阳性标 false_positive 并写依据。M4.0 不创建任务。',
+    description: '研判一条告警：更新状态/级别/负责人/结论。真阳性应 clear 到 contained，假阳性标 false_positive 并写依据。可同时创建处置任务（create_task=true）。',
     parameters: {
       engagement: { type: 'string', description: '（可选）防守目标 id 或名称；默认用当前会话绑定' },
       id: { type: 'string', required: true, description: '告警 id（ALT-...）' },
@@ -68,8 +68,8 @@ export function register(registerTool, env = {}) {
       assignee: { type: 'string' },
       note: { type: 'string', description: '研判结论与依据' },
       confidence: { type: 'string', description: '研判置信度：low/medium/high' },
-      create_task: { type: 'boolean', description: 'M4.0 先传 false；task 组迁移后再支持 true' },
-      role: { type: 'string', description: '预留：任务角色' },
+      create_task: { type: 'boolean', description: '是否创建处置任务' },
+      role: { type: 'string', description: '任务角色：monitor/intel/hunt/ir/forensics/hardening' },
     },
     execute: safe(async (args, exec) => {
       if (typeof args.id !== 'string' || args.id.trim() === '') {

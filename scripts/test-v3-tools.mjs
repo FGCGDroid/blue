@@ -54,9 +54,13 @@ const expected = [
   'blue_preflight', 'blue_defense_selfcheck', 'blue_tool_catalog',
   'blue_asset_add', 'blue_asset_query',
   'blue_alert_ingest', 'blue_alert_list', 'blue_alert_triage',
+  'blue_finding_add', 'blue_finding_update', 'blue_finding_list',
+  'blue_ioc_add', 'blue_ioc_list', 'blue_ioc_check',
+  'blue_task_create', 'blue_task_update', 'blue_task_approve', 'blue_task_list', 'blue_autopilot',
+  'blue_incident_open', 'blue_incident_list', 'blue_incident_update', 'blue_incident_attach',
 ]
 assert.deepEqual([...registered.keys()].sort(), expected.slice().sort())
-assert.equal(registered.size, 11)
+assert.equal(registered.size, 26)
 
 try {
   const exec = makeExec()
@@ -173,24 +177,143 @@ try {
   assert.equal(triaged.alert.status, 'investigating')
   assert.equal(triaged.task, null)
 
-  const notImplemented = await call('blue_alert_triage', {
+  const triagedWithTask = await call('blue_alert_triage', {
     id: alert.alerts[0].id,
     status: 'contained',
     create_task: true,
+    role: 'ir',
+    note: '确认是合成数据，转处置',
   }, exec)
-  assert.equal(notImplemented.ok, false)
-  assert.equal(notImplemented.code, 'NOT_IMPLEMENTED')
+  assert.equal(triagedWithTask.ok, true)
+  assert.ok(triagedWithTask.task)
+  assert.equal(triagedWithTask.alert.task_id, triagedWithTask.task.id)
+
+  const finding = await call('blue_finding_add', {
+    title: '暴露的备份目录',
+    severity: 'high',
+    category: 'exposure',
+    evidence: 'GET /.git/config 返回 200',
+    recommendation: '禁止 Web 根目录访问 .git',
+  }, exec)
+  assert.equal(finding.ok, true)
+  assert.equal(finding.stats.findings, 1)
+
+  const findingUpdated = await call('blue_finding_update', {
+    id: finding.finding.id,
+    status: 'fixed',
+    evidence: '复测 404',
+  }, exec)
+  assert.equal(findingUpdated.finding.status, 'fixed')
+
+  const findings = await call('blue_finding_list', { status: 'fixed' }, exec)
+  assert.equal(findings.count, 1)
+
+  const ioc = await call('blue_ioc_add', {
+    type: 'ip',
+    value: '203.0.113.7',
+    source: '合成情报',
+    confidence: 'high',
+  }, exec)
+  assert.equal(ioc.ok, true)
+  assert.equal(ioc.total, 1)
+
+  const iocList = await call('blue_ioc_list', { type: 'ip' }, exec)
+  assert.equal(iocList.count, 1)
+
+  const iocCheck = await call('blue_ioc_check', {
+    text: 'login from 203.0.113.7\nnext line',
+  }, exec)
+  assert.equal(iocCheck.matched, true)
+  assert.equal(iocCheck.hits[0].line, 1)
+
+  const highTask = await call('blue_task_create', {
+    role: 'ir',
+    title: '隔离主机 10.10.0.42',
+    brief: '隔离主机并封禁异常端口',
+    priority: 'P0',
+    acceptance: '隔离完成并给出验证证据',
+  }, exec)
+  assert.equal(highTask.ok, true)
+  assert.equal(highTask.task.risk_level, 'high')
+  assert.equal(highTask.task.status, 'pending_approval')
+  assert.equal(highTask.task.requires_approval, 1)
+
+  const roleChange = await call('blue_task_update', {
+    id: highTask.task.id,
+    role: 'monitor',
+  }, exec)
+  assert.equal(roleChange.ok, false)
+  assert.equal(roleChange.code, 'TASK_ROLE_IMMUTABLE')
+
+  const nextBeforeApprove = await call('blue_autopilot', { action: 'next', limit: 5 }, exec)
+  assert.ok(!(nextBeforeApprove.dispatches || []).some((item) => item.task_id === highTask.task.id))
+
+  const approved = await call('blue_task_approve', {
+    task_id: highTask.task.id,
+    actor: 'human-operator',
+    note: 'M4.1 合成审批',
+  }, exec)
+  assert.equal(approved.ok, true)
+  assert.equal(approved.task.status, 'queued')
+  assert.equal(approved.task.approved_by, 'human-operator')
+
+  const tasks = await call('blue_task_list', { risk_level: 'high' }, exec)
+  assert.equal(tasks.count, 1)
+
+  const next = await call('blue_autopilot', { action: 'next', limit: 5 }, exec)
+  assert.equal(next.ok, true)
+  assert.ok(next.dispatches.some((item) => item.task_id === highTask.task.id))
+
+  const completed = await call('blue_autopilot', {
+    action: 'complete',
+    task_id: highTask.task.id,
+    result: '已隔离并验证',
+  }, exec)
+  assert.equal(completed.ok, true)
+  assert.equal(completed.task.status, 'done')
+
+  const slots = await call('blue_autopilot', { action: 'set_slots', slots: 4 }, exec)
+  assert.equal(slots.max_slots, 4)
+
+  const autoStatus = await call('blue_autopilot', { action: 'status' }, exec)
+  assert.equal(autoStatus.ok, true)
+  assert.equal(autoStatus.max_slots, 4)
+
+  const incident = await call('blue_incident_open', {
+    title: '合成登录事件',
+    severity: 'high',
+    summary: 'M4.1 契约测试',
+  }, exec)
+  assert.equal(incident.ok, true)
+
+  const incidents = await call('blue_incident_list', {}, exec)
+  assert.equal(incidents.count, 1)
+
+  const incidentUpdated = await call('blue_incident_update', {
+    id: incident.incident.id,
+    status: 'investigating',
+  }, exec)
+  assert.equal(incidentUpdated.incident.status, 'investigating')
+
+  const attached = await call('blue_incident_attach', {
+    id: incident.incident.id,
+    alert_id: alert.alerts[0].id,
+    finding_id: finding.finding.id,
+    task_id: highTask.task.id,
+  }, exec)
+  assert.equal(attached.ok, true)
+  assert.equal(attached.attached.length, 3)
 
   const preflight = await call('blue_preflight', {}, exec)
   assert.equal(preflight.ok, true)
   assert.equal(preflight.db.schema_version, '3.0')
-  assert.equal(preflight.tools.registered, 11)
+  assert.equal(preflight.tools.registered, 26)
 
   const catalog = await call('blue_tool_catalog', {}, exec)
-  assert.equal(catalog.registered, 11)
+  assert.equal(catalog.registered, 26)
   assert.equal(catalog.planned, 73)
 
-  console.log('✓ v3 M4.0 工具契约通过：session 6 / asset 2 / alert 3，共 11 个')
+  console.log('✓ v3 M4.1 工具契约通过：session 6 / asset 2 / alert 3 / finding 3 / ioc 3 / task 5 / incident 4，共 26 个')
 } finally {
   store.close()
   rmSync(root, { recursive: true, force: true })
