@@ -1,15 +1,20 @@
 /**
- * 3.0 Host API 入口（骨架）。
+ * 3.0 Host API 入口（M5）。
  *
- * M4 接 2.0 控制台兼容层，M5 接 3.1 新 UI。
- * 现在不注册路由，避免和 2.0 的 /blue/api 抢路径。
+ * 注册 /blue/api 与 /blue/v3/api，供 2.0 控制台和 3.x 前端共用；
+ * 浏览器不直接碰 SQLite，所有读写走 blueTeamV3。
  */
+import { registerHostApi } from './ui/host-api.js'
+
 export const name = 'blue-ui-v3'
 
 export const inject = ['blueTeamV3', 'webServer']
 
 export function apply(ctx) {
-  ctx.logger?.info?.('blue-ui-v3: 骨架就绪（0 条路由）')
+  const store = ctx.blueTeamV3 ?? ctx.get?.('blueTeamV3')
+  if (!store) throw new Error('blue-ui-v3: 缺少 blueTeamV3 服务')
+  registerHostApi(ctx, store)
+  ctx.logger?.info?.('blue-ui-v3: Host API 就绪（/blue/api、/blue/v3/api）')
 }
 
 export default { name, inject, apply }

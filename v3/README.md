@@ -1,6 +1,6 @@
-# v3 —— 3.0 内核与 M4 全量工具
+# v3 —— 3.0 内核 + M5 Host API
 
-> 状态：M0 契约、M1 骨架、M2 数据层、M3 路径阻断、M3.5 响应执行/外锚、M4 全量 73/73 工具已完成
+> 状态：M0 契约、M1 骨架、M2 数据层、M3 路径阻断、M3.5 响应执行/外锚、M4 全量 73/73 工具、M5 Host API 已完成
 > 分支：`3.0-dev`
 > 入口：`v3/index.js`
 > 规模：132 个 JS；23 个工具组；73/73 个工具已注册（现有 66 + 新增 7）
@@ -16,7 +16,7 @@
 v3/index.js              Cordis 入口（blueTeamModeV3）
 v3/store.js              事实库入口（blueTeamV3），SQLite + 8 个 repo
 v3/tools.js              工具入口（23 组串起来；73/73 已注册）
-v3/ui.js                 Host API 入口（0 条路由）
+v3/ui.js                 Host API 入口（/blue/api、/blue/v3/api）
 v3/gateway.js            网关 CLI：--check / 启动独立网关
 v3/bootstrap/            配置、依赖容器、生命周期
 v3/ports/                9 个接口声明
@@ -70,6 +70,8 @@ v3/tools/response-exec.js M4.4：2 个响应执行工具
 v3/tools/policy.js       M4.5：3 个策略工具
 v3/tools/gateway.js      M4.5：1 个网关状态工具
 v3/tools/hunt.js         M4.5：5 个狩猎/加固工具
+v3/ui/host-api.js        M5：2.0 控制台兼容路由
+v3/ui/legacy-view.js     M5：领域对象 -> 2.0 字段
 v3/infra/sqlite/repos/engagements.js  目标登记/复用/统计
 ```
 
@@ -110,16 +112,17 @@ policy 3 / gateway 1 / hunt 5
 边界（不是 3.0 完成）：
 
 ```text
-v3/ui/*                  Host API/控制台仍是占位（M5）
+v3/ui/*                  2.0 控制台兼容 Host API 已接；3.1 新前端未写
 v3/infra/telemetry/otlp.js  OTLP 未接，M4 只做 JSONL 文件源
 v3/infra/evidence/bundle.js 仍为占位；evidence 工具返回内存 bundle
 report.write / evidence 落盘未接
 response 执行默认 manual，不自动跑破坏性命令
 hunt 的 log_scan/artifact_triage 是只读正则/哈希初筛
+3.0 尚未接进 cordis.patch.yml，避免和 2.0 /blue/api 抢路由
 ```
 
 占位函数一律抛 `NOT_IMPLEMENTED`，不会静默返回假结果。
-73 个工具名全部注册；M5 之前不把它们写进 `cordis.patch.yml`。
+73 个工具名全部注册；M5 先做 Host API，不抢 2.0 路由。
 
 ## 检查
 
@@ -147,6 +150,7 @@ node scripts/rollback-v3.mjs --root <data-dir>
 ✓ v3 网关集成通过：阻断/放行/canary/body/内容/日志/metrics/热加载
 ✓ v3 响应执行通过：dry-run/审批/人工回填/回滚/mock
 ✓ v3 外锚通过：file sink/白名单校验/混合失败不阻塞
+✓ v3 M5 Host API 通过：2 条路由 / 2.0 op / 同源校验
 ✓ 2.0 parity 基线通过
 ```
 
@@ -166,13 +170,10 @@ tools 里不能出现 SQL 字符串
 
 ```text
 2026-11-18  M4 全量完成：73/73
-2026-11-19  M5 控制台
+2026-11-18  M5 Host API 完成（2.0 控制台兼容）
 2026-12    影子双跑 / 3.0.0-rc
 2027-01    3.0.0
 2027-03    3.1.0
-2027-01    影子双跑 / 3.0.0-rc
-2027-02    3.0.0
-2027-04    3.1.0
 ```
 
 完整计划见 [`../docs/3.0/fast-track.md`](../docs/3.0/fast-track.md)。

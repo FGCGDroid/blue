@@ -20,6 +20,7 @@ import { DecoysRepo } from './infra/sqlite/repos/decoys.js'
 import { ResponsesRepo } from './infra/sqlite/repos/responses.js'
 import { EvidenceRepo } from './infra/sqlite/repos/evidence.js'
 import { TelemetryRepo } from './infra/sqlite/repos/telemetry.js'
+import { readJsonl } from './infra/fs/jsonl.js'
 
 export const name = 'blue-store-v3'
 
@@ -53,6 +54,10 @@ export class BlueStoreV3 {
 
   get lastBackup() {
     return this.db.lastBackup ?? null
+  }
+
+  readJsonl(file, options = {}) {
+    return readJsonl(file, { root: this.root, ...options })
   }
 
   close() {

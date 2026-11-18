@@ -46,7 +46,7 @@
     "build": "node scripts/build.mjs",
     "validate": "node scripts/validate.mjs",
     "check:v3": "node scripts/check-v3-layers.mjs",
-    "test:v3": "node scripts/test-v3-skeleton.mjs && node scripts/check-dsh-retired-rows.mjs && node scripts/test-v3-tools.mjs && node scripts/test-v3-db.mjs && node scripts/test-v3-hardening.mjs && node scripts/test-v3-facts.mjs && node scripts/test-v3-repos.mjs && node scripts/test-v3-rollback.mjs && node scripts/test-v3-path.mjs && node scripts/test-v3-gateway.mjs && node scripts/test-v3-response.mjs && node scripts/test-v3-anchor.mjs",
+    "test:v3": "node scripts/test-v3-skeleton.mjs && node scripts/check-dsh-retired-rows.mjs && node scripts/test-v3-tools.mjs && node scripts/test-v3-db.mjs && node scripts/test-v3-hardening.mjs && node scripts/test-v3-facts.mjs && node scripts/test-v3-repos.mjs && node scripts/test-v3-rollback.mjs && node scripts/test-v3-path.mjs && node scripts/test-v3-gateway.mjs && node scripts/test-v3-response.mjs && node scripts/test-v3-anchor.mjs && node scripts/test-v3-ui.mjs",
     "test:v3:tools": "node scripts/test-v3-tools.mjs",
     "test:v3:db": "node scripts/test-v3-db.mjs",
     "check:dsh": "node scripts/check-dsh-retired-rows.mjs",
@@ -77,7 +77,8 @@
     "test:compat": "node scripts/test-compat.mjs",
     "test:e2e": "node scripts/test-ui-e2e.mjs",
     "test": "node scripts/test-tools.mjs && node scripts/test-ui.mjs && node scripts/test-hunter.mjs && node scripts/test-inline-gateway.mjs && node scripts/test-decoy-server.mjs && node scripts/test-migration.mjs && node scripts/test-compat.mjs && node scripts/test-otlp.mjs",
-    "prepack": "node scripts/build.mjs"
+    "prepack": "node scripts/build.mjs",
+    "test:v3:ui": "node scripts/test-v3-ui.mjs"
   },
   "bin": {
     "dsh-blue-decoy": "scripts/decoy-server.mjs"
