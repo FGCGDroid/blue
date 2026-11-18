@@ -1,4 +1,8 @@
-# 3.0 总任务板
+# 3.0 总任务板（历史归档）
+
+> **2026-11-19 01:27：业务库已按指挥官选择 C 清空。**
+> `engagements/assets/alerts/findings/tasks/incidents/decoys/telemetry/rules/controls/anchors/timeline` 全为 0。
+> 本板不再作为当前执行清单，只保留历史记录。
 
 > 快照：2026-11-19 01:10 +08:00
 > 当前 beta：`3.0.0-beta.1` 已安装，待重启加载最新代码
