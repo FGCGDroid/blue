@@ -5,26 +5,31 @@ function targetInfo(raw) {
   const value = String(raw || '').trim()
   if (value === '') throw new BlueError('PROTECT_TARGET', '请填写服务器 IP、域名或网址')
   let host = value
+  let port = ''
   let address = value
   try {
     const url = new URL(value)
     host = url.hostname
+    port = url.port
     address = url.toString()
   } catch {
-    host = value.replace(/^[a-z]+:\/\//i, '').split('/')[0].split(':')[0]
+    const withoutScheme = value.replace(/^[a-z]+:\/\//i, '').split('/')[0]
+    const match = /^\[([^\]]+)\](?::(\d+))?$/.exec(withoutScheme) ?? /^([^:]+)(?::(\d+))?$/.exec(withoutScheme)
+    host = match ? match[1] : withoutScheme.split(':')[0]
+    port = match && match[2] ? match[2] : ''
     address = value
   }
   if (host === '') throw new BlueError('PROTECT_TARGET', '无法识别目标地址')
-  return { host, address }
+  return { host, port, display: port === '' ? host : `${host}:${port}`, address }
 }
 
 export function startProtection(store, input = {}) {
-  const { host, address } = targetInfo(input.target)
-  const name = String(input.name || `保护 ${host}`).trim()
+  const { host, display, address } = targetInfo(input.target)
+  const name = String(input.name || `保护 ${display}`).trim()
   const kind = String(input.kind || 'web').trim()
   const engagement = store.engagements.open(name, [host], '通过“保护我的服务器”向导建立')
   const asset = store.facts.addAsset(engagement.id, {
-    name: String(input.asset_name || host),
+    name: String(input.asset_name || display),
     address,
     kind,
     criticality: String(input.criticality || 'high'),
