@@ -9,7 +9,7 @@
 项目：dsh-blue-team-mode
 稳定版：2.0.0
 beta：2.0.0-beta.32（历史）
-3.0：已立项，未开工（docs/3.0/README.md）
+3.0：已开工（M0–M3.5 完成，docs/3.0/README.md）
 协议：MIT
 ```
 
@@ -32,7 +32,7 @@ beta：2.0.0-beta.32（历史）
 5. docs/state-machines.md
 6. docs/release.md
 7. docs/known-issues.md
-8. docs/3.0/README.md（3.0 计划，未开工）
+8. docs/3.0/README.md（3.0 计划，已开工）
 ```
 
 不要一上来读 `lib/tools.js`。
