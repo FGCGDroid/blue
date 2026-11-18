@@ -27,9 +27,11 @@ export function register(registerTool, env = {}) {
       const action = String(args.action || 'open').trim().toLowerCase()
       if (action === 'close') {
         const target = engagementOf(store, exec, args.engagement || args.name)
+        const current = bindingViewOf(exec, store).bound_engagement
         const result = closeEngagement(store, target.id)
-        const keys = unbindEngagement(exec)
-        return { ok: true, action: 'close', ...result, unbound_keys: keys }
+        // 只有关闭“当前绑定”时才解绑；显式关闭别的目标不能把当前会话解绑。
+        const keys = current !== null && current.id === target.id ? unbindEngagement(exec) : []
+        return { ok: true, action: 'close', ...result, unbound_keys: keys, still_bound: bindingViewOf(exec, store).bound_engagement }
       }
       if (action !== 'open') throw new BlueError('ENGAGEMENT_ACTION', 'action 只能是 open 或 close')
       if (typeof args.name !== 'string' || args.name.trim() === '') {

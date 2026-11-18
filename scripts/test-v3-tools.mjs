@@ -763,6 +763,20 @@ try {
 
   const scopeExec = makeExec('S-SCOPE')
   await call('blue_defense_selfcheck', { phrase: '防御自检' }, scopeExec)
+  const firstScope = await call('blue_engagement_open', {
+    name: 'scope-first',
+    scope: ['127.0.0.1'],
+  }, scopeExec)
+  const secondScope = await call('blue_engagement_open', {
+    name: 'scope-second',
+    scope: ['127.0.0.1'],
+  }, scopeExec)
+  const closeOther = await call('blue_engagement_open', {
+    action: 'close',
+    engagement: firstScope.engagement.id,
+  }, scopeExec)
+  assert.equal(closeOther.still_bound.id, secondScope.engagement.id)
+  await call('blue_engagement_open', { action: 'close' }, scopeExec)
   await call('blue_engagement_open', {
     name: 'scope-v6',
     scope: ['2001:db8::/32', '10.0.0.10-10.0.0.20'],
