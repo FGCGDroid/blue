@@ -45,7 +45,7 @@ export const CVE_PACK = [
       { id: 'php-cgi-query', label: 'PHP-CGI 查询串', regex: '(?:php-cgi|php\\/cgi|%2fbin%2f|/cgi-bin/)', severity: 'high' },
       { id: 'php-prepend', label: 'PHP 自动前置文件', regex: '(?:auto_prepend_file|auto_append_file|allow_url_include)', severity: 'high' },
       { id: 'php-input', label: 'php://input 直接读取', regex: 'php://(?:input|filter)', severity: 'medium' },
-      { id: 'php-exec-upload', label: '上传目录执行 PHP', regex: '(?:upload|uploads|tmp).{0,80}\\.(?:php|phtml|phar)', severity: 'high' },
+      { id: 'php-exec-upload', label: '上传目录执行 PHP', regex: '(?:/uploads?/|/tmp/|\\\\Temp\\\\)[^\\s]{0,120}\\.(?:php|phtml|phar)', severity: 'high' },
     ],
   },
   {

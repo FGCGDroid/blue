@@ -19,9 +19,10 @@ export function sessionIdOf(exec) {
 
 export function parentIdOf(exec) {
   const session = sessionObjectOf(exec)
-  return typeof session?.parentSessionId === 'string' && session.parentSessionId !== ''
-    ? session.parentSessionId
-    : null
+  const direct = session?.parentSessionId
+  const headerParent = session?.header?.parentSession ?? session?.header?.parent_session
+  const value = direct ?? headerParent
+  return typeof value === 'string' && value !== '' ? value : null
 }
 
 export function sessionKeysOf(exec) {
@@ -100,7 +101,10 @@ export function selfCheckKeyOf(exec) {
 }
 
 export function hasSelfCheck(exec) {
-  return selfChecked.has(selfCheckKeyOf(exec))
+  const { rootId, sessionId } = sessionKeysOf(exec)
+  // 子智能体没有自己的自检；继承父/根会话的自检状态。
+  return selfChecked.has(String(rootId ?? sessionId ?? 'anonymous'))
+    || (sessionId !== null && selfChecked.has(String(sessionId)))
 }
 
 export function markSelfChecked(exec) {
@@ -183,6 +187,33 @@ function ipToBigInt(ip, family) {
   return family === 4 ? BigInt(ipv4ToInt(ip)) : ipv6ToBigInt(ip)
 }
 
+function ipInterval(value) {
+  const raw = String(value || '').trim().toLowerCase()
+  if (raw.includes('/')) {
+    const [address, prefixText] = raw.split('/')
+    const family = ipFamily(address)
+    const prefix = Number(prefixText)
+    const maxBits = family === 6 ? 128 : 32
+    if (family === 0 || !Number.isInteger(prefix) || prefix < 0 || prefix > maxBits) return null
+    const base = ipToBigInt(address, family)
+    const hostBits = BigInt(maxBits - prefix)
+    const size = (1n << hostBits) - 1n
+    return { start: base & ~size, end: (base & ~size) + size, family }
+  }
+  if (raw.includes('-')) {
+    const [left, right] = raw.split('-').map((part) => part.trim())
+    const family = ipFamily(left)
+    if (family === 0 || ipFamily(right) !== family) return null
+    const a = ipToBigInt(left, family)
+    const b = ipToBigInt(right, family)
+    return { start: a < b ? a : b, end: a < b ? b : a, family }
+  }
+  const family = ipFamily(raw)
+  if (family === 0) return null
+  const valueInt = ipToBigInt(raw, family)
+  return { start: valueInt, end: valueInt, family }
+}
+
 function ipMatchesEntry(target, entry) {
   const value = String(entry || '').trim().toLowerCase()
   const family = ipFamily(target)
@@ -233,9 +264,17 @@ export function scopeStatus(host, scope) {
   const list = Array.isArray(scope) ? scope : []
   if (list.length === 0) return { status: 'unscoped', reason: '没有声明 scope' }
   const targetIsIp = ipFamily(target) !== 0
+  const targetRange = ipInterval(target)
   for (const raw of list) {
     const entry = String(raw ?? '').trim().toLowerCase()
     if (entry === '') continue
+    const entryRange = ipInterval(entry)
+    if (targetRange !== null && entryRange !== null
+      && targetRange.family === entryRange.family
+      && targetRange.start >= entryRange.start
+      && targetRange.end <= entryRange.end) {
+      return { status: 'in', rule: entry }
+    }
     if (ipMatchesEntry(target, entry)) return { status: 'in', rule: entry }
     if (targetIsIp) continue
     if (entry.startsWith('*.')) {

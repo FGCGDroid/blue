@@ -12,11 +12,33 @@ const TECHNIQUES = [
   { id: 'T1486', tactic: 'Impact', name: 'Data Encrypted for Impact', rule: 'ransomware' },
 ]
 
+const RULE_ALIASES = {
+  'builtin-http-401-403': ['T1110', 'T1078'],
+  'builtin-auth-path': ['T1190', 'T1078'],
+  'builtin-windows-logon-fail': ['T1110'],
+  'web-attack': ['T1190'],
+  'login-failure': ['T1078'],
+  'bruteforce': ['T1110'],
+  'scanner': ['T1046', 'T1595'],
+  'webshell-file': ['T1505'],
+  'webshell-command': ['T1059'],
+  'c2-beacon': ['T1071'],
+  'data-exfil': ['T1041'],
+  'ransomware': ['T1486'],
+}
+
 export function attackCoverage(rules = []) {
   const ruleKeys = new Set((Array.isArray(rules) ? rules : []).map((rule) => rule.rule_key || rule.id || rule))
-  const covered = TECHNIQUES.filter((item) => ruleKeys.has(item.rule)).map((item) => ({ ...item, has_rule: true }))
-  const gaps = TECHNIQUES.filter((item) => !ruleKeys.has(item.rule)).map((item) => ({ ...item, has_rule: false }))
-  const unmapped = Array.from(ruleKeys).filter((key) => !TECHNIQUES.some((item) => item.rule === key))
+  const covered = TECHNIQUES.filter((item) => {
+    if (ruleKeys.has(item.rule)) return true
+    return Array.from(ruleKeys).some((key) => (RULE_ALIASES[key] || []).includes(item.id))
+  }).map((item) => ({ ...item, has_rule: true }))
+  const gaps = TECHNIQUES.filter((item) => !covered.some((hit) => hit.id === item.id)).map((item) => ({ ...item, has_rule: false }))
+  const mappedRules = new Set(TECHNIQUES.map((item) => item.rule))
+  for (const [key, aliases] of Object.entries(RULE_ALIASES)) {
+    if (aliases.length > 0) mappedRules.add(key)
+  }
+  const unmapped = Array.from(ruleKeys).filter((key) => !mappedRules.has(key))
   const tactics = Array.from(new Set(TECHNIQUES.map((item) => item.tactic)))
   return {
     techniques: TECHNIQUES.length,
@@ -25,8 +47,9 @@ export function attackCoverage(rules = []) {
     covered_techniques: covered,
     gaps_techniques: gaps,
     unmapped_rules: unmapped,
+    active_rules: Array.from(ruleKeys),
     tactics,
-    note: '内置映射只表示“有同名规则”，不代表规则已启用、已部署或没有误报。',
+    note: '内置规则与自定义规则都参与覆盖；只表示“有映射”，不代表已启用、已部署或没有误报。',
   }
 }
 

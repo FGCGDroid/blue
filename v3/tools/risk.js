@@ -2,6 +2,7 @@
 import { defineTool, safe } from './define.js'
 import { engagementOf } from './context.js'
 import { attackCoverage, buildRiskGraph } from '../app/risk/service.js'
+import { rulesFor } from '../app/detection/service.js'
 
 export const group = 'risk'
 
@@ -16,7 +17,7 @@ export function register(registerTool, env = {}) {
     },
     execute: safe(async (args, exec) => {
       const engagement = engagementOf(store, exec, args.engagement)
-      const rules = store.detection.list(engagement.id)
+      const rules = rulesFor(store, engagement.id)
       return { ok: true, engagement: { id: engagement.id, name: engagement.name }, ...attackCoverage(rules) }
     }),
   }))

@@ -4,7 +4,7 @@
  * 只使用临时 SQLite，不连接真实目标。
  */
 import assert from 'node:assert/strict'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { BlueStoreV3 } from '../v3/store.js'
@@ -30,13 +30,14 @@ const ctx = {
 
 apply(ctx)
 
-function makeExec(id = 'S1', messages = ['防御自检']) {
+function makeExec(id = 'S1', messages = ['防御自检'], parent = null) {
   const events = messages.map((text) => ({ type: 'user/message', data: { text } }))
   return {
     agent: {
       session: {
         id,
-        parentSessionId: null,
+        parentSessionId: parent,
+        header: parent === null ? {} : { parentSession: parent },
         snapshotEvents: () => events,
       },
     },
@@ -114,6 +115,14 @@ try {
 
   const info2 = await call('blue_session_info', {}, exec)
   assert.equal(info2.session.bound_engagement.id, opened.engagement.id)
+
+  const child = makeExec('S1-CHILD', [], 'S1')
+  const childInfo = await call('blue_session_info', {}, child)
+  assert.equal(childInfo.session.is_subagent, true)
+  assert.equal(childInfo.session.bound_engagement.id, opened.engagement.id)
+  const childQuery = await call('blue_asset_query', {}, child)
+  assert.equal(childQuery.ok, true)
+  assert.equal(childQuery.code, undefined)
 
   const inScope = await call('blue_scope_check', { target: 'https://app.example.test/login' }, exec)
   assert.equal(inScope.ok, true)
@@ -486,6 +495,19 @@ try {
   const telemetryHealth = await call('blue_telemetry_health', {}, exec)
   assert.equal(telemetryHealth.count, 1)
 
+  const previousDsh = process.env.DSH_HOME
+  process.env.DSH_HOME = root
+  const ctfDir = join(root, 'ctf-lab')
+  mkdirSync(ctfDir, { recursive: true })
+  const ctfPath = join(ctfDir, 'access.jsonl')
+  writeFileSync(ctfPath, JSON.stringify({ status: 401, path: '/admin/login', remote: '198.51.100.30' }) + '\n', 'utf8')
+  const ctfSource = await call('blue_telemetry_source_add', { name: 'ctf-jsonl', path: ctfPath }, exec)
+  assert.equal(ctfSource.ok, true)
+  const ctfPoll = await call('blue_telemetry_poll', { name: 'ctf-jsonl' }, exec)
+  assert.equal(ctfPoll.ok, true)
+  assert.ok(ctfPoll.results[0].read >= 1)
+  process.env.DSH_HOME = previousDsh
+
   const control = await call('blue_control_scan', {}, exec)
   assert.equal(control.ok, true)
   assert.equal(control.controls.length, 5)
@@ -505,12 +527,25 @@ try {
   const cveScanLow = await call('blue_cve_scan', { text: 'content-encoding: br', include_low: true }, exec)
   assert.equal(cveScanLow.matched, true)
 
+  const cveBenign = await call('blue_cve_scan', {
+    text: 'POST /upload.php 200 user=alice file=avatar.png',
+  }, exec)
+  assert.equal(cveBenign.matched, false)
+  assert.equal(cveBenign.hits.length, 0)
+
+  const sqli = await call('blue_log_scan', { text: "id=1' OR '1'='1" }, exec)
+  assert.ok(sqli.hits.some((hit) => hit.pattern === 'sqli'))
+  const sqliEncoded = await call('blue_log_scan', { text: 'id=1%27%20OR%20%271%27%3D%271' }, exec)
+  assert.ok(sqliEncoded.hits.some((hit) => hit.pattern === 'sqli'))
+
   const cveCampaign = await call('blue_cve_campaign', { create: false }, exec)
   assert.equal(cveCampaign.ok, true)
 
   const coverage = await call('blue_attack_coverage', {}, exec)
   assert.equal(coverage.ok, true)
   assert.ok(coverage.techniques >= 5)
+  assert.ok(coverage.covered >= 3)
+  assert.ok(coverage.unmapped_rules.includes('admin-login-fail'))
 
   const riskGraph = await call('blue_risk_graph', {}, exec)
   assert.equal(riskGraph.ok, true)
@@ -668,6 +703,10 @@ try {
   assert.equal(v6.status, 'in')
   const range = await call('blue_scope_check', { target: '10.0.0.15' }, scopeExec)
   assert.equal(range.status, 'in')
+  const subCidr = await call('blue_scope_check', { target: '10.0.0.12/30' }, scopeExec)
+  assert.equal(subCidr.status, 'in')
+  const subRange = await call('blue_scope_check', { target: '10.0.0.11-10.0.0.12' }, scopeExec)
+  assert.equal(subRange.status, 'in')
   const outside = await call('blue_scope_check', { target: '2001:db9::5' }, scopeExec)
   assert.equal(outside.status, 'out')
   const closed = await call('blue_engagement_open', { action: 'close' }, scopeExec)

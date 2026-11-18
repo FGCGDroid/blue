@@ -15,7 +15,7 @@ const PLAYBOOKS = [
 
 const LOG_PATTERNS = [
   { id: 'webshell', label: 'WebShell/命令执行', regex: /(?:eval|assert|system|passthru|shell_exec)\s*\(|cmd\.exe|\/bin\/(?:ba)?sh/i, severity: 'high' },
-  { id: 'sqli', label: 'SQL 注入特征', regex: /(?:union\s+select|sleep\s*\(|benchmark\s*\(|information_schema)/i, severity: 'high' },
+  { id: 'sqli', label: 'SQL 注入特征', regex: /(?:'\s*(?:or|and)\s*['"]?\d|"\s*(?:or|and)\s*["']?\d|\b(?:or|and)\s+1\s*=\s*1\b|\bunion\b[\s+]+select\b|\bsleep\s*\(|\bbenchmark\s*\(|information_schema)/i, severity: 'high' },
   { id: 'scanner', label: '扫描器', regex: /(?:sqlmap|nikto|nuclei|masscan|nmap|gobuster|dirsearch)/i, severity: 'medium' },
   { id: 'traversal', label: '路径穿越', regex: /(?:\.\.\/|%2e%2e|%252e%252e)/i, severity: 'high' },
   { id: 'log4j', label: 'Log4j/JNDI', regex: /\$\{jndi:(?:ldap|rmi|dns):/i, severity: 'critical' },
@@ -46,12 +46,17 @@ function scanText(text) {
   const lines = String(text || '').split(/\r?\n/)
   const hits = []
   for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index]
+    let decoded = line
+    if (/%[0-9a-f]{2}/i.test(line)) {
+      try { decoded = decodeURIComponent(line) } catch { decoded = line }
+    }
     for (const pattern of LOG_PATTERNS) {
-      if (pattern.regex.test(lines[index])) {
-        hits.push({ pattern: pattern.id, label: pattern.label, severity: pattern.severity, line: index + 1, excerpt: lines[index].slice(0, 300) })
+      if (pattern.regex.test(line) || (decoded !== line && pattern.regex.test(decoded))) {
+        hits.push({ pattern: pattern.id, label: pattern.label, severity: pattern.severity, line: index + 1, excerpt: line.slice(0, 300) })
       }
     }
-    hits.push(...jsonFieldHits(lines[index], index + 1))
+    hits.push(...jsonFieldHits(line, index + 1))
   }
   return hits.slice(0, 500)
 }
