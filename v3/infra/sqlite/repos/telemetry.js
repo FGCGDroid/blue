@@ -98,7 +98,7 @@ export class TelemetryRepo {
     const alerts = Number.isInteger(patch.alerts) ? Math.max(patch.alerts, 0) : current.alerts_total
     const at = new Date().toISOString()
     this.db.sql(`UPDATE telemetry_sources
-      SET cursor = ?, events_total = ?, alerts_total = ?, last_poll_at = ?, last_event_at = ?, last_error = '', updated_at = ?
+      SET cursor = ?, events_total = ?, alerts_total = ?, last_poll_at = ?, last_event_at = ?, last_error = '', status = 'active', updated_at = ?
       WHERE id = ?`)
       .run(cursor, events, alerts, asText(patch.last_poll_at, at), asText(patch.last_event_at, current.last_event_at), at, sourceId)
     return this.getSource(sourceId)
@@ -106,7 +106,7 @@ export class TelemetryRepo {
 
   markError(sourceId, error) {
     const at = new Date().toISOString()
-    this.db.sql('UPDATE telemetry_sources SET last_poll_at = ?, last_error = ?, updated_at = ? WHERE id = ?')
+    this.db.sql("UPDATE telemetry_sources SET status = 'error', last_poll_at = ?, last_error = ?, updated_at = ? WHERE id = ?")
       .run(at, String(error || '').slice(0, 500), at, sourceId)
     return this.getSource(sourceId)
   }

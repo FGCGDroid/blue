@@ -32,8 +32,18 @@ export function attackCoverage(rules = []) {
   const covered = TECHNIQUES.filter((item) => {
     if (ruleKeys.has(item.rule)) return true
     return Array.from(ruleKeys).some((key) => (RULE_ALIASES[key] || []).includes(item.id))
-  }).map((item) => ({ ...item, has_rule: true }))
-  const gaps = TECHNIQUES.filter((item) => !covered.some((hit) => hit.id === item.id)).map((item) => ({ ...item, has_rule: false }))
+  }).map((item) => ({
+    ...item,
+    has_rule: true,
+    matched_rules: Array.from(ruleKeys).filter((key) => key === item.rule || (RULE_ALIASES[key] || []).includes(item.id)),
+    rule: undefined,
+  }))
+  const gaps = TECHNIQUES.filter((item) => !covered.some((hit) => hit.id === item.id)).map((item) => ({
+    ...item,
+    has_rule: false,
+    suggested_rule: item.rule,
+    rule: undefined,
+  }))
   const mappedRules = new Set(TECHNIQUES.map((item) => item.rule))
   for (const [key, aliases] of Object.entries(RULE_ALIASES)) {
     if (aliases.length > 0) mappedRules.add(key)

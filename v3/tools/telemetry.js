@@ -45,7 +45,7 @@ export function register(registerTool, env = {}) {
       const engagement = engagementOf(store, exec, args.engagement)
       if (typeof env.readJsonl !== 'function') throw new BlueError('JSONL_READER', 'JSONL reader 未注入')
       const sources = store.telemetry.listSources(engagement.id)
-        .filter((source) => source.status === 'active')
+        .filter((source) => source.status !== 'retired')
         .filter((source) => !args.name || source.name === args.name)
       if (args.name && sources.length === 0) throw new BlueError('TELEMETRY_NOT_FOUND', '遥测源不存在：' + args.name)
       const rules = rulesFor(store, engagement.id)

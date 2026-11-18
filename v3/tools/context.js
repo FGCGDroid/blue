@@ -20,8 +20,9 @@ export function sessionIdOf(exec) {
 export function parentIdOf(exec) {
   const session = sessionObjectOf(exec)
   const direct = session?.parentSessionId
+  const topLevel = session?.parentSession
   const headerParent = session?.header?.parentSession ?? session?.header?.parent_session
-  const value = direct ?? headerParent
+  const value = direct ?? topLevel ?? headerParent
   return typeof value === 'string' && value !== '' ? value : null
 }
 

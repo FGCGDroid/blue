@@ -36,7 +36,8 @@ function makeExec(id = 'S1', messages = ['防御自检'], parent = null) {
     agent: {
       session: {
         id,
-        parentSessionId: parent,
+        parentSessionId: null,
+        parentSession: parent,
         header: parent === null ? {} : { parentSession: parent },
         snapshotEvents: () => events,
       },
@@ -562,6 +563,7 @@ try {
   assert.ok(coverage.techniques >= 5)
   assert.ok(coverage.covered >= 3)
   assert.ok(coverage.unmapped_rules.includes('admin-login-fail'))
+  assert.ok(coverage.gaps_techniques.every((gap) => gap.rule === undefined))
 
   const riskGraph = await call('blue_risk_graph', {}, exec)
   assert.equal(riskGraph.ok, true)

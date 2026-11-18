@@ -64,7 +64,7 @@ function engagementIdOf(store, request) {
 
 function telemetryPoll(store, engagementId, request = {}) {
   const sources = store.telemetry.listSources(engagementId)
-    .filter((source) => source.status === 'active')
+    .filter((source) => source.status !== 'retired')
     .filter((source) => !request.name || source.name === request.name)
   const rules = store.detection.list(engagementId).filter((rule) => rule.enabled)
   const maxAlerts = Math.min(Math.max(Number(request.max_alerts) || 100, 1), 1000)
