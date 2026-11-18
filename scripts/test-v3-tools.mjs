@@ -488,8 +488,8 @@ try {
   assert.equal(rule.rule.rule_key, 'admin-login-fail')
 
   const ruleList = await call('blue_detection_rule_list', {}, exec)
-  assert.equal(ruleList.count, 4)
-  assert.equal(ruleList.builtin, 3)
+  assert.equal(ruleList.count, 6)
+  assert.equal(ruleList.builtin, 5)
   assert.equal(ruleList.custom, 1)
 
   const telemetrySource = await call('blue_telemetry_source_add', {
@@ -528,6 +528,8 @@ try {
   const control = await call('blue_control_scan', {}, exec)
   assert.equal(control.ok, true)
   assert.equal(control.controls.length, 5)
+  assert.equal(control.controls.find((row) => row.control_key === 'approval.pending').status, 'pass')
+  assert.equal(control.score.measured, control.score.pass + control.score.fail)
 
   const controlList = await call('blue_control_list', {}, exec)
   assert.equal(controlList.score.total, 5)
@@ -561,7 +563,7 @@ try {
   const coverage = await call('blue_attack_coverage', {}, exec)
   assert.equal(coverage.ok, true)
   assert.ok(coverage.techniques >= 5)
-  assert.ok(coverage.covered >= 3)
+  assert.ok(coverage.covered >= 5)
   assert.ok(coverage.unmapped_rules.includes('admin-login-fail'))
   assert.ok(coverage.gaps_techniques.every((gap) => gap.rule === undefined))
 
@@ -679,6 +681,20 @@ try {
   }, exec)
   assert.equal(evidenceVerify.ok, true)
   assert.equal(evidenceVerify.digest_ok, true)
+
+  const evidenceWritten = await call('blue_evidence_export', {
+    actor: 'tester',
+    write: true,
+    path: 'test-evidence.json',
+  }, exec)
+  assert.equal(evidenceWritten.ok, true)
+  assert.ok(evidenceWritten.file.endsWith('test-evidence.json'))
+  const evidenceFromFile = await call('blue_evidence_verify', {
+    path: evidenceWritten.file,
+    digest: evidenceWritten.digest,
+  }, exec)
+  assert.equal(evidenceFromFile.ok, true)
+  assert.equal(evidenceFromFile.digest_ok, true)
 
   const topLevel = await call('blue_alert_ingest', {
     title: '顶层标题优先',

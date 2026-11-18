@@ -16,6 +16,8 @@ const RULE_ALIASES = {
   'builtin-http-401-403': ['T1110', 'T1078'],
   'builtin-auth-path': ['T1190', 'T1078'],
   'builtin-windows-logon-fail': ['T1110'],
+  'builtin-webshell-file': ['T1505'],
+  'builtin-scanner': ['T1046', 'T1595'],
   'web-attack': ['T1190'],
   'login-failure': ['T1078'],
   'bruteforce': ['T1110'],

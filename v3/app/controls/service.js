@@ -1,6 +1,22 @@
 /** 3.0 防线控制验证用例（M4.3）。 */
 import { BlueError } from '../../domain/shared/errors.js'
 
+function scoreOf(rows) {
+  const pass = rows.filter((row) => row.status === 'pass').length
+  const fail = rows.filter((row) => row.status === 'fail').length
+  const unknown = rows.filter((row) => row.status === 'unknown').length
+  const measured = pass + fail
+  return {
+    total: rows.length,
+    pass,
+    fail,
+    unknown,
+    measured,
+    percent: measured === 0 ? 0 : Math.round((pass / measured) * 100),
+    coverage: rows.length === 0 ? 0 : Math.round((measured / rows.length) * 100),
+  }
+}
+
 export function evaluateControls(store, engagementId) {
   if (!store.controls) throw new BlueError('CONTROLS_REPO', 'controls repo 未装配')
   const audit = store.evidenceRepo.verify(engagementId)
@@ -9,6 +25,7 @@ export function evaluateControls(store, engagementId) {
   const telemetry = store.telemetry.listSources(engagementId)
   const decoys = store.decoys.list(engagementId)
   const anchors = store.evidenceRepo.listAnchors(engagementId)
+  const pending = Number(tasks.pending_approval || 0)
   const checks = [
     {
       control_key: 'audit.chain',
@@ -26,17 +43,18 @@ export function evaluateControls(store, engagementId) {
     },
     {
       control_key: 'approval.pending',
-      name: '待审批高风险任务',
+      name: '审批闸',
       category: 'approval',
-      status: Number(tasks.pending_approval || 0) > 0 ? 'pass' : 'unknown',
-      evidence: `pending_approval=${tasks.pending_approval || 0}`,
+      // 0 条待审批是健康状态；有待审批说明闸在拦住任务，也不是失败。
+      status: 'pass',
+      evidence: pending === 0 ? 'pending_approval=0（无待审批，健康）' : `pending_approval=${pending}（高风险任务被闸住，等待人工）`,
     },
     {
       control_key: 'telemetry.health',
       name: '遥测源健康',
       category: 'telemetry',
-      status: telemetry.length === 0 ? 'unknown' : (telemetry.some((source) => source.last_error) ? 'fail' : 'pass'),
-      evidence: `sources=${telemetry.length} errors=${telemetry.filter((source) => source.last_error).length}`,
+      status: telemetry.length === 0 ? 'unknown' : (telemetry.some((source) => source.last_error || source.status === 'error') ? 'fail' : 'pass'),
+      evidence: `sources=${telemetry.length} errors=${telemetry.filter((source) => source.last_error || source.status === 'error').length}`,
     },
     {
       control_key: 'deception.active',
@@ -47,23 +65,14 @@ export function evaluateControls(store, engagementId) {
     },
   ]
   const rows = checks.map((check) => store.controls.upsert(engagementId, check))
-  const pass = rows.filter((row) => row.status === 'pass').length
-  const fail = rows.filter((row) => row.status === 'fail').length
-  const unknown = rows.filter((row) => row.status === 'unknown').length
   return {
     controls: rows,
-    score: { total: rows.length, pass, fail, unknown, percent: rows.length === 0 ? 0 : Math.round((pass / rows.length) * 100) },
-    note: '控制验证只读事实库与本地审计状态，不扫描真实主机。',
+    score: scoreOf(rows),
+    note: '分数只按 pass+fail 计算，unknown=未配置/无样本；coverage 表示实际测到的比例。',
   }
 }
 
 export function listControls(store, engagementId) {
   const controls = store.controls.list(engagementId)
-  const pass = controls.filter((row) => row.status === 'pass').length
-  const fail = controls.filter((row) => row.status === 'fail').length
-  const unknown = controls.filter((row) => row.status === 'unknown').length
-  return {
-    controls,
-    score: { total: controls.length, pass, fail, unknown, percent: controls.length === 0 ? 0 : Math.round((pass / controls.length) * 100) },
-  }
+  return { controls, score: scoreOf(controls) }
 }

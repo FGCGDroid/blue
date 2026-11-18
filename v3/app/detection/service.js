@@ -47,6 +47,33 @@ export const BUILTIN_RULES = Object.freeze([
       'event.outcome': ['failure'],
     },
   },
+  {
+    id: 'builtin-webshell-file',
+    rule_key: 'builtin-webshell-file',
+    title: '内置：上传/临时目录 PHP 文件',
+    severity: 'high',
+    condition: 'any',
+    enabled: true,
+    source: 'builtin',
+    selection: {
+      path: ['*/uploads/*.php', '*/upload/*.php', '*/tmp/*.php', '*/temp/*.php'],
+      file: ['*.php', '*.phtml', '*.phar'],
+    },
+  },
+  {
+    id: 'builtin-scanner',
+    rule_key: 'builtin-scanner',
+    title: '内置：扫描器/敏感路径',
+    severity: 'medium',
+    condition: 'any',
+    enabled: true,
+    source: 'builtin',
+    selection: {
+      user_agent: ['*sqlmap*', '*nikto*', '*nuclei*', '*masscan*', '*gobuster*', '*dirsearch*'],
+      'http.user_agent': ['*sqlmap*', '*nikto*', '*nuclei*', '*masscan*', '*gobuster*', '*dirsearch*'],
+      path: ['*/.git/*', '*/phpmyadmin*', '*/wp-admin*', '*/server-status*'],
+    },
+  },
 ])
 
 function valueAt(event, path) {
