@@ -14,9 +14,11 @@ rmSync(STAGE, { recursive: true, force: true })
 mkdirSync(STAGE, { recursive: true })
 mkdirSync(join(ROOT, 'dist'), { recursive: true })
 
-for (const entry of ['v3', 'presets', 'skills', 'locale']) {
+for (const entry of ['v3', 'presets', 'skills', 'locale', 'lab']) {
   cpSync(join(ROOT, entry), join(STAGE, entry), { recursive: true })
 }
+// 不把历史 soak 日志打进安装包。
+rmSync(join(STAGE, 'lab', '.run'), { recursive: true, force: true })
 for (const file of ['lib/client.js', 'icon.svg', 'README.md', 'LICENSE', 'DISCLOSURE', 'SECURITY.md']) {
   cpSync(join(ROOT, file), join(STAGE, file))
 }
@@ -53,7 +55,11 @@ const pkg = {
     './locale/*.json': './locale/*.json',
     './icon': './icon.svg',
   },
-  files: ['v3', 'lib/client.js', 'presets', 'skills', 'locale', 'icon.svg', 'cordis.patch.yml', 'README.md', 'SECURITY.md', 'LICENSE', 'DISCLOSURE'],
+  files: ['v3', 'lab', 'lib/client.js', 'presets', 'skills', 'locale', 'icon.svg', 'cordis.patch.yml', 'README.md', 'SECURITY.md', 'LICENSE', 'DISCLOSURE'],
+  scripts: {
+    lab: 'node lab/start.mjs',
+    'test:lab': 'node lab/scenarios/acceptance.mjs && node lab/scenarios/vectors.mjs',
+  },
   dsh: {
     bundle: { patch: './cordis.patch.yml' },
     client: {
