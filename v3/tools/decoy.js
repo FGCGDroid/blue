@@ -121,7 +121,7 @@ export function register(registerTool, env = {}) {
     description: '把外部诱饵服务的 JSONL 事件同步进事实库：按名称补登记诱饵、写入命中、去重。必须 authorized=true；只读日志，不执行内容。',
     parameters: {
       engagement: { type: 'string', description: '（可选）防守目标 id 或名称；默认用当前会话绑定' },
-      path: { type: 'string', required: true, description: '事件 JSONL 路径（必须在数据根或当前工作区内）' },
+      path: { type: 'string', required: true, description: '事件 JSONL 路径（必须在数据根内）' },
       authorized: { type: 'boolean', description: '必须为 true' },
       max_events: { type: 'number', description: '最多读取事件数，默认 2000' },
       max_hits: { type: 'number', description: '最多写入命中数，默认 200' },
@@ -184,7 +184,7 @@ export function register(registerTool, env = {}) {
     description: '读取 JSONL 访问日志，把 401/403 登录失败、5xx、404 扫描、路径异常转成告警。只读日志，不执行请求。',
     parameters: {
       engagement: { type: 'string', description: '（可选）防守目标 id 或名称；默认用当前会话绑定' },
-      path: { type: 'string', required: true, description: '访问日志路径（必须在数据根或当前工作区内）' },
+      path: { type: 'string', required: true, description: '访问日志路径（必须在数据根内）' },
       max_events: { type: 'number', description: '最多读取事件数，默认 2000' },
       max_alerts: { type: 'number', description: '最多生成告警数，默认 50' },
     },

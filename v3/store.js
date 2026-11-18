@@ -11,6 +11,8 @@ import { SqliteDb } from './infra/sqlite/db.js'
 import { TimelineRepo } from './infra/sqlite/repos/timeline.js'
 import { EngagementsRepo } from './infra/sqlite/repos/engagements.js'
 import { DecisionsRepo } from './infra/sqlite/repos/decisions.js'
+import { DetectionRepo } from './infra/sqlite/repos/detection.js'
+import { ControlsRepo } from './infra/sqlite/repos/controls.js'
 import { TaskRepo } from './infra/sqlite/repos/tasks.js'
 import { FactsRepo } from './infra/sqlite/repos/facts.js'
 import { IncidentsRepo } from './infra/sqlite/repos/incidents.js'
@@ -32,6 +34,8 @@ export class BlueStoreV3 {
     this.timeline = new TimelineRepo(this.db)
     this.engagements = new EngagementsRepo(this.db, this.timeline)
     this.decisions = new DecisionsRepo(this.db, this.timeline)
+    this.detection = new DetectionRepo(this.db, this.timeline)
+    this.controls = new ControlsRepo(this.db)
     this.tasks = new TaskRepo(this.db, this.timeline)
     // M2 剩余：这些 repo 已占位，方法会在补实现前抛 NOT_IMPLEMENTED。
     this.facts = new FactsRepo(this.db, this.timeline)

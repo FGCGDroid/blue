@@ -14,9 +14,8 @@ export function readJsonl(file, options = {}) {
     throw new BlueError('JSONL_PATH', '文件不存在：' + requested)
   }
   const root = options.root ? resolve(options.root) : null
-  const cwd = resolve(process.cwd())
-  if (!(root !== null && isWithin(root, target)) && !isWithin(cwd, target)) {
-    throw new BlueError('JSONL_PATH', '只允许读取数据根或当前工作区内的 JSONL：' + target)
+  if (root === null || !isWithin(root, target)) {
+    throw new BlueError('JSONL_PATH', '只允许读取数据根内的 JSONL：' + target)
   }
   const info = statSync(target)
   if (!info.isFile()) throw new BlueError('JSONL_PATH', '不是普通文件：' + target)

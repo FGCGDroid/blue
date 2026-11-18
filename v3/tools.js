@@ -8,6 +8,10 @@ import { TOOL_MODULES } from './tools/index.js'
 import { ALL_TOOL_NAMES, EXISTING_TOOL_NAMES, NEW_TOOL_NAMES } from './tools/catalog.js'
 import { withSelfCheck } from './tools/guard.js'
 import { readJsonl } from './infra/fs/jsonl.js'
+import { readArtifact, readText } from './infra/fs/artifact.js'
+import { loadPolicy } from './infra/policy/store.js'
+import { pushToSinks } from './infra/evidence/anchor-sink.js'
+import { loadConfig } from './bootstrap/config.js'
 
 export const name = 'blue-tools-v3'
 
@@ -17,7 +21,19 @@ export function apply(ctx) {
   const store = typeof ctx.get === 'function' ? ctx.get('blueTeamV3') : ctx.blueTeamV3
   if (!store) throw new Error('blue-tools-v3: 缺少 blueTeamV3 服务')
   const registeredNames = []
-  const env = { ctx, store, registeredNames, readJsonl: (file, options) => readJsonl(file, { root: store.root, ...options }) }
+  const env = {
+    ctx,
+    store,
+    registeredNames,
+    readJsonl: (file, options) => readJsonl(file, { root: store.root, ...options }),
+    readText: (file, options) => readText(file, { root: store.root, ...options }),
+    readArtifact: (file, options) => readArtifact(file, { root: store.root, ...options }),
+    loadPolicy,
+    pushToSinks,
+    gatewayConfig: (() => {
+      try { return loadConfig(process.env) } catch { return null }
+    })(),
+  }
 
   const register = (definition) => {
     const guarded = withSelfCheck(definition)

@@ -1,21 +1,21 @@
-# v3 —— 3.0 内核与 M4.2
+# v3 —— 3.0 内核与 M4 全量工具
 
-> 状态：M0 契约、M1 骨架、M2 数据层、M3 路径阻断、M3.5 响应执行/外锚、M4.0 session/asset/alert、M4.1 finding/ioc/task/incident、M4.2 decision/timeline/report/decoy 已完成
+> 状态：M0 契约、M1 骨架、M2 数据层、M3 路径阻断、M3.5 响应执行/外锚、M4 全量 73/73 工具已完成
 > 分支：`3.0-dev`
 > 入口：`v3/index.js`
-> 规模：124 个 JS；23 个工具组；已注册 39/73 个工具（现有 66 + 新增 7）
+> 规模：132 个 JS；23 个工具组；73/73 个工具已注册（现有 66 + 新增 7）
 > 说明：3.0 代码与 2.0 `lib/` 并行，暂不写入 npm `files`，也不改 `cordis.patch.yml`。
 
 ## 这是什么
 
-这是 3.0 的完整目录骨架 + 可运行的路径阻断内核 + M4.0/M4.1/M4.2 前 39 个工具，不是完整的 3.0。
+这是 3.0 的完整目录骨架 + 可运行的路径阻断内核 + 73 个工具，不是完整的 3.0（UI/影子双跑未接）。
 
 已经真实存在：
 
 ```text
 v3/index.js              Cordis 入口（blueTeamModeV3）
 v3/store.js              事实库入口（blueTeamV3），SQLite + 8 个 repo
-v3/tools.js              工具入口（23 组串起来；M4.2 已注册 39 个）
+v3/tools.js              工具入口（23 组串起来；73/73 已注册）
 v3/ui.js                 Host API 入口（0 条路由）
 v3/gateway.js            网关 CLI：--check / 启动独立网关
 v3/bootstrap/            配置、依赖容器、生命周期
@@ -58,6 +58,18 @@ v3/tools/decision.js     M4.2：2 个决策工具
 v3/tools/timeline.js     M4.2：1 个时间线工具
 v3/tools/report.js       M4.2：1 个报告工具
 v3/tools/decoy.js        M4.2：9 个欺骗工具
+v3/tools/detection.js    M4.3：3 个检测工具
+v3/tools/telemetry.js    M4.3：3 个遥测工具
+v3/tools/control.js      M4.3：2 个控制验证工具
+v3/tools/cve.js          M4.3：3 个 CVE 工具
+v3/tools/risk.js         M4.3：2 个风险/覆盖工具
+v3/tools/evidence.js     M4.4：2 个证据工具
+v3/tools/audit.js        M4.4：5 个审计工具
+v3/tools/response.js     M4.4：3 个响应计划工具
+v3/tools/response-exec.js M4.4：2 个响应执行工具
+v3/tools/policy.js       M4.5：3 个策略工具
+v3/tools/gateway.js      M4.5：1 个网关状态工具
+v3/tools/hunt.js         M4.5：5 个狩猎/加固工具
 v3/infra/sqlite/repos/engagements.js  目标登记/复用/统计
 ```
 
@@ -84,37 +96,30 @@ M3.5 已实现：
 sink 失败不阻塞本地锚点
 ```
 
-M4.0 / M4.1 / M4.2 已实现：
+M4 全量 73/73 已实现：
 
 ```text
-session 6：engagement_open / session_info / scope_check /
-           preflight / defense_selfcheck / tool_catalog
-asset 2：asset_add / asset_query
-alert 3：alert_ingest / alert_list / alert_triage（可转任务）
-finding 3：finding_add / finding_update / finding_list
-ioc 3：ioc_add / ioc_list / ioc_check
-task 5：task_create / task_update / task_approve / task_list / autopilot
-incident 4：incident_open / incident_list / incident_update / incident_attach
-decision 2：decision_add / decision_list
-timeline 1：timeline（add/list）
-report 1：report（Markdown，M4.2 不落盘）
-decoy 9：deception_plan / decoy_create / decoy_hit / decoy_list /
-         decoy_update / decoy_sync / tarpit_plan / honeypot_ingest / access_log_ingest
+session 6 / asset 2 / alert 3 / finding 3 / ioc 3 / task 5 / incident 4
+decision 2 / timeline 1 / report 1 / decoy 9
+detection 3 / telemetry 3 / control 2 / cve 3 / risk 2
+evidence 2 / audit 5 / response 3 / response-exec 2
+policy 3 / gateway 1 / hunt 5
 统一 self-check 门禁；工具层不写 SQL
 ```
 
-还是占位：
+边界（不是 3.0 完成）：
 
 ```text
-v3/app/*                 其余用例（detection/telemetry/control/cve/risk/evidence/audit/response 等）
-v3/infra/evidence/bundle.js  证据包（M4.4）
-v3/infra/telemetry/*     文件遥测、OTLP、检测（M4.3）
-v3/tools/*.js            其余 12 个组的 register（M4.3+）
-v3/ui/*                  Host API 与 2.0 兼容视图（M4.3+）
+v3/ui/*                  Host API/控制台仍是占位（M5）
+v3/infra/telemetry/otlp.js  OTLP 未接，M4 只做 JSONL 文件源
+v3/infra/evidence/bundle.js 仍为占位；evidence 工具返回内存 bundle
+report.write / evidence 落盘未接
+response 执行默认 manual，不自动跑破坏性命令
+hunt 的 log_scan/artifact_triage 是只读正则/哈希初筛
 ```
 
 占位函数一律抛 `NOT_IMPLEMENTED`，不会静默返回假结果。
-M4.2 只注册 39 个真实工具；其余组仍不注册假工具。
+73 个工具名全部注册；M5 之前不把它们写进 `cordis.patch.yml`。
 
 ## 检查
 
@@ -130,9 +135,9 @@ node scripts/rollback-v3.mjs --root <data-dir>
 当前结果：
 
 ```text
-✓ v3 分层检查通过（124 个 JS）
+✓ v3 分层检查通过（132 个 JS）
 ✓ v3 骨架测试通过
-✓ v3 M4.2 工具契约通过：39 个
+✓ v3 工具契约通过：73/73
 ✓ v3 数据层测试通过：新库/审批/时间线/重开/2.0 迁移
 ✓ v3 加固回归通过：备份/审批/派生字段/配置/策略/query/遥测/锚点 key
 ✓ v3 事实/案件仓储通过
@@ -160,11 +165,11 @@ tools 里不能出现 SQL 字符串
 ## 下一步
 
 ```text
-2026-11-18  M4.0 完成：11/73
-2026-11-18  M4.1 完成：26/73
-2026-11-18  M4.2 完成：39/73
-2026-11-19  M4.3 detection/telemetry/control/cve/risk
-2026-12    M4.4 ~ M4.5
+2026-11-18  M4 全量完成：73/73
+2026-11-19  M5 控制台
+2026-12    影子双跑 / 3.0.0-rc
+2027-01    3.0.0
+2027-03    3.1.0
 2027-01    影子双跑 / 3.0.0-rc
 2027-02    3.0.0
 2027-04    3.1.0
