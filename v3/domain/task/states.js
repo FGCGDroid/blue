@@ -48,7 +48,7 @@ export const TASK_TRANSITIONS = Object.freeze({
     TASK_STATUS.CANCELLED,
   ]),
   [TASK_STATUS.DONE]: Object.freeze([]),
-  [TASK_STATUS.BLOCKED]: Object.freeze([]),
+  [TASK_STATUS.BLOCKED]: Object.freeze([TASK_STATUS.DONE, TASK_STATUS.CANCELLED]),
   [TASK_STATUS.CANCELLED]: Object.freeze([]),
 })
 
