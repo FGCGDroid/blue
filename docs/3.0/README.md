@@ -249,7 +249,7 @@ M1 骨架已完成（`v3/`，107 个 JS）。
 M2 数据层已完成：8 个 repo、2.0 迁移、备份与回滚。
 M3 路径阻断已完成：40 条向量、独立网关、canary、metrics、热加载。
 M3.5 已完成：manual/mock 响应执行器、dry-run/apply/rollback、file/https 外锚。
-下一步：2026-12 加固月，2027-01 开始 M4.0（注册框架 + session/asset/alert）。
+下一步：24h soak 通过后直接开 M4.0，不再等 2027-01；加速排期见 [`fast-track.md`](fast-track.md)。
 已定：没有真实 2.0 数据，M2 用合成 fixture；网关独立进程、独立端口 `127.0.0.1:8787`。
 
 相关文档：

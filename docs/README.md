@@ -11,7 +11,8 @@ docs/state-machines.md    任务/案件/诱饵/响应/告警状态怎么迁移
 docs/development.md       开发环境、目录、测试
 docs/known-issues.md      已知坑与结构债
 docs/3.0/README.md        3.0 立项书、范围、里程碑
-docs/3.0/roadmap-12m.md   3.0 一年节奏与月度目标
+docs/3.0/roadmap-12m.md   3.0 一年节奏与月度目标（保底）
+docs/3.0/fast-track.md    3.0 加速排期（当前主排期）
 docs/3.0/hardening-2026-12.md  2026-12 加固记录
 docs/3.0-contract.md      3.0 行为契约与 M0 向量
 docs/3.0/design.md        3.0 详细设计
