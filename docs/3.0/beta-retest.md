@@ -55,13 +55,6 @@ blue_telemetry_source_add
   name=reverify-401
   path=C:\Users\86186\.dsh\blue\reverify-401.jsonl
 
-blue_detection_rule_add
-  rule_key=reverify-custom-401
-  title=复验自定义 401
-  severity=high
-  selection={"event.severity":["high"],"http.status":[401],"path":["/admin*"]}
-  condition=all
-
 blue_detection_scan
   source=reverify-401
 
@@ -73,13 +66,14 @@ blue_telemetry_poll
 
 ```text
 source 登记成功
-detection_scan: scanned=2, hits=3
+detection_scan: scanned=2, hits=2
   1) builtin-http-401-403
-  2) builtin-auth-path
-  3) reverify-custom-401（event.severity + http.status + path 都匹配）
-telemetry_poll: read=2, hits=3, alerts=3
+  2) builtin-auth-path（path + 别名 http.status 同时成立）
+telemetry_poll: read=2, hits=2, alerts=2
 第二条 200 事件不命中
 ```
+
+不要再加 `reverify-custom-401` 凑第 3 条；它和 `builtin-http-401-403` 完全重叠，只增加噪声。
 
 如果仍 `JSONL_PATH`：把 `telemetry_health` 和路径发我。
 
