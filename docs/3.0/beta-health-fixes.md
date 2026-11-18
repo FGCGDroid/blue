@@ -55,7 +55,26 @@ blue_report write=true path=report.md
 
 限制在数据根 `evidence/`、`reports/` 下，路径越界拒绝。
 
-## control 分数
+## 告警时间窗聚合
+
+`telemetry_poll` / Host API `telemetryPoll` 现在按以下键去重：
+
+```text
+source + rule + method + path + status + remote + user_agent + 60s 时间桶
+```
+
+同一分钟内同源同规则同请求形态只落 1 条，后续命中计 `updated`，不再 1589 事件写 200 条。事件无 `at` 时用当前分钟桶，避免永久合并。
+
+## close 非当前目标
+
+`blue_engagement_open action=close engagement=别的目标` 不再解绑当前会话；只有关闭当前绑定目标才解绑。回归模拟了“绑定 B、关闭 A、仍绑定 B”。
+
+## 状态机
+
+`blocked -> done` / `blocked -> cancelled` 已允许；blocked 不再是死状态，但仍需人写结果或取消理由。
+
+
+## 控制分数
 
 ```text
 approval.pending=0 -> pass

@@ -119,6 +119,17 @@ export function matchRule(rule, event) {
   return rule.condition === 'any' ? checks.some(Boolean) : checks.every(Boolean)
 }
 
+export function eventAlertFingerprint(sourceName, ruleKey, event = {}) {
+  const at = Date.parse(String(event.at || event.time || event.ts || ''))
+  const bucket = Number.isFinite(at) ? Math.floor(at / 60000) : Math.floor(Date.now() / 60000)
+  const method = String(event.method || event.http?.method || '').toUpperCase()
+  const path = String(event.path || event.url || event.http?.path || '')
+  const status = String(event.status ?? event.status_code ?? event.http?.status ?? event.http?.status_code ?? event.http?.response?.status_code ?? '')
+  const remote = String(event.remote || event.src_ip || event.http?.remote || '')
+  const ua = String(event.user_agent || event.http?.user_agent || '').slice(0, 80)
+  return [sourceName, ruleKey, method, path, status, remote, ua, bucket].join('|')
+}
+
 export function rulesFor(store, engagementId) {
   return [...BUILTIN_RULES, ...store.detection.list(engagementId)].filter((rule) => rule.enabled)
 }

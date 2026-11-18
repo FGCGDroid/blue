@@ -9,7 +9,7 @@ import { addIoc } from '../app/iocs/service.js'
 import { campaign as cveCampaign } from '../app/cve/service.js'
 import { buildEvidenceBundle } from '../app/evidence/export.js'
 import { evaluateControls } from '../app/controls/service.js'
-import { scanEvents } from '../app/detection/service.js'
+import { eventAlertFingerprint, rulesFor, scanEvents } from '../app/detection/service.js'
 import { bindSession, resolveEngagement, toLegacySnapshot } from './legacy-view.js'
 
 const MAX_BODY_BYTES = 4 * 1024 * 1024
@@ -66,7 +66,7 @@ function telemetryPoll(store, engagementId, request = {}) {
   const sources = store.telemetry.listSources(engagementId)
     .filter((source) => source.status !== 'retired')
     .filter((source) => !request.name || source.name === request.name)
-  const rules = store.detection.list(engagementId).filter((rule) => rule.enabled)
+  const rules = rulesFor(store, engagementId)
   const maxAlerts = Math.min(Math.max(Number(request.max_alerts) || 100, 1), 1000)
   const results = []
   for (const source of sources) {
@@ -75,23 +75,30 @@ function telemetryPoll(store, engagementId, request = {}) {
       const start = Math.min(source.cursor, loaded.events.length)
       const events = loaded.events.slice(start)
       const result = scanEvents(rules, events, { maxHits: maxAlerts })
-      const alerts = result.hits.map((hit) => store.facts.addAlert(engagementId, {
-        title: `检测命中：${hit.title}`,
-        severity: hit.severity,
-        source: 'telemetry:' + source.name,
-        confidence: 'high',
-        external_id: `${source.name}:${start}:${hit.rule}:${JSON.stringify(hit.event).slice(0, 200)}`,
-        event_time: String(hit.event.at || hit.event.time || hit.event.ts || ''),
-        raw: JSON.stringify(hit.event).slice(0, 8000),
-        actor: 'console',
-      }))
+      const alerts = []
+      let updated = 0
+      for (const hit of result.hits) {
+        const alert = store.facts.addAlert(engagementId, {
+          title: `检测命中：${hit.title}`,
+          severity: hit.severity,
+          source: 'telemetry:' + source.name,
+          confidence: 'high',
+          fingerprint: eventAlertFingerprint(source.name, hit.rule, hit.event),
+          external_id: `${source.name}:${start}:${hit.rule}:${JSON.stringify(hit.event).slice(0, 200)}`,
+          event_time: String(hit.event.at || hit.event.time || hit.event.ts || ''),
+          raw: JSON.stringify(hit.event).slice(0, 8000),
+          actor: 'console',
+        })
+        if (alert.inserted) alerts.push(alert)
+        else updated += 1
+      }
       store.telemetry.saveCursor(source.id, {
         cursor: start + events.length,
         events: Number(source.events_total) + events.length,
         alerts: Number(source.alerts_total) + alerts.length,
         last_event_at: events.length > 0 ? new Date().toISOString() : source.last_event_at,
       })
-      results.push({ ok: true, name: source.name, read: events.length, hits: result.hits.length, alerts: alerts.length })
+      results.push({ ok: true, name: source.name, read: events.length, hits: result.hits.length, alerts: alerts.length, updated })
     } catch (error) {
       store.telemetry.markError(source.id, error.message)
       results.push({ ok: false, name: source.name, error: error.message })

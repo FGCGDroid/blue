@@ -1,7 +1,7 @@
 /** 工具组：遥测源（M4.3）。 */
 import { defineTool, safe } from './define.js'
 import { engagementOf } from './context.js'
-import { rulesFor, scanEvents } from '../app/detection/service.js'
+import { eventAlertFingerprint, rulesFor, scanEvents } from '../app/detection/service.js'
 import { BlueError } from '../domain/shared/errors.js'
 
 export const group = 'telemetry'
@@ -58,6 +58,7 @@ export function register(registerTool, env = {}) {
           const events = loaded.events.slice(start)
           const result = scanEvents(rules, events, { maxHits: maxAlerts })
           const alerts = []
+          let updated = 0
           for (const hit of result.hits) {
             const event = hit.event
             const alert = store.facts.addAlert(engagement.id, {
@@ -65,12 +66,14 @@ export function register(registerTool, env = {}) {
               severity: hit.severity,
               source: 'telemetry:' + source.name,
               confidence: 'high',
+              fingerprint: eventAlertFingerprint(source.name, hit.rule, event),
               external_id: `${source.name}:${start}:${hit.rule}:${JSON.stringify(event).slice(0, 200)}`,
               event_time: String(event.at || event.time || event.ts || ''),
               raw: JSON.stringify(event).slice(0, 8000),
               actor: 'monitor',
             })
-            alerts.push(alert)
+            if (alert.inserted) alerts.push(alert)
+            else updated += 1
           }
           store.telemetry.saveCursor(source.id, {
             cursor: start + events.length,
@@ -84,6 +87,7 @@ export function register(registerTool, env = {}) {
             read: events.length,
             hits: result.hits.length,
             alerts: alerts.length,
+            updated,
             truncated: result.truncated,
           })
         } catch (error) {

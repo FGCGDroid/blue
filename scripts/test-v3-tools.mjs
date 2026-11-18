@@ -547,6 +547,15 @@ try {
   assert.ok(ctfPoll.results[0].read >= 1)
   process.env.DSH_HOME = previousDsh
 
+  const aggPath = join(root, 'aggregate.jsonl')
+  const aggLine = JSON.stringify({ at: '2026-11-19T01:00:00Z', http: { status: 401 }, path: '/agg', remote: '198.51.100.9', method: 'GET' }) + '\n'
+  writeFileSync(aggPath, aggLine + aggLine + aggLine, 'utf8')
+  await call('blue_telemetry_source_add', { name: 'aggregate', path: aggPath }, exec)
+  const aggPoll = await call('blue_telemetry_poll', { name: 'aggregate' }, exec)
+  assert.equal(aggPoll.results[0].hits, 3)
+  assert.equal(aggPoll.results[0].alerts, 1)
+  assert.equal(aggPoll.results[0].updated, 2)
+
   const control = await call('blue_control_scan', {}, exec)
   assert.equal(control.ok, true)
   assert.equal(control.controls.length, 5)
