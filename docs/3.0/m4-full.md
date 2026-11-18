@@ -86,7 +86,21 @@ CVE 包未联网核验版本/补丁
 
 ```text
 3.0 接入 cordis.patch.yml
-M5 控制台 12 页签
 2.0/3.0 影子双跑
 3.0.0 soak / 发布
+3.1 新前端（12 页签）
 ```
+
+## M5 Host API（2026-11-18）
+
+```text
+/blue/api、/blue/v3/api 两条路由
+2.0 控制台 op 兼容：overview/openEngagement/bindEngagement/
+report/plan/claim/updateTask/approveTask/createTask/triageAlert/
+updateFinding/addIoc/addAsset/addFinding/queryAssets/
+controlScan/telemetryPoll/updateDecoy/syncDecoys/
+updateIncident/cveCampaign/exportEvidence/setSlots
+同源校验、4 MiB body 限制
+```
+
+边界：3.0 尚未接进 `cordis.patch.yml`，避免和 2.0 `/blue/api` 抢路由；3.1 新前端未写。
