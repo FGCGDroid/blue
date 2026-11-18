@@ -11,6 +11,7 @@ import { buildEvidenceBundle } from '../app/evidence/export.js'
 import { evaluateControls } from '../app/controls/service.js'
 import { scanEvents } from '../app/detection/service.js'
 import { bindSession, resolveEngagement, toLegacySnapshot } from './legacy-view.js'
+import { protectionStatus, startProtection } from '../app/onboarding/service.js'
 
 const MAX_BODY_BYTES = 4 * 1024 * 1024
 
@@ -141,6 +142,12 @@ export async function handleApi(ctx, store, request = {}) {
     return toLegacySnapshot(store, ctx, { ...request, engagement: engagement.id })
   }
 
+  if (op === 'protectStart') {
+    const result = startProtection(store, request)
+    bindSession(store, request.session, result.engagement.id)
+    return { ok: true, ...result, snapshot: toLegacySnapshot(store, ctx, { ...request, engagement: result.engagement.id }) }
+  }
+
   if (op === 'bindEngagement') {
     const engagement = store.engagements.get(String(request.engagement || ''))
     if (engagement === null) throw new Error('防守目标不存在：' + request.engagement)
@@ -150,6 +157,8 @@ export async function handleApi(ctx, store, request = {}) {
 
   const id = engagementIdOf(store, request)
   const snapshot = () => toLegacySnapshot(store, ctx, { ...request, engagement: id })
+
+  if (op === 'protectStatus') return { ok: true, ...protectionStatus(store, id) }
 
   if (op === 'report') return { ok: true, markdown: snapshot().report_markdown }
   if (op === 'plan') {

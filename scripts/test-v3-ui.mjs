@@ -68,9 +68,10 @@ async function call(path, body, options = {}) {
 
 try {
   apply(ctx)
-  assert.equal(routes.size, 2)
+  assert.equal(routes.size, 3)
   assert.ok(routes.has('/blue/api'))
   assert.ok(routes.has('/blue/v3/api'))
+  assert.ok(routes.has('/blue/protect'))
 
   const empty = await call('/blue/api', { op: 'overview' })
   assert.equal(empty.status, 200)
@@ -85,6 +86,20 @@ try {
   assert.equal(opened.body.ok, true)
   assert.equal(opened.body.engagement.name, 'UI 合成目标')
   const engagementId = opened.body.engagement.id
+
+  const protect = await call('/blue/api', {
+    op: 'protectStart',
+    session: 'S-UI',
+    target: 'https://ui-protected.example.test',
+    name: 'UI 保护向导',
+  })
+  assert.equal(protect.body.ok, true)
+  assert.equal(protect.body.checklist.length, 5)
+  const protectStatus = await call('/blue/api', { op: 'protectStatus', session: 'S-UI' })
+  assert.equal(protectStatus.body.ok, true)
+  assert.equal(protectStatus.body.headline, '待接入日志')
+  const rebound = await call('/blue/api', { op: 'bindEngagement', session: 'S-UI', engagement: engagementId })
+  assert.equal(rebound.body.ok, true)
 
   const overview = await call('/blue/api', { op: 'overview', session: 'S-UI' })
   assert.equal(overview.status, 200)
@@ -162,7 +177,7 @@ try {
   assert.equal(unknown.status, 400)
   assert.equal(unknown.body.ok, false)
 
-  console.log('✓ v3 M5 Host API 兼容通过：2 条路由 / 2.0 op / 同源校验')
+  console.log('✓ v3 M5 Host API 兼容通过：3 条路由 / 2.0 op / 同源校验')
 } finally {
   store.close()
   rmSync(root, { recursive: true, force: true })

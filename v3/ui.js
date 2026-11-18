@@ -5,6 +5,7 @@
  * 浏览器不直接碰 SQLite，所有读写走 blueTeamV3。
  */
 import { registerHostApi } from './ui/host-api.js'
+import { registerProtectPage } from './ui/protect-page.js'
 
 export const name = 'blue-ui-v3'
 
@@ -14,7 +15,8 @@ export function apply(ctx) {
   const store = ctx.blueTeamV3 ?? ctx.get?.('blueTeamV3')
   if (!store) throw new Error('blue-ui-v3: 缺少 blueTeamV3 服务')
   registerHostApi(ctx, store)
-  ctx.logger?.info?.('blue-ui-v3: Host API 就绪（/blue/api、/blue/v3/api）')
+  registerProtectPage(ctx)
+  ctx.logger?.info?.('blue-ui-v3: Host API 就绪（/blue/api、/blue/v3/api、/blue/protect）')
 }
 
 export default { name, inject, apply }
