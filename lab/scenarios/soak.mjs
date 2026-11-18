@@ -34,6 +34,8 @@ const attackPaths = ['/admin', '/%61dmin', '/admin/canary']
 const counts = { safe: 0, attack: 0, blocked: 0, allowed: 0, errors: 0 }
 const errors = []
 let index = 0
+let attackIndex = 0
+let safeIndex = 0
 let lastPrint = Date.now()
 const startHeap = process.memoryUsage().heapUsed
 
@@ -52,8 +54,8 @@ try {
       const attack = index % 3 === 0
       index += 1
       const path = attack
-        ? attackPaths[index % attackPaths.length]
-        : safePaths[index % safePaths.length]
+        ? attackPaths[attackIndex++ % attackPaths.length]
+        : safePaths[safeIndex++ % safePaths.length]
       try {
         const response = await fetch(gateway.url + path, {
           redirect: 'manual',

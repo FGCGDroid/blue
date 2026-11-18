@@ -20,6 +20,62 @@
 | 11 | 上游 5xx 被计入 `blocked_total`，指标会骗人 | 只有 `decision=block` 才加 blocked | 网关 metrics 回归 |
 | 12 | HTTPS 外锚回执无上限，恶意 sink 可打内存 | 回执最多读 4 KiB | 代码审查 |
 
+## 24h soak 结果（2026-11-18）
+
+```text
+时间：2026-11-17 22:55 ~ 2026-11-18 22:55
+时长：86400 秒
+并发：8
+速率：40 rps
+safe：1,995,561
+attack：997,781
+blocked：997,781
+allowed：1,995,561
+errors：[]
+upstream.admin：0
+upstream.canary：0
+heap_delta_mb：21.93
+```
+
+结论：
+
+```text
+24h 本地 soak 通过
+高危 canary 未被上游命中
+内存 24h 仅增长约 21.93 MB
+```
+
+### 覆盖缺口
+
+这次 24h 使用的旧 soak 路径轮转有 bug：
+
+```text
+safePaths[index % 3]
+```
+
+导致 `/public/x?y=1` 从未被选中，`publicX=0`。
+24h 数据对 `publicX` 的覆盖为零，不能声称“所有 safe path 都覆盖”。
+
+已修：
+
+```text
+attackIndex / safeIndex 独立轮转
+```
+
+30 秒复测：
+
+```text
+safe=648
+attack=324
+blocked=324
+public=216
+publicX=216
+login=216
+errors=[]
+```
+
+没有重跑 24h；下一次 24h 应使用修复后的脚本。
+
 ## 新增测试
 
 ```text
@@ -86,7 +142,7 @@ npm.cmd run check:dsh
 HTTPS 外锚没有做真实公网/自签证书联调
 审计 key 没有轮换机制
 DB 被整体替换时，只有外部锚能发现
-24h soak 脚本已就绪，但还没有连续跑满 24h（当前只跑了 60s smoke）
+24h soak 已跑通；但旧脚本未覆盖 `/public/x?y=1`，修复后没有重跑 24h
 ```
 
 ## 下一步
