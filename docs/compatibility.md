@@ -20,10 +20,29 @@
 
 完整功能：
 
-- 60 个工具
+- 66 个工具
 - 右侧控制台
 - `subagent(agent_preset=...)` 自动派发
 - 案件、决策、遥测、检测、审计链、受控响应
+
+### 0.2.2-rc.3 的变化
+
+`@deepseek-ai/dsh-tool-subagent-control` 合并注册：
+
+```text
+send_message / interrupt_agent / list_agents
+```
+
+独立的 `@deepseek-ai/dsh-tool-subagent-control/list-agents` 导出已移除。
+
+蓝队处理：
+
+```text
+已从 presets/blue/agent.cordis.yml 和 cordis.patch.yml 删除旧行
+回归：npm.cmd run check:dsh
+```
+
+旧 preset 里如果还保留 `tool-subagent-list-agents` 行，升级 DSH 0.2.2 后应删除。
 
 ### 0.2.0 及以下
 

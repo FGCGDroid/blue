@@ -50,6 +50,35 @@ query 控制字符 / absolute-form 凭据
 锚点 key 绑定 / no_key
 ```
 
+## DSH 0.2.2 兼容：/list-agents 清理
+
+红队插件 v0.16.0 的对比调查发现：DSH 0.2.2 移除了独立的
+`@deepseek-ai/dsh-tool-subagent-control/list-agents` 导出，
+`tool-subagent-control` 现在一起注册 `send_message / interrupt_agent / list_agents`。
+
+蓝队此前也保留了旧行：
+
+```text
+presets/blue/agent.cordis.yml
+cordis.patch.yml
+```
+
+已删除，并新增：
+
+```text
+scripts/check-dsh-retired-rows.mjs
+npm.cmd run check:dsh
+```
+
+检查内容：
+
+```text
+扫描 cordis.patch.yml + presets/**/*.yml
+发现 tool-subagent-list-agents 或 /list-agents 就失败
+```
+
+这属于 DSH 兼容 P0，不是 3.0 新功能。
+
 ## 没修 / 没验证
 
 ```text
