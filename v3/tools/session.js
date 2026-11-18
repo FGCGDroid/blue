@@ -1,10 +1,10 @@
-/** 工具组：会话与目标（M4.0）。 */
+/** 工具组：会话与目标（M4.0/M5）。 */
 import { defineTool, safe } from './define.js'
 import {
   bindEngagement, bindingViewOf, engagementOf, hostOfTarget, listBindings,
-  markSelfChecked, scopeStatus, sessionKeysOf, userSaidSelfCheck,
+  markSelfChecked, scopeStatus, sessionKeysOf, unbindEngagement, userSaidSelfCheck,
 } from './context.js'
-import { assertSelfCheckPhrase, openEngagement, preflightReport } from '../app/session/service.js'
+import { assertSelfCheckPhrase, closeEngagement, openEngagement, preflightReport } from '../app/session/service.js'
 import { ALL_TOOL_NAMES, TOOL_GROUPS } from './catalog.js'
 import { BlueError } from '../domain/shared/errors.js'
 
@@ -15,13 +15,23 @@ export function register(registerTool, env = {}) {
 
   registerTool(defineTool({
     name: 'blue_engagement_open',
-    description: '建立（或复用）本场防守目标，并把当前会话绑定到它。只影响本会话绑定，不会改动其它会话。',
+    description: '建立（或复用）本场防守目标并绑定当前会话；action=close 时关闭当前目标并解除绑定。只影响当前会话绑定。',
     parameters: {
-      name: { type: 'string', required: true, description: '防守单位/靶标名称' },
-      scope: { type: 'array', items: { type: 'string' }, description: '需要防守的域名/IP/CIDR 列表' },
+      action: { type: 'string', description: 'open（默认）/ close' },
+      name: { type: 'string', description: '防守单位/靶标名称；open 必填' },
+      scope: { type: 'array', items: { type: 'string' }, description: '需要防守的域名/IP/CIDR/范围 列表' },
       note: { type: 'string', description: '补充说明' },
+      engagement: { type: 'string', description: 'close 时可指定目标 id/名称；默认用当前绑定' },
     },
     execute: safe(async (args, exec) => {
+      const action = String(args.action || 'open').trim().toLowerCase()
+      if (action === 'close') {
+        const target = engagementOf(store, exec, args.engagement || args.name)
+        const result = closeEngagement(store, target.id)
+        const keys = unbindEngagement(exec)
+        return { ok: true, action: 'close', ...result, unbound_keys: keys }
+      }
+      if (action !== 'open') throw new BlueError('ENGAGEMENT_ACTION', 'action 只能是 open 或 close')
       if (typeof args.name !== 'string' || args.name.trim() === '') {
         throw new BlueError('ENGAGEMENT_INPUT', 'name 不能为空')
       }
@@ -29,6 +39,7 @@ export function register(registerTool, env = {}) {
       const keys = bindEngagement(exec, result.engagement.id)
       return {
         ok: true,
+        action: 'open',
         ...result,
         session: bindingViewOf(exec, store),
         bound_keys: keys,
@@ -38,7 +49,7 @@ export function register(registerTool, env = {}) {
 
   registerTool(defineTool({
     name: 'blue_session_info',
-    description: '查看当前会话绑定的是哪个防守目标、父会话链与是否子智能体；多会话并行时先跑它确认没有串到别的目标。',
+    description: '查看当前会话绑定的防守目标、父会话链与是否子智能体；多会话并行时先确认没有串目标。',
     parameters: {},
     execute: safe(async (_args, exec) => {
       const mode = env.ctx?.get?.('blueTeamModeV3') ?? null
@@ -64,10 +75,10 @@ export function register(registerTool, env = {}) {
 
   registerTool(defineTool({
     name: 'blue_scope_check',
-    description: '检查一个 IP/域名/URL 是否在已声明的防守范围内。范围为空返回 unscoped（不阻断，但提示补范围）；不在范围内返回 out。',
+    description: '检查一个 IP/域名/URL 是否在已声明的防守范围内；支持 IPv4/IPv6 CIDR、IP 范围、域名与 *.domain。范围为空返回 unscoped；不在范围内返回 out。',
     parameters: {
       engagement: { type: 'string', description: '（可选）防守目标 id 或名称；默认用当前会话绑定' },
-      target: { type: 'string', required: true, description: 'IP / 域名 / URL' },
+      target: { type: 'string', required: true, description: 'IP / 域名 / URL / IP 范围' },
     },
     execute: safe(async (args, exec) => {
       const engagement = engagementOf(store, exec, args.engagement)
@@ -87,7 +98,7 @@ export function register(registerTool, env = {}) {
 
   registerTool(defineTool({
     name: 'blue_preflight',
-    description: '【自检组成】检查 3.0 数据层、schema、工具注册数量等本机环境；不假装真实安全工具可用。',
+    description: '【自检组成】检查 3.0 数据层、schema、工具注册数量和可用通道；不假装真实安全工具可用。',
     parameters: {},
     execute: safe(async () => ({
       ok: true,
@@ -100,7 +111,7 @@ export function register(registerTool, env = {}) {
 
   registerTool(defineTool({
     name: 'blue_defense_selfcheck',
-    description: '【开局门禁】用户必须先明确说「防御自检」，才可调用本工具完成本会话初始化；成功后其它 blue_* 工具才放行。',
+    description: '【开局门禁】用户必须先明确说「防御自检」，才可调用本工具完成本会话初始化；成功后其余 blue_* 工具才放行。',
     parameters: {
       phrase: { type: 'string', required: true, description: '必须原样填写用户说的：防御自检' },
     },

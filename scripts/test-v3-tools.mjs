@@ -369,6 +369,7 @@ try {
     name: 'outside',
     target: 'https://192.0.2.10/outside',
     authorized: true,
+    deployed: true,
   }, exec)
   assert.equal(outOfScopeDecoy.code, 'DECOY_SCOPE')
 
@@ -377,6 +378,7 @@ try {
     name: 'canary-1',
     target: 'https://app.example.test/canary',
     authorized: true,
+    deployed: false,
     ttl_hours: 24,
   }, exec)
   assert.equal(decoy.ok, true)
@@ -460,7 +462,9 @@ try {
   assert.equal(rule.rule.rule_key, 'admin-login-fail')
 
   const ruleList = await call('blue_detection_rule_list', {}, exec)
-  assert.equal(ruleList.count, 1)
+  assert.equal(ruleList.count, 4)
+  assert.equal(ruleList.builtin, 3)
+  assert.equal(ruleList.custom, 1)
 
   const telemetrySource = await call('blue_telemetry_source_add', {
     name: 'test-jsonl',
@@ -472,11 +476,12 @@ try {
     source: 'test-jsonl',
     max_events: 10,
   }, exec)
-  assert.equal(detectionScan.hits.length, 1)
+  assert.equal(detectionScan.hits.length, 3)
+  assert.ok(detectionScan.hits.some((hit) => hit.source === 'builtin'))
 
   const poll = await call('blue_telemetry_poll', { name: 'test-jsonl', max_alerts: 10 }, exec)
   assert.equal(poll.ok, true)
-  assert.equal(poll.results[0].alerts, 1)
+  assert.equal(poll.results[0].alerts, 3)
 
   const telemetryHealth = await call('blue_telemetry_health', {}, exec)
   assert.equal(telemetryHealth.count, 1)
@@ -494,7 +499,11 @@ try {
 
   const cveScan = await call('blue_cve_scan', { text: 'content-encoding: br' }, exec)
   assert.equal(cveScan.ok, true)
-  assert.equal(cveScan.matched, true)
+  assert.equal(cveScan.matched, false)
+  assert.ok(cveScan.weakHits.length >= 1)
+
+  const cveScanLow = await call('blue_cve_scan', { text: 'content-encoding: br', include_low: true }, exec)
+  assert.equal(cveScanLow.matched, true)
 
   const cveCampaign = await call('blue_cve_campaign', { create: false }, exec)
   assert.equal(cveCampaign.ok, true)
@@ -618,10 +627,61 @@ try {
   assert.equal(evidenceVerify.ok, true)
   assert.equal(evidenceVerify.digest_ok, true)
 
+  const topLevel = await call('blue_alert_ingest', {
+    title: '顶层标题优先',
+    severity: 'critical',
+    source: 'top-source',
+    raw: JSON.stringify({ title: 'raw-title', severity: 'low', source: 'raw-source' }),
+  }, exec)
+  assert.equal(topLevel.alerts[0].title, '顶层标题优先')
+  assert.equal(topLevel.alerts[0].severity, 'critical')
+  assert.equal(topLevel.alerts[0].source, 'top-source')
+
+  const badTask = await call('blue_task_create', { role: 'not-a-role', title: 'x' }, exec)
+  assert.equal(badTask.ok, false)
+  assert.equal(badTask.params.role, 'not-a-role')
+
+  const missingDeployed = await call('blue_decoy_create', {
+    kind: 'canary_url',
+    name: 'missing-deployed',
+    target: 'https://app.example.test/x',
+    authorized: true,
+  }, exec)
+  assert.equal(missingDeployed.code, 'DECOY_DEPLOYED')
+
+  const activeDecoy = await call('blue_decoy_create', {
+    kind: 'canary_url',
+    name: 'active-decoy',
+    target: 'https://app.example.test/active',
+    authorized: true,
+    deployed: true,
+  }, exec)
+  assert.equal(activeDecoy.decoy.status, 'active')
+
+  const scopeExec = makeExec('S-SCOPE')
+  await call('blue_defense_selfcheck', { phrase: '防御自检' }, scopeExec)
+  await call('blue_engagement_open', {
+    name: 'scope-v6',
+    scope: ['2001:db8::/32', '10.0.0.10-10.0.0.20'],
+  }, scopeExec)
+  const v6 = await call('blue_scope_check', { target: '2001:db8::5' }, scopeExec)
+  assert.equal(v6.status, 'in')
+  const range = await call('blue_scope_check', { target: '10.0.0.15' }, scopeExec)
+  assert.equal(range.status, 'in')
+  const outside = await call('blue_scope_check', { target: '2001:db9::5' }, scopeExec)
+  assert.equal(outside.status, 'out')
+  const closed = await call('blue_engagement_open', { action: 'close' }, scopeExec)
+  assert.equal(closed.engagement.status, 'closed')
+
+  const log401 = await call('blue_log_scan', { text: '{"status":401,"path":"/admin/login"}' }, exec)
+  assert.ok(log401.hits.some((hit) => hit.pattern === 'http-auth-fail'))
+
   const preflight = await call('blue_preflight', {}, exec)
   assert.equal(preflight.ok, true)
   assert.equal(preflight.db.schema_version, '3.0')
   assert.equal(preflight.tools.registered, 73)
+  assert.ok(preflight.channels.some((channel) => channel.id === 'tools' && channel.available === true))
+  assert.ok(preflight.channels.some((channel) => channel.id === 'host_api' && channel.available === true))
 
   const catalog = await call('blue_tool_catalog', {}, exec)
   assert.equal(catalog.registered, 73)

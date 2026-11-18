@@ -1,6 +1,54 @@
 /** 3.0 检测规则匹配（Sigma-lite，M4.3）。 */
 import { BlueError } from '../../domain/shared/errors.js'
 
+export const BUILTIN_RULES = Object.freeze([
+  {
+    id: 'builtin-http-401-403',
+    rule_key: 'builtin-http-401-403',
+    title: '内置：HTTP 401/403 认证失败',
+    severity: 'high',
+    condition: 'any',
+    enabled: true,
+    source: 'builtin',
+    selection: {
+      status: [401, 403],
+      status_code: [401, 403],
+      'http.status': [401, 403],
+      'http.status_code': [401, 403],
+      'http.response.status_code': [401, 403],
+      'response.status': [401, 403],
+      'response.status_code': [401, 403],
+      code: [401, 403],
+    },
+  },
+  {
+    id: 'builtin-auth-path',
+    rule_key: 'builtin-auth-path',
+    title: '内置：登录/管理路径失败',
+    severity: 'high',
+    condition: 'all',
+    enabled: true,
+    source: 'builtin',
+    selection: {
+      path: ['*login*', '*admin*', '*auth*', '*signin*'],
+      status: [401, 403],
+    },
+  },
+  {
+    id: 'builtin-windows-logon-fail',
+    rule_key: 'builtin-windows-logon-fail',
+    title: '内置：Windows 登录失败事件',
+    severity: 'medium',
+    condition: 'any',
+    enabled: true,
+    source: 'builtin',
+    selection: {
+      'event.code': [4625],
+      'event.outcome': ['failure'],
+    },
+  },
+])
+
 function valueAt(event, path) {
   const parts = String(path).split('.')
   let cursor = event
@@ -35,6 +83,10 @@ export function matchRule(rule, event) {
   return rule.condition === 'any' ? checks.some(Boolean) : checks.every(Boolean)
 }
 
+export function rulesFor(store, engagementId) {
+  return [...BUILTIN_RULES, ...store.detection.list(engagementId)].filter((rule) => rule.enabled)
+}
+
 export function scanEvents(rules, events, options = {}) {
   const maxHits = Math.min(Math.max(Number(options.maxHits) || 1000, 1), 10000)
   const hits = []
@@ -46,6 +98,7 @@ export function scanEvents(rules, events, options = {}) {
         rule: rule.rule_key,
         title: rule.title,
         severity: rule.severity,
+        source: rule.source || 'custom',
         event,
       })
       if (hits.length >= maxHits) return { hits, truncated: true }
@@ -60,13 +113,19 @@ export function addRule(store, engagementId, input = {}) {
 }
 
 export function listRules(store, engagementId) {
-  return { count: store.detection.list(engagementId).length, rules: store.detection.list(engagementId) }
+  const rules = rulesFor(store, engagementId)
+  return {
+    count: rules.length,
+    rules,
+    builtin: BUILTIN_RULES.length,
+    custom: rules.length - BUILTIN_RULES.length,
+  }
 }
 
 export function scanSource(store, engagementId, sourceName, events, options = {}) {
   const source = store.telemetry.listSources(engagementId).find((item) => item.name === sourceName)
   if (!source) throw new BlueError('TELEMETRY_NOT_FOUND', '遥测源不存在：' + sourceName)
-  const rules = store.detection.list(engagementId).filter((rule) => rule.enabled)
+  const rules = rulesFor(store, engagementId)
   const result = scanEvents(rules, events, options)
   return {
     source: source.name,

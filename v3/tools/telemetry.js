@@ -1,7 +1,7 @@
 /** 工具组：遥测源（M4.3）。 */
 import { defineTool, safe } from './define.js'
 import { engagementOf } from './context.js'
-import { scanEvents } from '../app/detection/service.js'
+import { rulesFor, scanEvents } from '../app/detection/service.js'
 import { BlueError } from '../domain/shared/errors.js'
 
 export const group = 'telemetry'
@@ -48,7 +48,7 @@ export function register(registerTool, env = {}) {
         .filter((source) => source.status === 'active')
         .filter((source) => !args.name || source.name === args.name)
       if (args.name && sources.length === 0) throw new BlueError('TELEMETRY_NOT_FOUND', '遥测源不存在：' + args.name)
-      const rules = store.detection.list(engagement.id).filter((rule) => rule.enabled)
+      const rules = rulesFor(store, engagement.id)
       const maxAlerts = Math.min(Math.max(Number(args.max_alerts) || 200, 1), 2000)
       const results = []
       for (const source of sources) {

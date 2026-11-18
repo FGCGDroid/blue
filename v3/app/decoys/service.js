@@ -55,13 +55,16 @@ export function plan(engagement) {
 export function create(store, engagementId, input = {}) {
   const decoy = store.decoys.create(engagementId, {
     ...input,
-    status: 'planned',
+    status: input.deployed === true ? 'active' : 'planned',
     actor: 'commander',
   })
   return {
     decoy,
+    deployed: decoy.status === 'active',
     deployment: DECOY_TEMPLATES.find((item) => item.kind === decoy.kind) ?? null,
-    safety: `只登记，不自动部署；${decoy.expires_at} 到期后事实库会自动标记 retired；使用合成数据；命中只告警。`,
+    safety: decoy.status === 'active'
+      ? '已按“已部署”登记；到期后事实库会自动标记 retired。命中只告警，不自动反击。'
+      : '未部署：库中状态为 planned。真实部署后必须 blue_decoy_update status=active；不要把它当运行中。',
   }
 }
 

@@ -5,6 +5,19 @@ function text(value, fallback = '') {
   return typeof value === 'string' ? value : fallback
 }
 
+function pick(args, item, key, fallback = '') {
+  const top = text(args[key]).trim()
+  if (top !== '') return top
+  const own = text(item[key]).trim()
+  if (own !== '') return own
+  return fallback
+}
+
+function pickNullable(args, item, key) {
+  const value = pick(args, item, key, '')
+  return value === '' ? null : value
+}
+
 export function ingestAlert(store, engagementId, args = {}) {
   const raw = text(args.raw).trim()
   let items = []
@@ -27,15 +40,15 @@ export function ingestAlert(store, engagementId, args = {}) {
   let updated = 0
   for (const item of items.slice(0, 200)) {
     const alert = store.facts.addAlert(engagementId, {
-      title: text(item.title) || text(item.name) || text(item.message) || text(args.title) || '未命名告警',
-      severity: text(item.severity) || text(item.level) || text(args.severity) || 'medium',
-      source: text(item.source) || text(item.vendor) || text(args.source),
-      confidence: text(item.confidence) || text(args.confidence) || 'medium',
-      task_id: text(item.task_id) || text(args.task_id) || null,
-      external_id: text(item.id) || text(item.external_id) || text(args.external_id),
+      title: pick(args, item, 'title', pick(args, item, 'name', pick(args, item, 'message', '未命名告警'))),
+      severity: pick(args, item, 'severity', pick(args, item, 'level', 'medium')),
+      source: pick(args, item, 'source', pick(args, item, 'vendor', '')),
+      confidence: pick(args, item, 'confidence', 'medium'),
+      task_id: pickNullable(args, item, 'task_id'),
+      external_id: pick(args, item, 'external_id', pick(args, item, 'id', '')),
       raw: typeof item.raw === 'string' ? item.raw : JSON.stringify(item).slice(0, 8000),
-      note: text(item.note) || text(args.note),
-      event_time: text(item.event_time) || text(item.ts) || text(item.time) || text(args.event_time),
+      note: pick(args, item, 'note', ''),
+      event_time: pick(args, item, 'event_time', pick(args, item, 'ts', pick(args, item, 'time', ''))),
       actor: 'monitor',
     })
     alerts.push(alert)

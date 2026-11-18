@@ -54,6 +54,23 @@ export class EngagementsRepo {
       .map((row) => this.toEngagement(row))
   }
 
+  close(idOrName) {
+    const current = this.get(idOrName)
+    if (current === null) throw new BlueError('ENGAGEMENT_NOT_FOUND', '防守目标不存在：' + idOrName)
+    if (current.status === 'closed') return current
+    const at = new Date().toISOString()
+    this.db.sql("UPDATE engagements SET status = 'closed', updated_at = ? WHERE id = ?").run(at, current.id)
+    if (this.timeline !== null) {
+      this.timeline.append(current.id, {
+        actor: 'commander',
+        action: 'engagement_close',
+        target: current.name,
+        detail: `engagement=${current.id} active -> closed`,
+      })
+    }
+    return this.get(current.id)
+  }
+
   stats(engagementId) {
     const count = (table, where = '') => {
       const row = this.db.sql(`SELECT COUNT(*) AS n FROM ${table} WHERE engagement_id = ?${where}`).get(engagementId)

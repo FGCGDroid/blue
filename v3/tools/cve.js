@@ -27,6 +27,7 @@ export function register(registerTool, env = {}) {
       engagement: { type: 'string', description: '（可选）防守目标 id 或名称；默认用当前会话绑定' },
       text: { type: 'string', required: true, description: '要扫描的文本' },
       max_hits: { type: 'number', description: '最多命中数，默认 100' },
+      include_low: { type: 'boolean', description: '是否把低置信特征计入 matched；默认 false' },
     },
     execute: safe(async (args, exec) => {
       const engagement = engagementOf(store, exec, args.engagement)
@@ -34,7 +35,7 @@ export function register(registerTool, env = {}) {
         ok: true,
         engagement: { id: engagement.id, name: engagement.name },
         untrusted: true,
-        ...scan(String(args.text || ''), { maxHits: args.max_hits }),
+        ...scan(String(args.text || ''), { maxHits: args.max_hits, includeLow: args.include_low === true }),
       }
     }),
   }))

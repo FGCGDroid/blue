@@ -45,9 +45,11 @@ export function register(registerTool, env = {}) {
       note: { type: 'string' },
       ttl_hours: { type: 'number', description: '自动标记 retired 的时限，默认 24，最大 168 小时' },
       authorized: { type: 'boolean', required: true, description: '必须为 true：确认目标已授权且在本场 scope 内' },
+      deployed: { type: 'boolean', required: true, description: '必须明确：true=已在授权资产上实际部署；false=只登记计划' },
     },
     execute: safe(async (args, exec) => {
       if (args.authorized !== true) throw new BlueError('DECOY_AUTH', '拒绝创建诱饵：必须显式 authorized=true')
+      if (typeof args.deployed !== 'boolean') throw new BlueError('DECOY_DEPLOYED', '必须显式 deployed=true/false，避免库与实物脱节')
       const engagement = engagementOf(store, exec, args.engagement)
       requireScope(engagement, args.target)
       return {

@@ -37,6 +37,27 @@ export function defineTool(definition) {
   }
 }
 
+const SENSITIVE = /(token|password|passwd|secret|credential|authorization|cookie|key|raw|payload|evidence)/i
+
+function errorParams(args) {
+  if (args === null || typeof args !== 'object' || Array.isArray(args)) return {}
+  const out = {}
+  let count = 0
+  for (const [key, value] of Object.entries(args)) {
+    if (count >= 20) break
+    count += 1
+    if (SENSITIVE.test(key)) {
+      out[key] = '[redacted]'
+      continue
+    }
+    if (typeof value === 'string') out[key] = value.slice(0, 120)
+    else if (typeof value === 'number' || typeof value === 'boolean' || value === null) out[key] = value
+    else if (Array.isArray(value)) out[key] = `[array:${value.length}]`
+    else if (typeof value === 'object') out[key] = '[object]'
+  }
+  return out
+}
+
 export function safe(handler) {
   return async (args, exec) => {
     try {
@@ -47,6 +68,7 @@ export function safe(handler) {
         code: error?.code ?? 'TOOL_ERROR',
         error: error?.message ?? String(error),
         ...(error?.details ? { details: error.details } : {}),
+        params: errorParams(args),
       })
     }
   }

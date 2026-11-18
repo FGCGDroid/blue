@@ -255,23 +255,31 @@ export function cveSummary() {
 export function scanCveText(text, options = {}) {
   const source = String(text || '')
   const maxHits = Math.min(Math.max(Number(options.maxHits) || 100, 1), 1000)
+  const includeLow = options.includeLow === true
   const hits = []
+  const weakHits = []
   for (const item of CVE_PACK) {
     for (const pattern of item.patterns) {
       let regex
       try { regex = new RegExp(pattern.regex, 'i') } catch { continue }
       const match = regex.exec(source)
       if (match === null) continue
-      hits.push({
+      const hit = {
         cve: item.id,
         title: item.title,
         pattern: pattern.id,
         label: pattern.label,
         severity: pattern.severity,
+        confidence: pattern.severity === 'low' ? 'low' : 'medium',
         match: match[0].slice(0, 200),
-      })
-      if (hits.length >= maxHits) return { hits, matched: true, truncated: true }
+      }
+      if (pattern.severity === 'low') {
+        weakHits.push(hit)
+        if (!includeLow) continue
+      }
+      hits.push(hit)
+      if (hits.length >= maxHits) return { hits, weakHits, matched: hits.length > 0, truncated: true }
     }
   }
-  return { hits, matched: hits.length > 0, truncated: false }
+  return { hits, weakHits, matched: hits.length > 0, truncated: false }
 }

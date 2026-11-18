@@ -21,6 +21,27 @@ const LOG_PATTERNS = [
   { id: 'log4j', label: 'Log4j/JNDI', regex: /\$\{jndi:(?:ldap|rmi|dns):/i, severity: 'critical' },
 ]
 
+function jsonFieldHits(line, lineNo) {
+  const trimmed = String(line || '').trim()
+  if (!trimmed.startsWith('{')) return []
+  try {
+    const event = JSON.parse(trimmed)
+    const status = Number(event.status ?? event.status_code ?? event.http?.status ?? event.http?.status_code ?? event.http?.response?.status_code ?? event.response?.status ?? event.response?.status_code)
+    if (status === 401 || status === 403) {
+      return [{
+        pattern: 'http-auth-fail',
+        label: 'HTTP 401/403 认证失败',
+        severity: 'high',
+        line: lineNo,
+        excerpt: trimmed.slice(0, 300),
+      }]
+    }
+  } catch {
+    // 不是 JSON 行，继续走正则。
+  }
+  return []
+}
+
 function scanText(text) {
   const lines = String(text || '').split(/\r?\n/)
   const hits = []
@@ -30,6 +51,7 @@ function scanText(text) {
         hits.push({ pattern: pattern.id, label: pattern.label, severity: pattern.severity, line: index + 1, excerpt: lines[index].slice(0, 300) })
       }
     }
+    hits.push(...jsonFieldHits(lines[index], index + 1))
   }
   return hits.slice(0, 500)
 }

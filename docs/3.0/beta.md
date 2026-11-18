@@ -52,8 +52,11 @@ report_markdown 可生成
 高风险任务：pending_approval，人工批准后才 queued
 response：默认 manual，不自动执行隔离/封禁
 report.write / evidence 落盘还没接
+decoy_create 必须显式 deployed=true/false，不再默认 planned
 3.0 仍不接 cordis.patch.yml；beta 通过安装包挂载
 ```
+
+反馈修复记录见 [`beta-fixes.md`](beta-fixes.md)。
 
 ## 回滚
 

@@ -27,7 +27,7 @@ export function scan(text, options = {}) {
   const result = scanCveText(text, options)
   return {
     ...result,
-    note: '启发式特征只说明日志里出现相关字样，不证明漏洞已被利用；需结合资产版本、进程、文件和网络证据确认。',
+    note: '启发式特征只说明日志里出现相关字样，不证明漏洞已被利用；低置信命中单独放在 weakHits，默认不计入 matched。',
   }
 }
 

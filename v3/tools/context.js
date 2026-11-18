@@ -44,6 +44,12 @@ export function bindEngagement(exec, engagementId) {
   return keys
 }
 
+export function unbindEngagement(exec) {
+  const { keys } = sessionKeysOf(exec)
+  for (const key of keys) bindings.delete(key)
+  return keys
+}
+
 export function listBindings() {
   return Array.from(bindings, ([session, engagement]) => ({ session, engagement }))
 }
@@ -133,7 +139,7 @@ export function userSaidSelfCheck(exec) {
 /* ── 范围判断 ─────────────────────────────────────────────────────────────── */
 
 function ipv4ToInt(ip) {
-  const parts = ip.split('.')
+  const parts = String(ip).split('.')
   if (parts.length !== 4) return null
   let value = 0
   for (const part of parts) {
@@ -145,15 +151,60 @@ function ipv4ToInt(ip) {
   return value >>> 0
 }
 
-function ipv4InCidr(ip, cidr) {
-  const [base, bitsText] = cidr.split('/')
-  const bits = Number(bitsText)
-  if (!Number.isInteger(bits) || bits < 0 || bits > 32) return false
-  const ipInt = ipv4ToInt(ip)
-  const baseInt = ipv4ToInt(base)
-  if (ipInt === null || baseInt === null || bits === 0) return bits === 0
-  const mask = (0xffffffff << (32 - bits)) >>> 0
-  return (ipInt & mask) === (baseInt & mask)
+function ipv6ToBigInt(ip) {
+  const value = String(ip).trim().toLowerCase()
+  if (!value.includes(':')) return null
+  const halves = value.split('::')
+  if (halves.length > 2) return null
+  const left = halves[0] === '' ? [] : halves[0].split(':')
+  const right = halves.length === 2 ? (halves[1] === '' ? [] : halves[1].split(':')) : []
+  if (halves.length === 1 && left.length !== 8) return null
+  const zeroCount = 8 - left.length - right.length
+  if (zeroCount < 0 || (halves.length === 2 && zeroCount < 1)) return null
+  const groups = [...left, ...Array(zeroCount).fill('0'), ...right]
+  if (groups.length !== 8) return null
+  let out = 0n
+  for (const group of groups) {
+    if (!/^[0-9a-f]{1,4}$/.test(group)) return null
+    out = (out << 16n) + BigInt(parseInt(group, 16))
+  }
+  return out
+}
+
+function ipFamily(ip) {
+  const value = String(ip ?? '').trim()
+  if (value === '') return 0
+  if (ipv4ToInt(value) !== null) return 4
+  if (ipv6ToBigInt(value) !== null) return 6
+  return 0
+}
+
+function ipToBigInt(ip, family) {
+  return family === 4 ? BigInt(ipv4ToInt(ip)) : ipv6ToBigInt(ip)
+}
+
+function ipMatchesEntry(target, entry) {
+  const value = String(entry || '').trim().toLowerCase()
+  const family = ipFamily(target)
+  if (family === 0) return false
+  if (value.includes('-')) {
+    const [left, right] = value.split('-').map((part) => part.trim())
+    if (ipFamily(left) !== 4 || ipFamily(right) !== 4) return false
+    const a = ipv4ToInt(left)
+    const b = ipv4ToInt(right)
+    const t = ipv4ToInt(target)
+    return a !== null && b !== null && t !== null && t >= Math.min(a, b) && t <= Math.max(a, b)
+  }
+  if (value.includes('/')) {
+    const [address, prefixText] = value.split('/')
+    const baseFamily = ipFamily(address)
+    const prefix = Number(prefixText)
+    const maxBits = baseFamily === 6 ? 128 : 32
+    if (baseFamily === 0 || baseFamily !== family || !Number.isInteger(prefix) || prefix < 0 || prefix > maxBits) return false
+    const shift = BigInt(maxBits - prefix)
+    return (ipToBigInt(target, family) >> shift) === (ipToBigInt(address, baseFamily) >> shift)
+  }
+  return target === value
 }
 
 export function hostOfTarget(raw) {
@@ -168,6 +219,7 @@ export function hostOfTarget(raw) {
       const end = host.indexOf(']')
       if (end > 0) return host.slice(1, end).toLowerCase()
     }
+    if (ipFamily(host) === 6) return host.toLowerCase()
     if (!host.includes('/')) {
       const colon = host.lastIndexOf(':')
       if (colon > 0 && /^\d+$/.test(host.slice(colon + 1))) host = host.slice(0, colon)
@@ -180,9 +232,12 @@ export function scopeStatus(host, scope) {
   const target = String(host ?? '').trim().toLowerCase()
   const list = Array.isArray(scope) ? scope : []
   if (list.length === 0) return { status: 'unscoped', reason: '没有声明 scope' }
+  const targetIsIp = ipFamily(target) !== 0
   for (const raw of list) {
     const entry = String(raw ?? '').trim().toLowerCase()
     if (entry === '') continue
+    if (ipMatchesEntry(target, entry)) return { status: 'in', rule: entry }
+    if (targetIsIp) continue
     if (entry.startsWith('*.')) {
       const suffix = entry.slice(1)
       if (target.endsWith(suffix) || target === entry.slice(2)) return { status: 'in', rule: entry }
@@ -192,7 +247,6 @@ export function scopeStatus(host, scope) {
       if (target === entry.slice(1) || target.endsWith(entry)) return { status: 'in', rule: entry }
       continue
     }
-    if (entry.includes('/') && ipv4InCidr(target, entry)) return { status: 'in', rule: entry }
     if (target === entry) return { status: 'in', rule: entry }
     if (target.endsWith('.' + entry)) return { status: 'in', rule: entry }
   }
