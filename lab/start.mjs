@@ -4,10 +4,13 @@
  *
  * 前台运行，Ctrl+C 同时关网关和上游。
  */
+import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'node:path'
 import { startUpstream } from './upstream/server.js'
 import { startLabGateway } from './gateway/start.js'
 
-const upstream = await startUpstream({ port: 18080 })
+const LAB_ROOT = dirname(fileURLToPath(import.meta.url))
+const upstream = await startUpstream({ port: 18080, logPath: join(LAB_ROOT, '.run', 'access.jsonl') })
 let gateway
 
 try {
@@ -24,6 +27,7 @@ console.log(JSON.stringify({
   ok: true,
   upstream: upstream.url,
   gateway: gateway.url,
+  access_log: upstream.logPath,
   policy: 'lab/policy.json',
   health: gateway.url + '/healthz',
   metrics: gateway.url + '/metrics',

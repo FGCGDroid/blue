@@ -3,6 +3,38 @@
 > 只用于自己的机器/隔离环境，全部合成数据。  
 > 不装 Docker，不需要公网服务器。
 
+## 优化版能力
+
+```text
+/public        200 放行
+/admin         403 网关阻断
+/.env          403 内置 deny
+/admin/login   200 允许
+/jwt-none      合成 alg=none 入口
+/login         GET 登录页；POST sqli 样本返回 200，错误口令 401
+/download      file 含 .. 时返回合成 traversal flag
+/ping          host 含 &;|`$ 时返回合成命令注入输出
+/upload        POST 返回合成上传路径，不落盘
+```
+
+所有“漏洞”都是固定合成响应：
+
+```text
+不执行命令
+不读真实文件
+不写磁盘
+只监听 127.0.0.1
+```
+
+访问日志：
+
+```text
+lab/.run/access.jsonl
+```
+
+可直接作为 `blue_telemetry_source_add` 的 JSONL 源。
+
+
 ## 双击 CMD
 
 不用记命令，直接双击：
