@@ -26,6 +26,9 @@ export function apply(ctx) {
   const env = {
     ctx,
     store,
+    get ctfLab() {
+      return typeof ctx.get === 'function' ? ctx.get('ctfLab') : ctx.ctfLab
+    },
     registeredNames,
     readJsonl: (file, options) => readJsonl(file, { root: store.root, ...options }),
     readText: (file, options) => readText(file, { root: store.root, ...options }),

@@ -45,6 +45,7 @@ export const TOOL_GROUPS = Object.freeze({
   'response-exec': Object.freeze(['blue_response_execute', 'blue_response_verify']),
   policy: Object.freeze(['blue_policy_validate', 'blue_policy_test', 'blue_policy_diff']),
   gateway: Object.freeze(['blue_gateway_status']),
+  range: Object.freeze(['blue_range']),
   hunt: Object.freeze([
     'blue_log_scan', 'blue_artifact_triage', 'blue_hardening_check',
     'blue_containment_plan', 'blue_playbook_list',
@@ -61,6 +62,7 @@ export const NEW_TOOL_NAMES = Object.freeze([
   'blue_policy_test',
   'blue_policy_diff',
   'blue_gateway_status',
+  'blue_range',
 ])
 
 export const EXISTING_TOOL_NAMES = Object.freeze(

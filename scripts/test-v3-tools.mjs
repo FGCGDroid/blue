@@ -77,11 +77,12 @@ const expected = [
   'blue_response_execute', 'blue_response_verify',
   'blue_policy_validate', 'blue_policy_test', 'blue_policy_diff',
   'blue_gateway_status',
+  'blue_range',
   'blue_log_scan', 'blue_artifact_triage', 'blue_hardening_check',
   'blue_containment_plan', 'blue_playbook_list',
 ]
 assert.deepEqual([...registered.keys()].sort(), expected.slice().sort())
-assert.equal(registered.size, 73)
+assert.equal(registered.size, 74)
 
 try {
   const exec = makeExec()
@@ -809,15 +810,15 @@ try {
   const preflight = await call('blue_preflight', {}, exec)
   assert.equal(preflight.ok, true)
   assert.equal(preflight.db.schema_version, '3.0')
-  assert.equal(preflight.tools.registered, 73)
+  assert.equal(preflight.tools.registered, 74)
   assert.ok(preflight.channels.some((channel) => channel.id === 'tools' && channel.available === true))
   assert.ok(preflight.channels.some((channel) => channel.id === 'host_api' && channel.available === true))
 
   const catalog = await call('blue_tool_catalog', {}, exec)
-  assert.equal(catalog.registered, 73)
-  assert.equal(catalog.planned, 73)
+  assert.equal(catalog.registered, 74)
+  assert.equal(catalog.planned, 74)
 
-  console.log('✓ v3 M4.3 工具全量注册：73/73')
+  console.log('✓ v3 M4.3 工具全量注册：74/74')
 } finally {
   store.close()
   rmSync(root, { recursive: true, force: true })
