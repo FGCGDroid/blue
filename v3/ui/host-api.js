@@ -9,7 +9,7 @@ import { addIoc } from '../app/iocs/service.js'
 import { campaign as cveCampaign } from '../app/cve/service.js'
 import { buildEvidenceBundle } from '../app/evidence/export.js'
 import { evaluateControls } from '../app/controls/service.js'
-import { eventAlertFingerprint, rulesFor, scanEvents } from '../app/detection/service.js'
+import { scanEvents } from '../app/detection/service.js'
 import { bindSession, resolveEngagement, toLegacySnapshot } from './legacy-view.js'
 
 const MAX_BODY_BYTES = 4 * 1024 * 1024
@@ -62,11 +62,26 @@ function engagementIdOf(store, request) {
   return engagement.id
 }
 
+function telemetryFingerprint(sourceName, ruleKey, event = {}) {
+  const at = Date.parse(String(event.at || event.time || event.ts || ''))
+  const bucket = Number.isFinite(at) ? Math.floor(at / 60000) : Math.floor(Date.now() / 60000)
+  return [
+    sourceName,
+    ruleKey,
+    String(event.method || event.http?.method || '').toUpperCase(),
+    String(event.path || event.url || event.http?.path || ''),
+    String(event.status ?? event.status_code ?? event.http?.status ?? event.http?.status_code ?? ''),
+    String(event.remote || event.src_ip || ''),
+    String(event.user_agent || event.http?.user_agent || '').slice(0, 80),
+    bucket,
+  ].join('|')
+}
+
 function telemetryPoll(store, engagementId, request = {}) {
   const sources = store.telemetry.listSources(engagementId)
     .filter((source) => source.status !== 'retired')
     .filter((source) => !request.name || source.name === request.name)
-  const rules = rulesFor(store, engagementId)
+  const rules = store.detection.list(engagementId).filter((rule) => rule.enabled)
   const maxAlerts = Math.min(Math.max(Number(request.max_alerts) || 100, 1), 1000)
   const results = []
   for (const source of sources) {
@@ -83,7 +98,7 @@ function telemetryPoll(store, engagementId, request = {}) {
           severity: hit.severity,
           source: 'telemetry:' + source.name,
           confidence: 'high',
-          fingerprint: eventAlertFingerprint(source.name, hit.rule, hit.event),
+          fingerprint: telemetryFingerprint(source.name, hit.rule, hit.event),
           external_id: `${source.name}:${start}:${hit.rule}:${JSON.stringify(hit.event).slice(0, 200)}`,
           event_time: String(hit.event.at || hit.event.time || hit.event.ts || ''),
           raw: JSON.stringify(hit.event).slice(0, 8000),
