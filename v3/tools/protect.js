@@ -1,6 +1,6 @@
 /** 工具组：保护我的服务器（入门向导）。 */
 import { defineTool, safe } from './define.js'
-import { engagementOf } from './context.js'
+import { engagementOf, bindEngagement, bindingViewOf } from './context.js'
 import { protectionStatus, startProtection } from '../app/onboarding/service.js'
 import { closeEngagement } from '../app/session/service.js'
 import { BlueError } from '../domain/shared/errors.js'
@@ -25,7 +25,8 @@ export function register(registerTool, env = {}) {
 
       if (action === 'start') {
         const result = startProtection(store, args)
-        return { ok: true, action: 'start', ...result }
+        const keys = bindEngagement(exec, result.engagement.id)
+        return { ok: true, action: 'start', ...result, session: bindingViewOf(exec, store), bound_keys: keys }
       }
 
       if (action === 'status') {

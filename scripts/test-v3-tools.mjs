@@ -144,10 +144,14 @@ try {
   assert.ok(protect.asset.id)
   const protectStatus = await call('blue_protect', {
     action: 'status',
-    engagement: protect.engagement.id,
   }, exec)
   assert.equal(protectStatus.headline, '待接入日志')
   assert.equal(protectStatus.summary.assets, 1)
+  const rebound = await call('blue_engagement_open', {
+    name: '演示防守目标',
+    scope: ['10.10.0.0/24', 'example.test'],
+  }, exec)
+  assert.equal(rebound.ok, true)
 
   const child = makeExec('S1-CHILD', [], 'S1')
   const childInfo = await call('blue_session_info', {}, child)
