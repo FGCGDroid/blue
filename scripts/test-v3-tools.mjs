@@ -147,6 +147,12 @@ try {
   }, exec)
   assert.equal(protectStatus.headline, '待接入日志')
   assert.equal(protectStatus.summary.assets, 1)
+  const protect2 = await call('blue_protect', {
+    action: 'start',
+    target: 'http://127.0.0.1:59654/',
+  }, exec)
+  assert.notEqual(protect2.engagement.id, protect.engagement.id)
+  assert.match(protect2.engagement.name, /59654/)
   const rebound = await call('blue_engagement_open', {
     name: '演示防守目标',
     scope: ['10.10.0.0/24', 'example.test'],
