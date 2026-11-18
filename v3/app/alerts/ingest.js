@@ -1,5 +1,6 @@
 /** 3.0 告警接收入库用例（M4.0）。 */
 import { BlueError } from '../../domain/shared/errors.js'
+import { learnAlert } from '../knowledge/service.js'
 
 function text(value, fallback = '') {
   return typeof value === 'string' ? value : fallback
@@ -38,6 +39,7 @@ export function ingestAlert(store, engagementId, args = {}) {
   const alerts = []
   let inserted = 0
   let updated = 0
+  let learned = 0
   for (const item of items.slice(0, 200)) {
     const alert = store.facts.addAlert(engagementId, {
       title: pick(args, item, 'title', pick(args, item, 'name', pick(args, item, 'message', '未命名告警'))),
@@ -54,10 +56,16 @@ export function ingestAlert(store, engagementId, args = {}) {
     alerts.push(alert)
     if (alert.inserted) inserted += 1
     else updated += 1
+    if (alert.inserted) {
+      try {
+        if (learnAlert(store, engagementId, alert).created) learned += 1
+      } catch { /* 知识库失败不影响告警入库 */ }
+    }
   }
   return {
     ingested: inserted,
     updated,
+    knowledge_learned: learned,
     alerts,
     stats: store.engagements.stats(engagementId),
   }

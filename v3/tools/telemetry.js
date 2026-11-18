@@ -2,6 +2,7 @@
 import { defineTool, safe } from './define.js'
 import { engagementOf } from './context.js'
 import { eventAlertFingerprint, rulesFor, scanEvents } from '../app/detection/service.js'
+import { learnAlert } from '../app/knowledge/service.js'
 import { BlueError } from '../domain/shared/errors.js'
 
 export const group = 'telemetry'
@@ -72,8 +73,10 @@ export function register(registerTool, env = {}) {
               raw: JSON.stringify(event).slice(0, 8000),
               actor: 'monitor',
             })
-            if (alert.inserted) alerts.push(alert)
-            else updated += 1
+            if (alert.inserted) {
+              alerts.push(alert)
+              try { learnAlert(store, engagement.id, alert) } catch { /* 知识库不阻塞轮询 */ }
+            } else updated += 1
           }
           store.telemetry.saveCursor(source.id, {
             cursor: start + events.length,

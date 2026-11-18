@@ -47,6 +47,7 @@ export const TOOL_GROUPS = Object.freeze({
   gateway: Object.freeze(['blue_gateway_status']),
   range: Object.freeze(['blue_range']),
   protect: Object.freeze(['blue_protect']),
+  knowledge: Object.freeze(['blue_knowledge']),
   hunt: Object.freeze([
     'blue_log_scan', 'blue_artifact_triage', 'blue_hardening_check',
     'blue_containment_plan', 'blue_playbook_list',
@@ -65,6 +66,7 @@ export const NEW_TOOL_NAMES = Object.freeze([
   'blue_gateway_status',
   'blue_range',
   'blue_protect',
+  'blue_knowledge',
 ])
 
 export const EXISTING_TOOL_NAMES = Object.freeze(

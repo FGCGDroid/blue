@@ -77,12 +77,12 @@ const expected = [
   'blue_response_execute', 'blue_response_verify',
   'blue_policy_validate', 'blue_policy_test', 'blue_policy_diff',
   'blue_gateway_status',
-  'blue_range', 'blue_protect',
+  'blue_range', 'blue_protect', 'blue_knowledge',
   'blue_log_scan', 'blue_artifact_triage', 'blue_hardening_check',
   'blue_containment_plan', 'blue_playbook_list',
 ]
 assert.deepEqual([...registered.keys()].sort(), expected.slice().sort())
-assert.equal(registered.size, 75)
+assert.equal(registered.size, 76)
 
 try {
   const exec = makeExec()
@@ -208,6 +208,7 @@ try {
   }, exec)
   assert.equal(alert.ok, true)
   assert.equal(alert.ingested, 1)
+  assert.ok(alert.knowledge_learned >= 1)
   assert.equal(alert.stats.alerts, 1)
 
   const duplicate = await call('blue_alert_ingest', {
@@ -826,18 +827,40 @@ try {
   const log401 = await call('blue_log_scan', { text: '{"status":401,"path":"/admin/login"}' }, exec)
   assert.ok(log401.hits.some((hit) => hit.pattern === 'http-auth-fail'))
 
+  const learned = await call('blue_knowledge', {
+    action: 'learn',
+    path: '/.env',
+    method: 'GET',
+    status: 403,
+    title: '敏感文件探测',
+    defense: '网关拒绝 /.env，不转发上游',
+  }, exec)
+  assert.equal(learned.created, true)
+  assert.match(learned.entry.signature, /http:GET:\/\.env:403/)
+  const matched = await call('blue_knowledge', {
+    action: 'match',
+    path: '/.env',
+    method: 'GET',
+    status: 403,
+  }, exec)
+  assert.equal(matched.matched, true)
+  assert.equal(matched.entry.id, learned.entry.id)
+  const defended = await call('blue_knowledge', { action: 'defend', id: learned.entry.id }, exec)
+  assert.equal(defended.ok, true)
+  assert.ok(defended.task.id)
+
   const preflight = await call('blue_preflight', {}, exec)
   assert.equal(preflight.ok, true)
   assert.equal(preflight.db.schema_version, '3.0')
-  assert.equal(preflight.tools.registered, 75)
+  assert.equal(preflight.tools.registered, 76)
   assert.ok(preflight.channels.some((channel) => channel.id === 'tools' && channel.available === true))
   assert.ok(preflight.channels.some((channel) => channel.id === 'host_api' && channel.available === true))
 
   const catalog = await call('blue_tool_catalog', {}, exec)
-  assert.equal(catalog.registered, 75)
-  assert.equal(catalog.planned, 75)
+  assert.equal(catalog.registered, 76)
+  assert.equal(catalog.planned, 76)
 
-  console.log('✓ v3 M4.3 工具全量注册：75/75')
+  console.log('✓ v3 M4.3 工具全量注册：76/76')
 } finally {
   store.close()
   rmSync(root, { recursive: true, force: true })

@@ -12,6 +12,8 @@ import { evaluateControls } from '../app/controls/service.js'
 import { scanEvents } from '../app/detection/service.js'
 import { bindSession, resolveEngagement, toLegacySnapshot } from './legacy-view.js'
 import { protectionStatus, startProtection } from '../app/onboarding/service.js'
+import { learnAlert } from '../app/knowledge/service.js'
+import { defendEntry } from '../app/knowledge/service.js'
 
 const MAX_BODY_BYTES = 4 * 1024 * 1024
 
@@ -105,8 +107,10 @@ function telemetryPoll(store, engagementId, request = {}) {
           raw: JSON.stringify(hit.event).slice(0, 8000),
           actor: 'console',
         })
-        if (alert.inserted) alerts.push(alert)
-        else updated += 1
+        if (alert.inserted) {
+          alerts.push(alert)
+          try { learnAlert(store, engagementId, alert) } catch { /* 知识库不阻塞轮询 */ }
+        } else updated += 1
       }
       store.telemetry.saveCursor(source.id, {
         cursor: start + events.length,
@@ -159,6 +163,12 @@ export async function handleApi(ctx, store, request = {}) {
   const snapshot = () => toLegacySnapshot(store, ctx, { ...request, engagement: id })
 
   if (op === 'protectStatus') return { ok: true, ...protectionStatus(store, id) }
+  if (op === 'knowledgeList') return { ok: true, entries: store.knowledge.list(id, { limit: request.limit }) }
+  if (op === 'knowledgeDefend') {
+    const result = defendEntry(store, id, String(request.entry || request.id || ''))
+    if (result === null) throw new Error('知识条目不存在')
+    return { ok: true, ...result }
+  }
 
   if (op === 'report') return { ok: true, markdown: snapshot().report_markdown }
   if (op === 'plan') {

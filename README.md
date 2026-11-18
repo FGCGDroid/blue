@@ -15,7 +15,7 @@
 > ✅ 当前稳定版是 `2.0.0`，已发布到 npm。
 > 从 `1.5.4` 升级前先备份 `$DSH_HOME/blue/blue.db`；回滚见 `docs/release-2.0.md`。
 > DSH 兼容：最低 `0.2.1-rc.1`，当前验证 `0.2.2-rc.3`；详见 `docs/compatibility.md`。
-> 🧭 3.0 已开工：M0–M3.5、M4 全量 75/75 工具（含“保护我的服务器”向导与 ctf_lab 适配器）、M5 Host API 已完成；下一步影子双跑/3.0.0。目标是 2.0 的能力超集，范围见 `docs/3.0/README.md`，详细设计见 `docs/3.0/design.md`。
+> 🧭 3.0 已开工：M0–M3.5、M4 全量 76/76 工具（含“保护我的服务器”向导、ctf_lab 适配器、打法知识库）、M5 Host API 已完成；下一步影子双跑/3.0.0。目标是 2.0 的能力超集，范围见 `docs/3.0/README.md`，详细设计见 `docs/3.0/design.md`。
 
 ---
 

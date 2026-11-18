@@ -278,4 +278,23 @@ CREATE TABLE IF NOT EXISTS detection_rules (
   UNIQUE (engagement_id, rule_key)
 );
 CREATE INDEX IF NOT EXISTS idx_detection_rules_engagement ON detection_rules (engagement_id, enabled);
+
+CREATE TABLE IF NOT EXISTS knowledge_entries (
+  id TEXT PRIMARY KEY,
+  engagement_id TEXT NOT NULL,
+  signature TEXT NOT NULL,
+  kind TEXT NOT NULL DEFAULT 'http',
+  title TEXT NOT NULL,
+  attack TEXT NOT NULL DEFAULT '',
+  defense TEXT NOT NULL DEFAULT '',
+  auto_block INTEGER NOT NULL DEFAULT 0,
+  hits INTEGER NOT NULL DEFAULT 0,
+  first_seen TEXT NOT NULL,
+  last_seen TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE (engagement_id, signature)
+);
+CREATE INDEX IF NOT EXISTS idx_knowledge_engagement ON knowledge_entries (engagement_id, status, hits);
 `

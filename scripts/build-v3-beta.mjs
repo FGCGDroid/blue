@@ -37,7 +37,7 @@ const base = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'))
 const pkg = {
   name: 'dsh-blue-team-mode',
   version: VERSION,
-  description: '蓝队防御模式 3.0 beta：75 个工具、保护我的服务器向导、ctf_lab 接入',
+  description: '蓝队防御模式 3.0 beta：76 个工具、保护我的服务器向导、打法知识库',
   license: base.license,
   author: base.author,
   repository: base.repository,
