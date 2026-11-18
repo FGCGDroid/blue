@@ -1,7 +1,7 @@
 /**
- * 3.0 工具目录（骨架）。
+ * 3.0 工具目录。
  *
- * 只登记名称与分组；真正的 defineTool 在 M4。
+ * 名称与分组；M4.0 已注册 session 6 / asset 2 / alert 3，其余在 M4.1+。
  * 现有 66 个 + 新增 7 个 = 73 个。
  */
 export const TOOL_GROUPS = Object.freeze({

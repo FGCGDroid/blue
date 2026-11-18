@@ -9,12 +9,13 @@ tools 不做业务判断
 所有工具经 safe 包装，错误返回 { ok:false, error }
 ```
 
-骨架阶段：
+M4.0 状态：
 
 ```text
 23 个工具组文件
 73 个工具名（现有 66 + 新增 7）
-0 个工具注册
+11 个工具已注册
+session 6 / asset 2 / alert 3
 ```
 
 文件：
@@ -22,9 +23,13 @@ tools 不做业务判断
 ```text
 catalog.js   名称与分组，73 个
 index.js     23 个组的 register 清单
-session.js   会话/目标
-asset.js     资产
-alert.js     告警
+define.js    defineTool / safe / JSON 输出
+guard.js     防御自检门禁
+context.js   会话绑定、目标解析、scope
+session.js   M4.0：会话/目标 6 个
+asset.js     M4.0：资产 2 个
+alert.js     M4.0：告警 3 个
+```
 finding.js   发现
 ioc.js       IOC
 task.js      任务/自主
@@ -47,4 +52,4 @@ gateway.js   网关
 hunt.js      狩猎/取证/加固
 ```
 
-M4 才写 `defineTool`，现在不注册假工具。
+M4.0 的 11 个工具已注册；其余组在 M4.1+ 按契约迁移，不注册假工具。

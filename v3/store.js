@@ -9,6 +9,7 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { SqliteDb } from './infra/sqlite/db.js'
 import { TimelineRepo } from './infra/sqlite/repos/timeline.js'
+import { EngagementsRepo } from './infra/sqlite/repos/engagements.js'
 import { TaskRepo } from './infra/sqlite/repos/tasks.js'
 import { FactsRepo } from './infra/sqlite/repos/facts.js'
 import { IncidentsRepo } from './infra/sqlite/repos/incidents.js'
@@ -28,6 +29,7 @@ export class BlueStoreV3 {
     mkdirSync(root, { recursive: true })
     this.db = new SqliteDb(join(root, 'blue.db')).open()
     this.timeline = new TimelineRepo(this.db)
+    this.engagements = new EngagementsRepo(this.db, this.timeline)
     this.tasks = new TaskRepo(this.db, this.timeline)
     // M2 剩余：这些 repo 已占位，方法会在补实现前抛 NOT_IMPLEMENTED。
     this.facts = new FactsRepo(this.db, this.timeline)

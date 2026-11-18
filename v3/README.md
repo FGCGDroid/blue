@@ -1,21 +1,21 @@
-# v3 —— 3.0 骨架与 M3 内核
+# v3 —— 3.0 内核与 M4.0
 
-> 状态：M0 契约、M1 全目录骨架、M2 数据层全部 repo + 回滚、M3 路径阻断、M3.5 响应执行/外锚内核已完成
+> 状态：M0 契约、M1 骨架、M2 数据层、M3 路径阻断、M3.5 响应执行/外锚、M4.0 session/asset/alert 11 个工具已完成
 > 分支：`3.0-dev`
 > 入口：`v3/index.js`
-> 规模：107 个 JS；23 个工具组；计划 73 个工具（现有 66 + 新增 7）
+> 规模：114 个 JS；23 个工具组；已注册 11/73 个工具（现有 66 + 新增 7）
 > 说明：3.0 代码与 2.0 `lib/` 并行，暂不写入 npm `files`，也不改 `cordis.patch.yml`。
 
 ## 这是什么
 
-这是 3.0 的完整目录骨架 + 可运行的路径阻断内核，不是完整的 3.0。
+这是 3.0 的完整目录骨架 + 可运行的路径阻断内核 + M4.0 第一批工具，不是完整的 3.0。
 
 已经真实存在：
 
 ```text
 v3/index.js              Cordis 入口（blueTeamModeV3）
 v3/store.js              事实库入口（blueTeamV3），SQLite + 8 个 repo
-v3/tools.js              工具入口（23 组串起来，0 个工具注册）
+v3/tools.js              工具入口（23 组串起来；M4.0 已注册 11 个）
 v3/ui.js                 Host API 入口（0 条路由）
 v3/gateway.js            网关 CLI：--check / 启动独立网关
 v3/bootstrap/            配置、依赖容器、生命周期
@@ -44,6 +44,13 @@ v3/infra/metrics/        计数器 + /metrics 渲染
 v3/infra/fs/safe-path.js 路径闸
 v3/tools/catalog.js      73 个工具名与分组
 v3/tools/index.js        23 个工具组清单
+v3/tools/define.js       defineTool / safe / JSON 输出
+v3/tools/guard.js        防御自检门禁
+v3/tools/context.js      会话绑定、目标解析、scope
+v3/tools/session.js      M4.0：6 个会话/目标工具
+v3/tools/asset.js        M4.0：2 个资产工具
+v3/tools/alert.js        M4.0：3 个告警工具
+v3/infra/sqlite/repos/engagements.js  目标登记/复用/统计
 ```
 
 M3 已实现：
@@ -69,18 +76,28 @@ M3.5 已实现：
 sink 失败不阻塞本地锚点
 ```
 
+M4.0 已实现：
+
+```text
+session 6：engagement_open / session_info / scope_check /
+           preflight / defense_selfcheck / tool_catalog
+asset 2：asset_add / asset_query
+alert 3：alert_ingest / alert_list / alert_triage
+统一 self-check 门禁；工具层不写 SQL
+```
+
 还是占位：
 
 ```text
 v3/app/*                 其余用例（tasks/create、tasks/approve 已有占位）
 v3/infra/evidence/bundle.js  证据包（M4）
 v3/infra/telemetry/*     文件遥测、OTLP、检测（M4）
-v3/tools/*.js            23 个组的 register（M4）
-v3/ui/*                  Host API 与 2.0 兼容视图（M4）
+v3/tools/*.js            其余 20 个组的 register（M4.1+）
+v3/ui/*                  Host API 与 2.0 兼容视图（M4.1+）
 ```
 
 占位函数一律抛 `NOT_IMPLEMENTED`，不会静默返回假结果。
-工具组现在不注册任何工具，避免出现“名字有了、实现是假的”。
+M4.0 只注册 11 个真实工具；其余组仍不注册假工具。
 
 ## 检查
 
@@ -96,8 +113,9 @@ node scripts/rollback-v3.mjs --root <data-dir>
 当前结果：
 
 ```text
-✓ v3 分层检查通过（107 个 JS）
+✓ v3 分层检查通过（114 个 JS）
 ✓ v3 骨架测试通过
+✓ v3 M4.0 工具契约通过：11 个
 ✓ v3 数据层测试通过：新库/审批/时间线/重开/2.0 迁移
 ✓ v3 加固回归通过：备份/审批/派生字段/配置/策略/query/遥测/锚点 key
 ✓ v3 事实/案件仓储通过
@@ -125,15 +143,15 @@ tools 里不能出现 SQL 字符串
 ## 下一步
 
 ```text
-2026-12  加固月：soak、文档、回滚演练、M4 设计评审
-2027-01  M4.0 注册框架 + session/asset/alert
-2027-02  M4.1 finding/ioc/task/incident
-...
-2027-08  3.0.0
-2027-12  3.1.0-rc
+2026-11-18  M4.0 完成：11/73
+2026-11-19  M4.1 finding/ioc/task/incident
+2026-12    M4.2 ~ M4.5
+2027-01    影子双跑 / 3.0.0-rc
+2027-02    3.0.0
+2027-04    3.1.0
 ```
 
-完整月度计划见 [`../docs/3.0/roadmap-12m.md`](../docs/3.0/roadmap-12m.md)。
+完整计划见 [`../docs/3.0/fast-track.md`](../docs/3.0/fast-track.md)。
 
 ## 不要做
 

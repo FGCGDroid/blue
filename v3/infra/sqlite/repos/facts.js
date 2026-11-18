@@ -212,8 +212,12 @@ export class FactsRepo {
     return alert
   }
 
-  listAlerts(engagementId, filters = {}) {
-    const clauses = ['engagement_id = ?']
+  getAlert(id) {
+    const row = this.db.sql('SELECT * FROM alerts WHERE id = ?').get(id)
+    return row === undefined ? null : row
+  }
+
+  listAlerts(engagementId, filters = {}) {    const clauses = ['engagement_id = ?']
     const params = [engagementId]
     for (const field of ['status', 'severity', 'source', 'confidence', 'task_id']) {
       if (typeof filters[field] === 'string' && filters[field] !== '') {

@@ -1,30 +1,39 @@
 /**
- * 3.0 工具入口（骨架）。
+ * 3.0 工具入口（M4.0）。
  *
- * M4 才会注册工具。现在只把 23 个工具组串起来，并报告计划数量。
- * 工具名统一用 blue_ 前缀，但服务名与 2.0 分开，避免并行加载冲突。
+ * M4.0 只注册 session 6 + asset 2 + alert 3；其余组保持骨架。
+ * 所有工具统一经过 self-check 门禁，工具层不写 SQL。
  */
 import { TOOL_MODULES } from './tools/index.js'
 import { ALL_TOOL_NAMES, EXISTING_TOOL_NAMES, NEW_TOOL_NAMES } from './tools/catalog.js'
+import { withSelfCheck } from './tools/guard.js'
 
 export const name = 'blue-tools-v3'
 
 export const inject = ['blueTeamV3', 'tools']
 
 export function apply(ctx) {
-  let registered = 0
+  const store = typeof ctx.get === 'function' ? ctx.get('blueTeamV3') : ctx.blueTeamV3
+  if (!store) throw new Error('blue-tools-v3: 缺少 blueTeamV3 服务')
+  const registeredNames = []
+  const env = { ctx, store, registeredNames }
+
   const register = (definition) => {
-    registered += 1
-    ctx.tools.register(definition)
+    const guarded = withSelfCheck(definition)
+    registeredNames.push(definition.name)
+    const install = () => ctx.tools.register(guarded)
+    if (typeof ctx.effect === 'function') ctx.effect(install)
+    else install()
   }
-  for (const module of TOOL_MODULES) module.register(register)
+
+  for (const module of TOOL_MODULES) module.register(register, env)
   ctx.logger?.info?.(
-    'blue-tools-v3: 骨架就绪（%d 组；现有 %d + 新增 %d = 计划 %d；已注册 %d）',
-    TOOL_MODULES.length,
+    'blue-tools-v3: 已注册 %d 个工具（M4.0 计划 %d；现有 %d + 新增 %d = %d）',
+    registeredNames.length,
+    ALL_TOOL_NAMES.length,
     EXISTING_TOOL_NAMES.length,
     NEW_TOOL_NAMES.length,
     ALL_TOOL_NAMES.length,
-    registered,
   )
 }
 

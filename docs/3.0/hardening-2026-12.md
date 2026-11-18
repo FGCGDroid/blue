@@ -148,6 +148,8 @@ DB 被整体替换时，只有外部锚能发现
 ## 下一步
 
 ```text
-2026-12 余下时间：gateway soak、回滚演练、外锚 file sink 复测
-2027-01：M4.0 注册框架 + session/asset/alert
+2026-11-18：M4.0 完成（11/73）
+2026-11-19：M4.1 finding/ioc/task/incident
+2026-12：M4.2 ~ M4.5
+2027-01：影子双跑 / 3.0.0-rc
 ```

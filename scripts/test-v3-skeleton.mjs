@@ -40,8 +40,11 @@ function fakeCtx() {
       provided.set(name, value)
     },
     logger: { info() {} },
+    get(name) {
+      return provided.get(name)
+    },
     effect(fn) {
-      this.cleanup = fn
+      this.cleanup = fn()
     },
   }
 }
@@ -59,7 +62,6 @@ try {
   const storeCtx = fakeCtx()
   applyStore(storeCtx, { root: tmp })
   assert.equal(storeCtx.provided.get('blueTeamV3').root, tmp)
-  storeCtx.provided.get('blueTeamV3').close()
 
   const config = loadConfig({ BLUE_GATEWAY_PORT: '8787' })
   assert.equal(config.host, '127.0.0.1')
@@ -110,12 +112,16 @@ try {
   assert.equal(TOOL_MODULES.length, 23)
 
   const toolsCtx = fakeCtx()
+  toolsCtx.provided.set('blueTeamV3', storeCtx.provided.get('blueTeamV3'))
+  const registered = []
   toolsCtx.tools = {
-    register() {
-      throw new Error('骨架阶段不应注册任何工具')
+    register(definition) {
+      registered.push(definition.name)
     },
   }
   applyTools(toolsCtx)
+  assert.equal(registered.length, 11)
+  storeCtx.provided.get('blueTeamV3').close()
 
   const counters = createCounters()
   counters.inc('demo', { b: 2, a: 1 })
@@ -150,5 +156,9 @@ try {
 
   console.log(`✓ v3 骨架测试通过（${layers.files} 个 JS，${Object.keys(layers.byLayer).length} 个层）`)
 } finally {
-  rmSync(tmp, { recursive: true, force: true })
+  try {
+    rmSync(tmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 })
+  } catch (error) {
+    console.error('cleanup skipped:', error.code, tmp)
+  }
 }
