@@ -9,7 +9,7 @@
  * 3.0 的数据层、工具层、UI 层分别由 v3/store.js、v3/tools.js、v3/ui.js 发布。
  * 现在不接入 cordis.patch.yml，避免和 2.0 抢服务名。
  */
-import { mkdirSync, readFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -21,7 +21,7 @@ export const name = 'blue-team-mode-v3'
 export const inject = []
 
 /** 3.0 开发版本；GA 时改成 package.json 的版本。 */
-export const V3_VERSION = '3.0.0-dev'
+export const V3_VERSION = '3.0.0-beta.1'
 
 /** 本包根目录。 */
 export function packagePaths() {
@@ -49,6 +49,25 @@ export function packageVersion() {
   }
 }
 
+/** 把随包技能同步到 $DSH_HOME/blue/skills；失败不阻断挂载。 */
+export function installSkills(root = blueDataDir()) {
+  const paths = packagePaths()
+  const target = join(root, 'skills')
+  mkdirSync(target, { recursive: true })
+  let copied = 0
+  try {
+    for (const file of readdirSync(paths.skills)) {
+      if (!file.endsWith('.md')) continue
+      writeFileSync(join(target, file), readFileSync(join(paths.skills, file), 'utf8'), 'utf8')
+      copied += 1
+    }
+    writeFileSync(join(target, '.bundle-version'), packageVersion(), 'utf8')
+  } catch {
+    // 技能目录只影响提示词，不影响 Host/工具启动。
+  }
+  return { dir: target, skills: copied }
+}
+
 /**
  * @param ctx Cordis 上下文
  * @param {{root?: string}} [config]
@@ -56,14 +75,16 @@ export function packageVersion() {
 export function apply(ctx, config = {}) {
   const root = typeof config.root === 'string' && config.root !== '' ? config.root : blueDataDir()
   mkdirSync(root, { recursive: true })
+  const skills = installSkills(root)
   ctx.provide('blueTeamModeV3', Object.freeze({
     version: V3_VERSION,
     package_version: packageVersion(),
-    skeleton: true,
+    skeleton: false,
     root,
+    skills: skills.skills,
     paths: packagePaths(),
   }))
-  ctx.logger?.info?.('blue-team-mode-v3: skeleton 就绪（%s）', root)
+  ctx.logger?.info?.('blue-team-mode-v3: %s 就绪（%s）', V3_VERSION, root)
 }
 
 export default { name, inject, apply }

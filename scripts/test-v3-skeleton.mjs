@@ -55,9 +55,9 @@ try {
   const ctx = fakeCtx()
   applyIndex(ctx, { root: tmp })
   const mode = ctx.provided.get('blueTeamModeV3')
-  assert.equal(mode.skeleton, true)
+  assert.equal(mode.skeleton, false)
   assert.equal(mode.root, tmp)
-  assert.equal(mode.version, '3.0.0-dev')
+  assert.equal(mode.version, '3.0.0-beta.1')
 
   const storeCtx = fakeCtx()
   applyStore(storeCtx, { root: tmp })
