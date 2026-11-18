@@ -77,12 +77,12 @@ const expected = [
   'blue_response_execute', 'blue_response_verify',
   'blue_policy_validate', 'blue_policy_test', 'blue_policy_diff',
   'blue_gateway_status',
-  'blue_range',
+  'blue_range', 'blue_protect',
   'blue_log_scan', 'blue_artifact_triage', 'blue_hardening_check',
   'blue_containment_plan', 'blue_playbook_list',
 ]
 assert.deepEqual([...registered.keys()].sort(), expected.slice().sort())
-assert.equal(registered.size, 74)
+assert.equal(registered.size, 75)
 
 try {
   const exec = makeExec()
@@ -133,6 +133,21 @@ try {
 
   const info2 = await call('blue_session_info', {}, exec)
   assert.equal(info2.session.bound_engagement.id, opened.engagement.id)
+
+  const protect = await call('blue_protect', {
+    action: 'start',
+    target: 'https://protected.example.test',
+    name: '我的网站',
+  }, exec)
+  assert.equal(protect.ok, true)
+  assert.equal(protect.checklist.length, 5)
+  assert.ok(protect.asset.id)
+  const protectStatus = await call('blue_protect', {
+    action: 'status',
+    engagement: protect.engagement.id,
+  }, exec)
+  assert.equal(protectStatus.headline, '待接入日志')
+  assert.equal(protectStatus.summary.assets, 1)
 
   const child = makeExec('S1-CHILD', [], 'S1')
   const childInfo = await call('blue_session_info', {}, child)
@@ -810,15 +825,15 @@ try {
   const preflight = await call('blue_preflight', {}, exec)
   assert.equal(preflight.ok, true)
   assert.equal(preflight.db.schema_version, '3.0')
-  assert.equal(preflight.tools.registered, 74)
+  assert.equal(preflight.tools.registered, 75)
   assert.ok(preflight.channels.some((channel) => channel.id === 'tools' && channel.available === true))
   assert.ok(preflight.channels.some((channel) => channel.id === 'host_api' && channel.available === true))
 
   const catalog = await call('blue_tool_catalog', {}, exec)
-  assert.equal(catalog.registered, 74)
-  assert.equal(catalog.planned, 74)
+  assert.equal(catalog.registered, 75)
+  assert.equal(catalog.planned, 75)
 
-  console.log('✓ v3 M4.3 工具全量注册：74/74')
+  console.log('✓ v3 M4.3 工具全量注册：75/75')
 } finally {
   store.close()
   rmSync(root, { recursive: true, force: true })

@@ -27,9 +27,10 @@ import * as policy from './policy.js'
 import * as gateway from './gateway.js'
 import * as hunt from './hunt.js'
 import * as range from './range.js'
+import * as protect from './protect.js'
 
 export const TOOL_MODULES = Object.freeze([
   session, asset, alert, finding, ioc, task, incident, decision, timeline, report,
   decoy, detection, telemetry, control, cve, risk, evidence, audit, response,
-  responseExec, policy, gateway, hunt, range,
+  responseExec, policy, gateway, hunt, range, protect,
 ])
