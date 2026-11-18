@@ -97,6 +97,22 @@ try {
   assert.equal(noUser.ok, false)
   assert.equal(noUser.code, 'SELF_CHECK_USER')
 
+  const runtimeExec = {
+    agent: {
+      session: {
+        id: 'S-RUNTIME',
+        header: {},
+        snapshotEvents: () => [
+          { type: 'user/message', data: { content: [{ type: 'text', text: '防御自检' }], source: { kind: 'user' } } },
+          { type: 'user/message', data: { content: [{ type: 'text', text: '<system-reminder>runtime</system-reminder>' }], source: { kind: 'runtime-context' } } },
+          { type: 'user/message', data: { content: [{ type: 'text', text: '<available_skills/>' }], source: { kind: 'skill-catalog' } } },
+        ],
+      },
+    },
+  }
+  const runtimeCheck = await call('blue_defense_selfcheck', { phrase: '防御自检' }, runtimeExec)
+  assert.equal(runtimeCheck.ok, true)
+
   const wrongPhrase = await call('blue_defense_selfcheck', { phrase: '自检' }, exec)
   assert.equal(wrongPhrase.ok, false)
   assert.equal(wrongPhrase.code, 'SELF_CHECK_PHRASE')

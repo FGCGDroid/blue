@@ -5,13 +5,15 @@
 
 ## 新 P0：子智能体空转
 
-根因：`parentSessionId` 在 DSH 子会话里可能为空，真实父链在 `session.header.parentSession`；3.0 只读前者，导致：
+根因有两层：`parentSessionId` 在 DSH 子会话里可能为空，真实父链在 `session.header.parentSession`；3.0 只读前者，导致：
 
 ```text
 is_subagent=false
 父会话绑定没有继承
 SELF_CHECK_REQUIRED 挡住全部 worker 工具
 ```
+
+另外，DSH 会在真实用户消息后追加 `runtime-context` / `skill-catalog` 的 `user/message`。`userSaidSelfCheck` 只取最后一条 `user/message`，于是把系统提示当成了用户的最后一句，第一次发「防御自检」也判定失败。
 
 修复：
 
@@ -20,9 +22,10 @@ parentIdOf 同时读 session.parentSessionId 和 session.header.parentSession
 sessionKeysOf 用父 id 作为 root
 hasSelfCheck 允许 root 会话的自检状态被子会话继承
 绑定 Map 用 root key，子会话自动命中
+userSaidSelfCheck 只取 source.kind=user 的真实人类消息，忽略 runtime-context / skill-catalog
 ```
 
-测试：模拟 `header.parentSession` 子会话，`blue_session_info` 显示 is_subagent=true、bound_engagement 有值；`blue_asset_query` 不再 SELF_CHECK_REQUIRED。
+测试：模拟 runtime-context 追加在「防御自检」之后，自检通过；模拟 `header.parentSession` 子会话，`is_subagent=true`、绑定继承、`asset_query` 不再被门禁挡。
 
 ## 新 P1：遥测登记/读取根不一致
 

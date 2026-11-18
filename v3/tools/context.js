@@ -136,6 +136,11 @@ export function userSaidSelfCheck(exec) {
   }
   return (Array.isArray(events) ? events : [])
     .filter((event) => event?.type === 'user/message')
+    // DSH 会追加 runtime-context / skill-catalog 等 user/message；它们不是人。
+    .filter((event) => {
+      const kind = event?.data?.source?.kind
+      return kind === undefined || kind === 'user'
+    })
     .slice(-1)
     .some((event) => textOf(event.data).trim() === '防御自检')
 }
