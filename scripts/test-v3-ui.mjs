@@ -85,6 +85,7 @@ try {
   })
   assert.equal(opened.body.ok, true)
   assert.equal(opened.body.engagement.name, 'UI 合成目标')
+  assert.ok(opened.body.protection && typeof opened.body.protection.headline === 'string')
   const engagementId = opened.body.engagement.id
 
   const protect = await call('/blue/api', {

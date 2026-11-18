@@ -2,6 +2,7 @@
 import { buildReport } from '../app/reports/service.js'
 import { listControls } from '../app/controls/service.js'
 import { buildRiskGraph } from '../app/risk/service.js'
+import { protectionStatus } from '../app/onboarding/service.js'
 import { cveSummary, listCves } from '../domain/cve/pack.js'
 
 function statsOf(store, engagementId) {
@@ -79,6 +80,7 @@ export function toLegacySnapshot(store, ctx, request = {}) {
       cve: { summary: cveSummary(), items: [] },
       graph: { summary: { assets: 0, exposed_assets: 0, cve_matches: 0, edges: 0, high_risk_assets: 0, unverified_matches: 0 }, assets: [], cves: [], edges: [] },
       note: '还没有绑定防守目标。可以在控制台新建，或在会话里调用 blue_engagement_open。',
+      protection: null,
     }
   }
   const id = engagement.id
@@ -98,6 +100,7 @@ export function toLegacySnapshot(store, ctx, request = {}) {
     },
     engagements: listEngagements(store),
     stats,
+    protection: protectionStatus(store, id),
     slots: { max: maxSlots, active: stats.tasks_active, queued: stats.tasks_queued },
     assets: store.facts.queryAssets(id, { limit: 80 }),
     alerts: store.facts.listAlerts(id, { limit: 80 }),
