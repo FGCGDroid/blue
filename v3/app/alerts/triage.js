@@ -1,4 +1,4 @@
-/** 3.0 告警研判用例（M4.1）。 */
+/** 3.0 告警研判用例（M4.1/M5 批量）。 */
 import { BlueError } from '../../domain/shared/errors.js'
 import { createTask } from '../tasks/service.js'
 
@@ -19,7 +19,7 @@ export function triageAlert(store, engagementId, args = {}) {
       priority: alert.severity === 'critical' ? 'P0' : alert.severity === 'high' ? 'P1' : 'P2',
       title: `处置告警：${alert.title}`,
       brief: `告警 ${alert.id}（${alert.severity}）\n原始内容：${String(alert.raw || '').slice(0, 1500)}\n研判结论：${alert.note || '无'}`,
-      acceptance: '确认影响面、完成止损/清除并给出验证证据；无法完成写清阻塞。',
+      acceptance: '确认影响面、完成止损/清除并给出验证证据；无法完成写清阻碍。',
       alert_id: alert.id,
       actor: 'monitor',
     })
@@ -30,6 +30,30 @@ export function triageAlert(store, engagementId, args = {}) {
   return {
     alert,
     task,
+    stats: store.engagements.stats(engagementId),
+  }
+}
+
+export function triageAlerts(store, engagementId, args = {}) {
+  const ids = Array.isArray(args.ids) ? args.ids.map((id) => String(id).trim()).filter(Boolean) : []
+  if (ids.length === 0) throw new BlueError('ALERT_IDS', 'ids 不能为空')
+  if (ids.length > 200) throw new BlueError('ALERT_IDS_MAX', '单次最多 200 条告警')
+  const updated = []
+  const failed = []
+  for (const id of Array.from(new Set(ids))) {
+    try {
+      const result = triageAlert(store, engagementId, { ...args, id, create_task: args.create_task === true })
+      updated.push({ id, status: result.alert.status, severity: result.alert.severity, task_id: result.task?.id ?? null })
+    } catch (error) {
+      failed.push({ id, code: error?.code ?? 'ALERT_TRIAGE', error: error?.message ?? String(error) })
+    }
+  }
+  return {
+    requested: ids.length,
+    updated: updated.length,
+    failed: failed.length,
+    alerts: updated,
+    errors: failed,
     stats: store.engagements.stats(engagementId),
   }
 }

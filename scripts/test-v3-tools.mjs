@@ -374,9 +374,10 @@ try {
   assert.ok(report.markdown.includes('蓝队防守报告'))
   assert.ok(report.bytes > 100)
 
-  const reportWrite = await call('blue_report', { write: true }, exec)
-  assert.equal(reportWrite.ok, false)
-  assert.equal(reportWrite.code, 'NOT_IMPLEMENTED')
+  const reportWrite = await call('blue_report', { write: true, path: 'test-report.md' }, exec)
+  assert.equal(reportWrite.ok, true)
+  assert.ok(reportWrite.file.endsWith('test-report.md'))
+  assert.ok(reportWrite.bytes > 100)
 
   const plan = await call('blue_deception_plan', {}, exec)
   assert.equal(plan.ok, true)
@@ -492,6 +493,27 @@ try {
   assert.equal(ruleList.builtin, 5)
   assert.equal(ruleList.custom, 1)
 
+  const taggedRule = await call('blue_detection_rule_add', {
+    rule_key: 'custom-t1059',
+    title: '自定义命令执行标签',
+    severity: 'high',
+    selection: JSON.stringify({ path: ['/never-match-this-path'] }),
+    condition: 'any',
+    tags: ['T1059'],
+  }, exec)
+  assert.equal(taggedRule.ok, true)
+
+  const nestedPath = join(root, 'nested-401.jsonl')
+  writeFileSync(nestedPath, JSON.stringify({
+    http: { status: 401 },
+    path: '/admin/login',
+    method: 'POST',
+  }) + '\n', 'utf8')
+  await call('blue_telemetry_source_add', { name: 'nested-401', path: nestedPath }, exec)
+  const nestedScan = await call('blue_detection_scan', { source: 'nested-401' }, exec)
+  assert.equal(nestedScan.hits.length, 2)
+  assert.ok(nestedScan.hits.some((hit) => hit.rule === 'builtin-auth-path'))
+
   const telemetrySource = await call('blue_telemetry_source_add', {
     name: 'test-jsonl',
     path: telemetryPath,
@@ -510,7 +532,7 @@ try {
   assert.equal(poll.results[0].alerts, 3)
 
   const telemetryHealth = await call('blue_telemetry_health', {}, exec)
-  assert.equal(telemetryHealth.count, 1)
+  assert.ok(telemetryHealth.count >= 1)
 
   const previousDsh = process.env.DSH_HOME
   process.env.DSH_HOME = root
@@ -564,7 +586,10 @@ try {
   assert.equal(coverage.ok, true)
   assert.ok(coverage.techniques >= 5)
   assert.ok(coverage.covered >= 5)
+  assert.ok(coverage.covered >= 6)
+  assert.ok(!coverage.gaps_techniques.some((gap) => gap.id === 'T1059'))
   assert.ok(coverage.unmapped_rules.includes('admin-login-fail'))
+  assert.ok(!coverage.unmapped_rules.includes('custom-t1059'))
   assert.ok(coverage.gaps_techniques.every((gap) => gap.rule === undefined))
 
   const riskGraph = await call('blue_risk_graph', {}, exec)
@@ -705,6 +730,15 @@ try {
   assert.equal(topLevel.alerts[0].title, '顶层标题优先')
   assert.equal(topLevel.alerts[0].severity, 'critical')
   assert.equal(topLevel.alerts[0].source, 'top-source')
+
+  const bulkTriage = await call('blue_alert_triage', {
+    ids: [alert.alerts[0].id, topLevel.alerts[0].id],
+    status: 'false_positive',
+    note: '批量复验',
+  }, exec)
+  assert.equal(bulkTriage.ok, true)
+  assert.equal(bulkTriage.updated, 2)
+  assert.equal(bulkTriage.failed, 0)
 
   const badTask = await call('blue_task_create', { role: 'not-a-role', title: 'x' }, exec)
   assert.equal(badTask.ok, false)

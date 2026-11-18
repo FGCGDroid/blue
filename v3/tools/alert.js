@@ -3,7 +3,7 @@ import { defineTool, safe } from './define.js'
 import { engagementOf } from './context.js'
 import { ingestAlert } from '../app/alerts/ingest.js'
 import { listAlerts } from '../app/alerts/list.js'
-import { triageAlert } from '../app/alerts/triage.js'
+import { triageAlert, triageAlerts } from '../app/alerts/triage.js'
 import { BlueError } from '../domain/shared/errors.js'
 
 export const group = 'alert'
@@ -62,7 +62,8 @@ export function register(registerTool, env = {}) {
     description: '研判一条告警：更新状态/级别/负责人/结论。真阳性应 clear 到 contained，假阳性标 false_positive 并写依据。可同时创建处置任务（create_task=true）。',
     parameters: {
       engagement: { type: 'string', description: '（可选）防守目标 id 或名称；默认用当前会话绑定' },
-      id: { type: 'string', required: true, description: '告警 id（ALT-...）' },
+      id: { type: 'string', description: '告警 id（单条）；与 ids 二选一' },
+      ids: { type: 'array', items: { type: 'string' }, description: '批量告警 id；最多 200 条' },
       status: { type: 'string', description: 'open/investigating/contained/closed/false_positive' },
       severity: { type: 'string' },
       assignee: { type: 'string' },
@@ -72,10 +73,17 @@ export function register(registerTool, env = {}) {
       role: { type: 'string', description: '任务角色：monitor/intel/hunt/ir/forensics/hardening' },
     },
     execute: safe(async (args, exec) => {
-      if (typeof args.id !== 'string' || args.id.trim() === '') {
-        throw new BlueError('ALERT_ID', 'id 不能为空')
-      }
       const engagement = engagementOf(store, exec, args.engagement)
+      if (Array.isArray(args.ids)) {
+        return {
+          ok: true,
+          engagement: { id: engagement.id, name: engagement.name },
+          ...triageAlerts(store, engagement.id, args),
+        }
+      }
+      if (typeof args.id !== 'string' || args.id.trim() === '') {
+        throw new BlueError('ALERT_ID', 'id 或 ids 必须提供一个')
+      }
       return {
         ok: true,
         engagement: { id: engagement.id, name: engagement.name },

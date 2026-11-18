@@ -30,14 +30,25 @@ const RULE_ALIASES = {
 }
 
 export function attackCoverage(rules = []) {
-  const ruleKeys = new Set((Array.isArray(rules) ? rules : []).map((rule) => rule.rule_key || rule.id || rule))
+  const list = Array.isArray(rules) ? rules : []
+  const ruleKeys = new Set(list.map((rule) => rule.rule_key || rule.id || rule))
+  const tags = new Set()
+  for (const rule of list) {
+    const values = Array.isArray(rule.tags) ? rule.tags : []
+    for (const tag of values) {
+      const value = String(tag || '').trim()
+      if (value !== '') tags.add(value)
+    }
+  }
   const covered = TECHNIQUES.filter((item) => {
     if (ruleKeys.has(item.rule)) return true
+    if (tags.has(item.id) || tags.has(`attack:${item.id}`)) return true
     return Array.from(ruleKeys).some((key) => (RULE_ALIASES[key] || []).includes(item.id))
   }).map((item) => ({
     ...item,
     has_rule: true,
     matched_rules: Array.from(ruleKeys).filter((key) => key === item.rule || (RULE_ALIASES[key] || []).includes(item.id)),
+    matched_tags: Array.from(tags).filter((tag) => tag === item.id || tag === `attack:${item.id}`),
     rule: undefined,
   }))
   const gaps = TECHNIQUES.filter((item) => !covered.some((hit) => hit.id === item.id)).map((item) => ({
@@ -50,7 +61,14 @@ export function attackCoverage(rules = []) {
   for (const [key, aliases] of Object.entries(RULE_ALIASES)) {
     if (aliases.length > 0) mappedRules.add(key)
   }
-  const unmapped = Array.from(ruleKeys).filter((key) => !mappedRules.has(key))
+  const unmapped = list
+    .filter((rule) => {
+      const key = rule.rule_key || rule.id || rule
+      if (mappedRules.has(key)) return false
+      const values = Array.isArray(rule.tags) ? rule.tags : []
+      return !values.some((tag) => TECHNIQUES.some((item) => tag === item.id || tag === `attack:${item.id}`))
+    })
+    .map((rule) => rule.rule_key || rule.id || rule)
   const tactics = Array.from(new Set(TECHNIQUES.map((item) => item.tactic)))
   return {
     techniques: TECHNIQUES.length,
@@ -60,8 +78,9 @@ export function attackCoverage(rules = []) {
     gaps_techniques: gaps,
     unmapped_rules: unmapped,
     active_rules: Array.from(ruleKeys),
+    tags: Array.from(tags),
     tactics,
-    note: '内置规则与自定义规则都参与覆盖；只表示“有映射”，不代表已启用、已部署或没有误报。',
+    note: '内置规则、自定义 rule_key 和 ATT&CK tags 都参与覆盖；只表示“有映射”，不代表已启用、已部署或没有误报。',
   }
 }
 

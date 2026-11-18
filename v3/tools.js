@@ -10,6 +10,7 @@ import { withSelfCheck } from './tools/guard.js'
 import { readJsonl } from './infra/fs/jsonl.js'
 import { readArtifact, readText } from './infra/fs/artifact.js'
 import { readEvidenceFile, writeEvidenceFile } from './infra/fs/evidence-file.js'
+import { writeReportFile } from './infra/fs/report-file.js'
 import { loadPolicy } from './infra/policy/store.js'
 import { pushToSinks } from './infra/evidence/anchor-sink.js'
 import { loadConfig } from './bootstrap/config.js'
@@ -31,6 +32,7 @@ export function apply(ctx) {
     readArtifact: (file, options) => readArtifact(file, { root: store.root, ...options }),
     writeEvidence: (bundle, name) => writeEvidenceFile(store.root, bundle, name),
     readEvidence: (path) => readEvidenceFile(store.root, path),
+    writeReport: (markdown, name) => writeReportFile(store.root, markdown, name),
     loadPolicy,
     pushToSinks,
     gatewayConfig: (() => {

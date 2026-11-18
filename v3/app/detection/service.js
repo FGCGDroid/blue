@@ -31,7 +31,7 @@ export const BUILTIN_RULES = Object.freeze([
     source: 'builtin',
     selection: {
       path: ['*login*', '*admin*', '*auth*', '*signin*'],
-      status: [401, 403],
+      'status|status_code|http.status|http.status_code|http.response.status_code|response.status|response.status_code': [401, 403],
     },
   },
   {
@@ -98,14 +98,23 @@ function equalish(actual, expected) {
   return String(actual ?? '').toLowerCase() === String(expected ?? '').toLowerCase()
 }
 
+function valueAtAny(event, field) {
+  for (const path of String(field).split('|')) {
+    const value = valueAt(event, path)
+    if (value !== undefined && value !== null) return { found: true, value }
+  }
+  return { found: false, value: undefined }
+}
+
 export function matchRule(rule, event) {
   const selection = rule.selection && typeof rule.selection === 'object' ? rule.selection : {}
   const entries = Object.entries(selection)
   if (entries.length === 0) return false
   const checks = entries.map(([path, expected]) => {
-    const actual = valueAt(event, path)
+    const result = valueAtAny(event, path)
+    if (!result.found) return false
     const values = Array.isArray(expected) ? expected : [expected]
-    return values.some((item) => equalish(actual, item))
+    return values.some((item) => equalish(result.value, item))
   })
   return rule.condition === 'any' ? checks.some(Boolean) : checks.every(Boolean)
 }
