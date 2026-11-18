@@ -46,6 +46,23 @@ export function bindEngagement(exec, engagementId) {
   return keys
 }
 
+/** 工具切目标时同步 UI 绑定，避免右侧栏还停在旧目标。 */
+export function syncUiBinding(store, exec, engagementId) {
+  const id = sessionIdOf(exec)
+  if (id === null || !store || typeof store.db?.setMeta !== 'function') return null
+  const key = 'ui:binding:' + id
+  store.db.setMeta(key, engagementId)
+  return key
+}
+
+export function clearUiBinding(store, exec) {
+  const id = sessionIdOf(exec)
+  if (id === null || !store || typeof store.db?.deleteMeta !== 'function') return null
+  const key = 'ui:binding:' + id
+  store.db.deleteMeta(key)
+  return key
+}
+
 export function unbindEngagement(exec) {
   const { keys } = sessionKeysOf(exec)
   for (const key of keys) bindings.delete(key)

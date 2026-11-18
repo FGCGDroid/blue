@@ -124,6 +124,10 @@ export class SqliteDb {
       ON CONFLICT(key) DO UPDATE SET value = excluded.value`).run(key, String(value))
   }
 
+  deleteMeta(key) {
+    this.sql('DELETE FROM meta WHERE key = ?').run(key)
+  }
+
   close() {
     if (this.db === null) return
     this.stmts.clear()

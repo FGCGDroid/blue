@@ -3,6 +3,7 @@ import { defineTool, safe } from './define.js'
 import {
   bindEngagement, bindingViewOf, engagementOf, hostOfTarget, listBindings,
   markSelfChecked, scopeStatus, sessionKeysOf, unbindEngagement, userSaidSelfCheck,
+  syncUiBinding, clearUiBinding,
 } from './context.js'
 import { assertSelfCheckPhrase, closeEngagement, openEngagement, preflightReport } from '../app/session/service.js'
 import { ALL_TOOL_NAMES, TOOL_GROUPS } from './catalog.js'
@@ -31,6 +32,7 @@ export function register(registerTool, env = {}) {
         const result = closeEngagement(store, target.id)
         // 只有关闭“当前绑定”时才解绑；显式关闭别的目标不能把当前会话解绑。
         const keys = current !== null && current.id === target.id ? unbindEngagement(exec) : []
+        if (current !== null && current.id === target.id) clearUiBinding(store, exec)
         return { ok: true, action: 'close', ...result, unbound_keys: keys, still_bound: bindingViewOf(exec, store).bound_engagement }
       }
       if (action !== 'open') throw new BlueError('ENGAGEMENT_ACTION', 'action 只能是 open 或 close')
@@ -39,6 +41,7 @@ export function register(registerTool, env = {}) {
       }
       const result = openEngagement(store, args)
       const keys = bindEngagement(exec, result.engagement.id)
+      syncUiBinding(store, exec, result.engagement.id)
       return {
         ok: true,
         action: 'open',
