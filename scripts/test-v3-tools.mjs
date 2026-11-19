@@ -854,6 +854,15 @@ try {
   const defended = await call('blue_knowledge', { action: 'defend', id: learned.entry.id }, exec)
   assert.equal(defended.ok, true)
   assert.ok(defended.task.id)
+  const deadend = await call('blue_knowledge', {
+    action: 'deadend',
+    path: '/admin',
+    method: 'GET',
+    status: 403,
+    title: '后台直连已排除',
+  }, exec)
+  assert.equal(deadend.created, true)
+  assert.equal(deadend.entry.kind, 'deadend')
 
   const preflight = await call('blue_preflight', {}, exec)
   assert.equal(preflight.ok, true)
