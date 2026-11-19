@@ -145,7 +145,7 @@ try {
   const protectStatus = await call('blue_protect', {
     action: 'status',
   }, exec)
-  assert.equal(protectStatus.headline, '待接入日志')
+  assert.equal(protectStatus.headline, '还没看到日志')
   assert.equal(protectStatus.summary.assets, 1)
   const protect2 = await call('blue_protect', {
     action: 'start',

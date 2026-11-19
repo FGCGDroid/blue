@@ -144,10 +144,22 @@ export function rulesFor(store, engagementId) {
   return [...BUILTIN_RULES, ...store.detection.list(engagementId)].filter((rule) => rule.enabled)
 }
 
+export function normalizeEvent(event) {
+  if (event === null || typeof event !== 'object') return event
+  if (event.decision === undefined && event.canonical_path === undefined) return event
+  return {
+    ...event,
+    path: event.path || event.canonical_path || event.raw_path || '',
+    method: event.method || 'GET',
+    status: event.status ?? event.upstream_status ?? 0,
+  }
+}
+
 export function scanEvents(rules, events, options = {}) {
   const maxHits = Math.min(Math.max(Number(options.maxHits) || 1000, 1), 10000)
   const hits = []
-  for (const event of events) {
+  for (const rawEvent of events) {
+    const event = normalizeEvent(rawEvent)
     for (const rule of rules) {
       if (!rule.enabled) continue
       if (!matchRule(rule, event)) continue

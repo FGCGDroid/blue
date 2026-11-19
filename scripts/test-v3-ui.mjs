@@ -98,7 +98,7 @@ try {
   assert.equal(protect.body.checklist.length, 5)
   const protectStatus = await call('/blue/api', { op: 'protectStatus', session: 'S-UI' })
   assert.equal(protectStatus.body.ok, true)
-  assert.equal(protectStatus.body.headline, '待接入日志')
+  assert.equal(protectStatus.body.headline, '还没看到日志')
   const rebound = await call('/blue/api', { op: 'bindEngagement', session: 'S-UI', engagement: engagementId })
   assert.equal(rebound.body.ok, true)
 

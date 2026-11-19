@@ -41,7 +41,7 @@ export function startProtection(store, input = {}) {
     { key: 'exposure', title: '只开放必要端口', why: '公网只留 80/443 或业务端口，数据库/管理口不要直接暴露', action: '在服务器安全组/防火墙里限制来源' },
     { key: 'patch', title: '系统与组件补丁', why: '旧版本是入侵入口', action: '先查版本，再在维护窗口升级' },
     { key: 'auth', title: '管理入口强口令 + 二次验证', why: '弱口令和撞库最常见', action: '改强口令，能开 2FA 就开' },
-    { key: 'logging', title: '把访问日志接进来', why: '没有日志就只能事后猜', action: '把 Nginx/Apache/应用日志放到 DSH 可读目录，再 blue_telemetry_source_add' },
+    { key: 'logging', title: '让系统看到日志', why: '没有日志就只能事后猜', action: '不用填路径：本机网关/ctf_lab 会自动接；远程服务器需要装采集器' },
     { key: 'backup', title: '备份并演练恢复', why: '被删/被加密时能回滚', action: '至少保留一份离线备份' },
   ]
   return {
@@ -103,13 +103,26 @@ export async function startProtectionWithGateway(store, manager, input = {}) {
   return { ...result, gateway: started, direct_target: info.address, telemetry }
 }
 
+function assetLooksLocal(assets) {
+  return (Array.isArray(assets) ? assets : []).some((asset) => {
+    try {
+      const host = new URL(String(asset.address || '')).hostname
+      return host === '127.0.0.1' || host === 'localhost' || host === '::1' || host === '[::1]'
+    } catch {
+      return false
+    }
+  })
+}
+
 export function protectionStatus(store, engagementId) {
   const engagement = store.engagements.get(engagementId)
   if (engagement === null) throw new BlueError('ENGAGEMENT_NOT_FOUND', '防护目标不存在：' + engagementId)
   const stats = store.engagements.stats(engagementId)
   const telemetry = store.telemetry.listSources(engagementId)
+  const assets = store.facts.queryAssets(engagementId, { limit: 50 })
+  const local = assetLooksLocal(assets)
   const openAlerts = Number(stats.alerts_open || 0)
-  let headline = '待接入日志'
+  let headline = '还没看到日志'
   let level = 'setup'
   if (openAlerts > 0) {
     headline = '有风险，需要处理'
@@ -122,9 +135,13 @@ export function protectionStatus(store, engagementId) {
     level = 'empty'
   }
   const next = []
-  if (telemetry.length === 0) next.push('接入访问日志：把日志路径给我，或放到 $DSH_HOME/blue/logs/ 下')
-  if (openAlerts > 0) next.push(`有 ${openAlerts} 条未处理告警，先看 blue_alert_list`)
-  if (next.length === 0) next.push('保持日志接入，定期看告警即可')
+  if (telemetry.length === 0) {
+    next.push(local
+      ? '日志还没找到：确认服务在写日志；本机网关和 ctf_lab 会自动接，不用填路径'
+      : '日志在远程服务器上，不在本机；先装采集器，或把 access.log 放到本机')
+  }
+  if (openAlerts > 0) next.push(`有 ${openAlerts} 条未处理告警，先看告警页`)
+  if (next.length === 0) next.push('日志已自动接入，有异常会直接出现在告警里')
   return {
     engagement: { id: engagement.id, name: engagement.name, scope: engagement.scope },
     headline,
