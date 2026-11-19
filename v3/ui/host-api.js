@@ -1,5 +1,7 @@
 /** 3.0 Host API（M5）：2.0 控制台兼容 + 3.x 快照。 */
 import { join } from 'node:path'
+import { appendFileSync } from 'node:fs'
+import { timingSafeEqual } from 'node:crypto'
 import { runAutopilot } from '../app/tasks/autopilot.js'
 import { createTask } from '../app/tasks/service.js'
 import { triageAlert } from '../app/alerts/triage.js'
@@ -163,6 +165,16 @@ export async function handleApi(ctx, store, request = {}) {
   const snapshot = () => toLegacySnapshot(store, ctx, { ...request, engagement: id })
 
   if (op === 'protectStatus') return { ok: true, ...protectionStatus(store, id) }
+  if (op === 'collectorInfo') {
+    return {
+      ok: true,
+      token: store.collectorToken(),
+      endpoint: '/blue/collect',
+      engagement: id,
+      log_path: store.collectorLogPath(id),
+      collector: ctx.get?.('blueCollector')?.status?.() ?? null,
+    }
+  }
   if (op === 'knowledgeList') return { ok: true, entries: store.knowledge.list(id, { limit: request.limit }) }
   if (op === 'knowledgeDefend') {
     const result = defendEntry(store, id, String(request.entry || request.id || ''))
@@ -309,4 +321,46 @@ export function registerHostApi(ctx, store, paths = ['/blue/api', '/blue/v3/api'
       },
     }))
   }
+
+  // 远程采集器专用入口：不走浏览器同源，只认独立 token。
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'exact',
+    path: '/blue/collect',
+    handler: async (req, res) => {
+      if (req.method !== 'POST') {
+        sendJson(res, 405, { ok: false, error: 'POST only' })
+        return
+      }
+      try {
+        const raw = await readBody(req)
+        const request = JSON.parse(raw || '{}')
+        if (request === null || typeof request !== 'object' || Array.isArray(request)) {
+          throw new Error('请求体必须是 JSON 对象')
+        }
+        const header = String(req.headers.authorization || '')
+        const given = Buffer.from(header.startsWith('Bearer ') ? header.slice(7) : String(request.token || ''))
+        const expected = Buffer.from(store.collectorToken())
+        if (given.length !== expected.length || !timingSafeEqual(given, expected)) {
+          sendJson(res, 401, { ok: false, error: 'bad collector token' })
+          return
+        }
+        const engagement = store.engagements.get(String(request.engagement || ''))
+        if (engagement === null || engagement.status !== 'active') {
+          sendJson(res, 404, { ok: false, error: 'engagement not active' })
+          return
+        }
+        const events = Array.isArray(request.events) ? request.events.slice(0, 500) : []
+        if (events.length === 0) {
+          sendJson(res, 400, { ok: false, error: 'events required' })
+          return
+        }
+        const path = store.collectorLogPath(engagement.id)
+        appendFileSync(path, events.map((event) => JSON.stringify(event)).join('\n') + '\n', 'utf8')
+        store.ensureCollectorSource(engagement.id)
+        sendJson(res, 200, { ok: true, accepted: events.length })
+      } catch (error) {
+        sendJson(res, 400, { ok: false, error: error && error.message ? error.message : String(error) })
+      }
+    },
+  }))
 }

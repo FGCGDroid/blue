@@ -9,6 +9,7 @@ import { BlueStoreV3 } from '../v3/store.js'
 import { apply } from '../v3/ui.js'
 
 const root = mkdtempSync(join(tmpdir(), 'blue-v3-ui-'))
+process.env.BLUE_TELEMETRY_ROOT = root
 const store = new BlueStoreV3(root)
 const routes = new Map()
 const ctx = {
@@ -68,10 +69,11 @@ async function call(path, body, options = {}) {
 
 try {
   apply(ctx)
-  assert.equal(routes.size, 3)
+  assert.equal(routes.size, 4)
   assert.ok(routes.has('/blue/api'))
   assert.ok(routes.has('/blue/v3/api'))
   assert.ok(routes.has('/blue/protect'))
+  assert.ok(routes.has('/blue/collect'))
 
   const empty = await call('/blue/api', { op: 'overview' })
   assert.equal(empty.status, 200)
@@ -101,6 +103,19 @@ try {
   assert.equal(protectStatus.body.headline, '还没看到日志')
   const rebound = await call('/blue/api', { op: 'bindEngagement', session: 'S-UI', engagement: engagementId })
   assert.equal(rebound.body.ok, true)
+
+  const collectorInfo = await call('/blue/api', { op: 'collectorInfo', session: 'S-UI' })
+  assert.equal(collectorInfo.body.ok, true)
+  const remote = await call('/blue/collect', {
+    engagement: engagementId,
+    events: [{ status: 401, path: '/admin/login', remote: '203.0.113.9' }],
+  }, { origin: 'http://10.0.0.5:9999', headers: { authorization: 'Bearer ' + collectorInfo.body.token } })
+  assert.equal(remote.status, 200, JSON.stringify(remote.body))
+  const badRemote = await call('/blue/collect', {
+    engagement: engagementId,
+    events: [{ path: '/x' }],
+  }, { origin: 'http://10.0.0.5:9999', headers: { authorization: 'Bearer bad' } })
+  assert.equal(badRemote.status, 401)
 
   const overview = await call('/blue/api', { op: 'overview', session: 'S-UI' })
   assert.equal(overview.status, 200)
@@ -178,7 +193,7 @@ try {
   assert.equal(unknown.status, 400)
   assert.equal(unknown.body.ok, false)
 
-  console.log('✓ v3 M5 Host API 兼容通过：3 条路由 / 2.0 op / 同源校验')
+  console.log('✓ v3 M5 Host API 兼容通过：4 条路由 / 2.0 op / 同源校验 + 采集 token')
 } finally {
   store.close()
   rmSync(root, { recursive: true, force: true })

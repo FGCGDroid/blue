@@ -19,7 +19,7 @@ node scripts/validate.mjs
 
 ```text
 132 个 JS
-77/77 工具
+78/78 工具
 M5 Host API 兼容
 分层/校验全绿
 ```

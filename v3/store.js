@@ -5,6 +5,7 @@
  * 事实库仍是 2.0 的 17 张表；3.0 不改表名/列名。
  */
 import { mkdirSync } from 'node:fs'
+import { randomBytes } from 'node:crypto'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { SqliteDb } from './infra/sqlite/db.js'
@@ -60,6 +61,29 @@ export class BlueStoreV3 {
 
   readJsonl(file, options = {}) {
     return readJsonl(file, { root: this.root, ...options })
+  }
+
+  collectorToken() {
+    let token = String(this.db.getMeta('collector:token', '') || '')
+    if (token === '') {
+      token = randomBytes(24).toString('hex')
+      this.db.setMeta('collector:token', token)
+    }
+    return token
+  }
+
+  collectorLogPath(engagementId) {
+    const dir = join(this.root, 'collector')
+    mkdirSync(dir, { recursive: true })
+    return join(dir, `${String(engagementId).replace(/[^A-Za-z0-9_-]/g, '_')}.jsonl`)
+  }
+
+  ensureCollectorSource(engagementId) {
+    const path = this.collectorLogPath(engagementId)
+    if (!this.telemetry.listSources(engagementId).some((source) => source.path === path)) {
+      this.telemetry.addSource(engagementId, { name: 'remote-collector', kind: 'jsonl', path })
+    }
+    return path
   }
 
   close() {
