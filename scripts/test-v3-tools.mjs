@@ -529,8 +529,8 @@ try {
   assert.equal(rule.rule.rule_key, 'admin-login-fail')
 
   const ruleList = await call('blue_detection_rule_list', {}, exec)
-  assert.equal(ruleList.count, 6)
-  assert.equal(ruleList.builtin, 5)
+  assert.equal(ruleList.count, 7)
+  assert.equal(ruleList.builtin, 6)
   assert.equal(ruleList.custom, 1)
 
   const taggedRule = await call('blue_detection_rule_add', {
@@ -553,6 +553,19 @@ try {
   const nestedScan = await call('blue_detection_scan', { source: 'nested-401' }, exec)
   assert.equal(nestedScan.hits.length, 2)
   assert.ok(nestedScan.hits.some((hit) => hit.rule === 'builtin-auth-path'))
+
+  const gatewayPath = join(root, 'gateway-test.jsonl')
+  writeFileSync(gatewayPath, JSON.stringify({
+    at: new Date().toISOString(),
+    method: 'GET',
+    canonical_path: '/.env',
+    decision: 'block',
+    rule_id: 'builtin:env',
+    reason: 'DENY_RULE',
+  }) + '\n', 'utf8')
+  await call('blue_telemetry_source_add', { name: 'gateway-test', path: gatewayPath }, exec)
+  const gatewayScan = await call('blue_detection_scan', { source: 'gateway-test' }, exec)
+  assert.ok(gatewayScan.hits.some((hit) => hit.rule === 'builtin-gateway-block'))
 
   const telemetrySource = await call('blue_telemetry_source_add', {
     name: 'test-jsonl',

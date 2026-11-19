@@ -13,11 +13,11 @@ function eventOf(alert) {
   const raw = parseRaw(alert)
   return {
     ...raw,
-    path: raw.path || raw.url || raw.request_uri || '',
+    path: raw.path || raw.url || raw.canonical_path || raw.raw_path || raw.request_uri || '',
     method: raw.method || raw.http_method || 'GET',
-    status: raw.status ?? raw.status_code ?? raw.http_status ?? 0,
+    status: raw.status ?? raw.status_code ?? raw.http_status ?? (raw.decision === 'block' ? 403 : 0),
     title: alert.title,
-    rule_key: raw.rule_key || raw.rule || '',
+    rule_key: raw.rule_key || raw.rule_id || raw.rule || '',
   }
 }
 

@@ -74,6 +74,16 @@ export const BUILTIN_RULES = Object.freeze([
       path: ['*/.git/*', '*/phpmyadmin*', '*/wp-admin*', '*/server-status*'],
     },
   },
+  {
+    id: 'builtin-gateway-block',
+    rule_key: 'builtin-gateway-block',
+    title: '内置：网关已阻断请求',
+    severity: 'high',
+    condition: 'all',
+    enabled: true,
+    source: 'builtin',
+    selection: { decision: ['block'] },
+  },
 ])
 
 function valueAt(event, path) {

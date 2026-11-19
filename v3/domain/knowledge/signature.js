@@ -4,7 +4,7 @@ function text(value, fallback = '') {
 }
 
 export function signatureOf(event = {}) {
-  const raw = text(event.path || event.url || event.http?.path || event.raw_path).trim()
+  const raw = text(event.path || event.url || event.canonical_path || event.raw_path || event.http?.path || event.raw_path).trim()
   const path = raw.split('?')[0].split('#')[0]
     .replace(/[0-9a-f]{8}-[0-9a-f-]{27,}/gi, ':uuid')
     .replace(/\/\d+(?=\/|$)/g, '/:id')
