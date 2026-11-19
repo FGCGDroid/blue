@@ -74,6 +74,27 @@ export class BlueStoreV3 {
     return token
   }
 
+  rotateCollectorToken() {
+    const token = randomBytes(24).toString('hex')
+    this.db.setMeta('collector:token', token)
+    return token
+  }
+
+  collectorAllowIps() {
+    return String(this.db.getMeta('collector:allow_ips', '') || '')
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean)
+  }
+
+  setCollectorAllowIps(value) {
+    const ips = (Array.isArray(value) ? value : String(value || '').split(','))
+      .map((item) => String(item).trim())
+      .filter(Boolean)
+    this.db.setMeta('collector:allow_ips', ips.join(','))
+    return ips
+  }
+
   collectorLogPath(engagementId) {
     const dir = join(this.root, 'collector')
     mkdirSync(dir, { recursive: true })

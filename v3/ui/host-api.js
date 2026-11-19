@@ -19,6 +19,7 @@ import { learnAlert } from '../app/knowledge/service.js'
 import { defendEntry } from '../app/knowledge/service.js'
 
 const MAX_BODY_BYTES = 4 * 1024 * 1024
+const collectorRate = new Map()
 
 function sendJson(res, status, value) {
   const body = JSON.stringify(value)
@@ -170,6 +171,7 @@ export async function handleApi(ctx, store, request = {}) {
     const host = String(request.host || '').trim()
     const base = host === '' ? '' : (/^https?:\/\//i.test(host) ? host : `http://${host}`)
     const token = store.collectorToken()
+    const loopback = /^(127\.0\.0\.1|localhost|\[::1\])(?::|$)/i.test(host)
     return {
       ok: true,
       token,
@@ -177,9 +179,18 @@ export async function handleApi(ctx, store, request = {}) {
       download: (base || '') + '/blue/collector.mjs',
       engagement: id,
       log_path: store.collectorLogPath(id),
+      allow_ips: store.collectorAllowIps(),
       command: base === '' ? '' : `curl -fsSL '${base}/blue/collector.mjs' -o blue-collector.mjs && BLUE_COLLECTOR_TOKEN='${token}' node blue-collector.mjs --url '${base}' --engagement '${id}' --log /var/log/nginx/access.log`,
+      warning: loopback ? '远程服务器访问不到 127.0.0.1；请用反代/隧道，或填服务器可达的 DSH 地址。' : '',
       collector: ctx.get?.('blueCollector')?.status?.() ?? null,
     }
+  }
+  if (op === 'collectorRotate') {
+    const token = store.rotateCollectorToken()
+    return { ok: true, token, note: '旧 token 已失效；采集器需要更新环境变量。' }
+  }
+  if (op === 'collectorAllow') {
+    return { ok: true, allow_ips: store.setCollectorAllowIps(request.allow_ips || []) }
   }
   if (op === 'knowledgeList') return { ok: true, entries: store.knowledge.list(id, { limit: request.limit }) }
   if (op === 'knowledgeDefend') {
@@ -362,6 +373,21 @@ export function registerHostApi(ctx, store, paths = ['/blue/api', '/blue/v3/api'
         return
       }
       try {
+        const remote = String(req.socket?.remoteAddress || '')
+        const allow = store.collectorAllowIps()
+        if (allow.length > 0 && !allow.includes(remote) && !allow.includes(remote.replace(/^::ffff:/, ''))) {
+          sendJson(res, 403, { ok: false, error: 'collector source not allowed' })
+          return
+        }
+        const now = Date.now()
+        const bucket = collectorRate.get(remote) || { start: now, count: 0 }
+        if (now - bucket.start > 60000) { bucket.start = now; bucket.count = 0 }
+        bucket.count += 1
+        collectorRate.set(remote, bucket)
+        if (bucket.count > 120) {
+          sendJson(res, 429, { ok: false, error: 'collector rate limit' })
+          return
+        }
         const raw = await readBody(req)
         const request = JSON.parse(raw || '{}')
         if (request === null || typeof request !== 'object' || Array.isArray(request)) {

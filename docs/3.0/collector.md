@@ -14,6 +14,31 @@ DSH 不在被防守服务器上时，不能直接读那台机器的 `access.log`
   -> 告警 / 知识库
 ```
 
+## 安装成服务
+
+Linux：
+
+```bash
+sudo bash install-collector.sh http://<DSH-IP>:<端口> <token> ENG-... /var/log/nginx/access.log
+```
+
+Windows（管理员 PowerShell）：
+
+```powershell
+.\install-collector.ps1 -Url http://<DSH-IP>:<端口> -Token <token> -Engagement ENG-... -Log C:\logs\access.log
+```
+
+脚本在 `lab/` 下，只做下载、写配置、注册服务；不执行日志内容。
+
+## 网络安全
+
+```text
+token 轮换：collectorRotate
+IP 白名单：collectorAllow
+限流：每 IP 每分钟 120 次
+HTTPS：需要反代终止 TLS，采集器支持 https URL
+```
+
 ## 生成命令
 
 让蓝队会话调用：
