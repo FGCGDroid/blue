@@ -9,7 +9,7 @@ import { addIoc } from '../app/iocs/service.js'
 import { campaign as cveCampaign } from '../app/cve/service.js'
 import { buildEvidenceBundle } from '../app/evidence/export.js'
 import { evaluateControls } from '../app/controls/service.js'
-import { scanEvents } from '../app/detection/service.js'
+import { scanEvents, rulesFor } from '../app/detection/service.js'
 import { bindSession, resolveEngagement, toLegacySnapshot } from './legacy-view.js'
 import { protectionStatus, startProtection } from '../app/onboarding/service.js'
 import { learnAlert } from '../app/knowledge/service.js'
@@ -84,7 +84,7 @@ function telemetryPoll(store, engagementId, request = {}) {
   const sources = store.telemetry.listSources(engagementId)
     .filter((source) => source.status !== 'retired')
     .filter((source) => !request.name || source.name === request.name)
-  const rules = store.detection.list(engagementId).filter((rule) => rule.enabled)
+  const rules = rulesFor(store, engagementId).filter((rule) => rule.enabled)
   const maxAlerts = Math.min(Math.max(Number(request.max_alerts) || 100, 1), 1000)
   const results = []
   for (const source of sources) {
