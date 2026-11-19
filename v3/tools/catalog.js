@@ -48,6 +48,7 @@ export const TOOL_GROUPS = Object.freeze({
   range: Object.freeze(['blue_range']),
   protect: Object.freeze(['blue_protect']),
   knowledge: Object.freeze(['blue_knowledge']),
+  review: Object.freeze(['blue_review']),
   hunt: Object.freeze([
     'blue_log_scan', 'blue_artifact_triage', 'blue_hardening_check',
     'blue_containment_plan', 'blue_playbook_list',
@@ -67,6 +68,7 @@ export const NEW_TOOL_NAMES = Object.freeze([
   'blue_range',
   'blue_protect',
   'blue_knowledge',
+  'blue_review',
 ])
 
 export const EXISTING_TOOL_NAMES = Object.freeze(

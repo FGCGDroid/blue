@@ -77,12 +77,12 @@ const expected = [
   'blue_response_execute', 'blue_response_verify',
   'blue_policy_validate', 'blue_policy_test', 'blue_policy_diff',
   'blue_gateway_status',
-  'blue_range', 'blue_protect', 'blue_knowledge',
+  'blue_range', 'blue_protect', 'blue_knowledge', 'blue_review',
   'blue_log_scan', 'blue_artifact_triage', 'blue_hardening_check',
   'blue_containment_plan', 'blue_playbook_list',
 ]
 assert.deepEqual([...registered.keys()].sort(), expected.slice().sort())
-assert.equal(registered.size, 76)
+assert.equal(registered.size, 77)
 
 try {
   const exec = makeExec()
@@ -864,18 +864,22 @@ try {
   assert.equal(deadend.created, true)
   assert.equal(deadend.entry.kind, 'deadend')
 
+  const review = await call('blue_review', {}, exec)
+  assert.equal(review.ok, true)
+  assert.equal(review.verdict, 'attention')
+
   const preflight = await call('blue_preflight', {}, exec)
   assert.equal(preflight.ok, true)
   assert.equal(preflight.db.schema_version, '3.0')
-  assert.equal(preflight.tools.registered, 76)
+  assert.equal(preflight.tools.registered, 77)
   assert.ok(preflight.channels.some((channel) => channel.id === 'tools' && channel.available === true))
   assert.ok(preflight.channels.some((channel) => channel.id === 'host_api' && channel.available === true))
 
   const catalog = await call('blue_tool_catalog', {}, exec)
-  assert.equal(catalog.registered, 76)
-  assert.equal(catalog.planned, 76)
+  assert.equal(catalog.registered, 77)
+  assert.equal(catalog.planned, 77)
 
-  console.log('✓ v3 M4.3 工具全量注册：76/76')
+  console.log('✓ v3 M4.3 工具全量注册：77/77')
 } finally {
   store.close()
   rmSync(root, { recursive: true, force: true })

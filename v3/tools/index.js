@@ -29,9 +29,10 @@ import * as hunt from './hunt.js'
 import * as range from './range.js'
 import * as protect from './protect.js'
 import * as knowledge from './knowledge.js'
+import * as review from './review.js'
 
 export const TOOL_MODULES = Object.freeze([
   session, asset, alert, finding, ioc, task, incident, decision, timeline, report,
   decoy, detection, telemetry, control, cve, risk, evidence, audit, response,
-  responseExec, policy, gateway, hunt, range, protect, knowledge,
+  responseExec, policy, gateway, hunt, range, protect, knowledge, review,
 ])
