@@ -14,6 +14,7 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createGatewayManager } from './bootstrap/gateway.js'
+import { createCollector } from './bootstrap/collector.js'
 
 /** Cordis 插件名。3.0 与 2.0 用不同名字，方便并行加载。 */
 export const name = 'blue-team-mode-v3'
@@ -86,6 +87,23 @@ export function apply(ctx, config = {}) {
     paths: packagePaths(),
   }))
   ctx.provide('blueGateway', createGatewayManager())
+
+  // store/tools 可能晚于本文件挂载；等 store 就绪后启动后台采集器。
+  let attempts = 0
+  const startCollector = () => {
+    const store = ctx.get?.('blueTeamV3')
+    if (!store) {
+      if (attempts++ < 50) setTimeout(startCollector, 100).unref?.()
+      return
+    }
+    if (ctx.get?.('blueCollector')) return
+    const collector = createCollector(store)
+    ctx.provide('blueCollector', collector)
+    collector.start()
+    if (typeof ctx.effect === 'function') ctx.effect(() => () => collector.stop())
+    ctx.logger?.info?.('blue-team-mode-v3: collector 已启动')
+  }
+  setTimeout(startCollector, 0).unref?.()
   ctx.logger?.info?.('blue-team-mode-v3: %s 就绪（%s）', V3_VERSION, root)
 }
 

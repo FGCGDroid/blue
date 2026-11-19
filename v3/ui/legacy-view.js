@@ -71,6 +71,7 @@ export function toLegacySnapshot(store, ctx, request = {}) {
       engagement: null,
       engagements: listEngagements(store),
       version: mode?.version ?? null,
+      collector: ctx.get?.('blueCollector')?.status?.() ?? null,
       skills: mode?.skills ?? 0,
       audit: null,
       controls: { rows: [], total: 0, passed: 0, failed: 0, unknown: 0, score: 0 },
@@ -129,6 +130,7 @@ export function toLegacySnapshot(store, ctx, request = {}) {
     graph: buildRiskGraph(store, id),
     report_markdown: buildReport(store, id),
     version: mode?.version ?? null,
+    collector: ctx.get?.('blueCollector')?.status?.() ?? null,
     skills: mode?.skills ?? 0,
     data_root: mode?.root ?? store.root,
   }
