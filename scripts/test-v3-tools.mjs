@@ -77,12 +77,12 @@ const expected = [
   'blue_response_execute', 'blue_response_verify',
   'blue_policy_validate', 'blue_policy_test', 'blue_policy_diff',
   'blue_gateway_status',
-  'blue_range', 'blue_protect', 'blue_knowledge', 'blue_review', 'blue_collector',
+  'blue_range', 'blue_protect', 'blue_knowledge', 'blue_review', 'blue_collector', 'blue_artifact',
   'blue_log_scan', 'blue_artifact_triage', 'blue_hardening_check',
   'blue_containment_plan', 'blue_playbook_list',
 ]
 assert.deepEqual([...registered.keys()].sort(), expected.slice().sort())
-assert.equal(registered.size, 78)
+assert.equal(registered.size, 79)
 
 try {
   const exec = makeExec()
@@ -260,14 +260,22 @@ try {
   assert.ok(triagedWithTask.task)
   assert.equal(triagedWithTask.alert.task_id, triagedWithTask.task.id)
 
+  const artifactEvidence = await call('blue_artifact', {
+    content: 'GET /.git/config HTTP/1.1\nHost: example.test\n\nHTTP/1.1 200 OK',
+    source: 'synthetic evidence',
+    kind: 'http',
+  }, exec)
+  assert.equal(artifactEvidence.ok, true)
   const finding = await call('blue_finding_add', {
     title: '暴露的备份目录',
     severity: 'high',
     category: 'exposure',
+    artifact_id: artifactEvidence.artifact.id,
     evidence: 'GET /.git/config 返回 200',
     recommendation: '禁止 Web 根目录访问 .git',
   }, exec)
   assert.equal(finding.ok, true)
+  assert.equal(finding.finding.fact_level, 'fact')
   assert.equal(finding.stats.findings, 1)
   const noEvidence = await call('blue_finding_add', {
     title: '没有证据的高危结论',
@@ -276,6 +284,14 @@ try {
   }, exec)
   assert.equal(noEvidence.ok, false)
   assert.equal(noEvidence.code, 'FINDING_EVIDENCE')
+  const noArtifact = await call('blue_finding_add', {
+    title: '有文字但没 artifact 的高危结论',
+    severity: 'high',
+    category: 'exposure',
+    evidence: '我看见了一个报错',
+  }, exec)
+  assert.equal(noArtifact.ok, false)
+  assert.equal(noArtifact.code, 'FINDING_ARTIFACT')
 
   const findingUpdated = await call('blue_finding_update', {
     id: finding.finding.id,
@@ -902,15 +918,15 @@ try {
   const preflight = await call('blue_preflight', {}, exec)
   assert.equal(preflight.ok, true)
   assert.equal(preflight.db.schema_version, '3.0')
-  assert.equal(preflight.tools.registered, 78)
+  assert.equal(preflight.tools.registered, 79)
   assert.ok(preflight.channels.some((channel) => channel.id === 'tools' && channel.available === true))
   assert.ok(preflight.channels.some((channel) => channel.id === 'host_api' && channel.available === true))
 
   const catalog = await call('blue_tool_catalog', {}, exec)
-  assert.equal(catalog.registered, 78)
-  assert.equal(catalog.planned, 78)
+  assert.equal(catalog.registered, 79)
+  assert.equal(catalog.planned, 79)
 
-  console.log('✓ v3 M4.3 工具全量注册：78/78')
+  console.log('✓ v3 M4.3 工具全量注册：79/79')
 } finally {
   store.close()
   rmSync(root, { recursive: true, force: true })

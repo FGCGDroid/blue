@@ -19,9 +19,11 @@ for (const entry of ['v3', 'presets', 'skills', 'locale', 'lab']) {
 }
 // 不把历史 soak 日志打进安装包。
 rmSync(join(STAGE, 'lab', '.run'), { recursive: true, force: true })
-for (const file of ['lib/client.js', 'icon.svg', 'README.md', 'LICENSE', 'DISCLOSURE', 'SECURITY.md']) {
+for (const file of ['lib/client.js', 'icon.svg', 'README.md', 'LICENSE', 'DISCLOSURE', 'SECURITY.md', 'shadow-test.cmd']) {
   cpSync(join(ROOT, file), join(STAGE, file))
 }
+mkdirSync(join(STAGE, 'scripts'), { recursive: true })
+cpSync(join(ROOT, 'scripts', 'shadow-test.mjs'), join(STAGE, 'scripts', 'shadow-test.mjs'))
 // 兼容 DSH 旧解析器：即使它仍按 lib/*.js 找入口，也落到 v3。
 for (const [file, target] of [
   ['index.js', '../v3/index.js'],
@@ -37,7 +39,7 @@ const base = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'))
 const pkg = {
   name: 'dsh-blue-team-mode',
   version: VERSION,
-  description: '蓝队防御模式 3.0 beta：78 个工具、保护向导、打法知识库、只读复核、远程日志采集',
+  description: '蓝队防御模式 3.0 beta：79 个工具、保护向导、打法知识库、只读复核、远程日志采集、证据 artifact',
   license: base.license,
   author: base.author,
   repository: base.repository,
@@ -55,7 +57,7 @@ const pkg = {
     './locale/*.json': './locale/*.json',
     './icon': './icon.svg',
   },
-  files: ['v3', 'lab', 'lib/client.js', 'presets', 'skills', 'locale', 'icon.svg', 'cordis.patch.yml', 'README.md', 'SECURITY.md', 'LICENSE', 'DISCLOSURE'],
+  files: ['v3', 'lab', 'scripts/shadow-test.mjs', 'shadow-test.cmd', 'lib/client.js', 'presets', 'skills', 'locale', 'icon.svg', 'cordis.patch.yml', 'README.md', 'SECURITY.md', 'LICENSE', 'DISCLOSURE'],
   scripts: {
     lab: 'node lab/start.mjs',
     'test:lab': 'node lab/scenarios/acceptance.mjs && node lab/scenarios/vectors.mjs',

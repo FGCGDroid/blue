@@ -22,6 +22,7 @@ import { ResponsesRepo } from './infra/sqlite/repos/responses.js'
 import { EvidenceRepo } from './infra/sqlite/repos/evidence.js'
 import { TelemetryRepo } from './infra/sqlite/repos/telemetry.js'
 import { KnowledgeRepo } from './infra/sqlite/repos/knowledge.js'
+import { ArtifactRepo } from './infra/sqlite/repos/artifacts.js'
 import { readJsonl } from './infra/fs/jsonl.js'
 
 export const name = 'blue-store-v3'
@@ -48,6 +49,7 @@ export class BlueStoreV3 {
     this.evidenceRepo = new EvidenceRepo(this.db, this.timeline, root)
     this.telemetry = new TelemetryRepo(this.db)
     this.knowledge = new KnowledgeRepo(this.db, this.timeline)
+    this.artifacts = new ArtifactRepo(this.db)
     this.closed = false
   }
 

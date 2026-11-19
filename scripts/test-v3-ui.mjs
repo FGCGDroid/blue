@@ -69,11 +69,12 @@ async function call(path, body, options = {}) {
 
 try {
   apply(ctx)
-  assert.equal(routes.size, 4)
+  assert.equal(routes.size, 5)
   assert.ok(routes.has('/blue/api'))
   assert.ok(routes.has('/blue/v3/api'))
   assert.ok(routes.has('/blue/protect'))
   assert.ok(routes.has('/blue/collect'))
+  assert.ok(routes.has('/blue/collector.mjs'))
 
   const empty = await call('/blue/api', { op: 'overview' })
   assert.equal(empty.status, 200)
@@ -193,7 +194,7 @@ try {
   assert.equal(unknown.status, 400)
   assert.equal(unknown.body.ok, false)
 
-  console.log('✓ v3 M5 Host API 兼容通过：4 条路由 / 2.0 op / 同源校验 + 采集 token')
+  console.log('✓ v3 M5 Host API 兼容通过：5 条路由 / 2.0 op / 同源校验 + 采集 token')
 } finally {
   store.close()
   rmSync(root, { recursive: true, force: true })

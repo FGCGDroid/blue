@@ -103,14 +103,15 @@ export class FactsRepo {
     const at = new Date().toISOString()
     const severity = clampSeverity(asText(input.severity))
     this.db.sql(`INSERT INTO findings
-      (id, engagement_id, asset_id, title, severity, category, status, confidence, source, task_id, cve, evidence, recommendation, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      (id, engagement_id, asset_id, title, severity, category, status, confidence, source, task_id, cve, evidence, recommendation, artifact_id, fact_level, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
       .run(
         id, engagementId, input.asset_id ?? null, title,
         severity, asText(input.category, 'other'),
         asText(input.status, 'open'), asText(input.confidence, 'medium'), asText(input.source),
         input.task_id ?? null, asText(input.cve), asText(input.evidence),
-        asText(input.recommendation), at, at,
+        asText(input.recommendation), input.artifact_id ?? null,
+        asText(input.fact_level, input.artifact_id ? 'fact' : 'observation'), at, at,
       )
     this.timeline.append(engagementId, {
       actor: asText(input.actor, 'commander'),
@@ -132,7 +133,7 @@ export class FactsRepo {
     const status = asText(patch.status, current.status)
     const severity = clampSeverity(asText(patch.severity, current.severity))
     this.db.sql(`UPDATE findings SET status = ?, severity = ?, confidence = ?, source = ?, task_id = ?,
-      cve = ?, evidence = ?, recommendation = ?, updated_at = ? WHERE id = ?`)
+      cve = ?, evidence = ?, recommendation = ?, artifact_id = ?, fact_level = ?, updated_at = ? WHERE id = ?`)
       .run(
         status, severity,
         asText(patch.confidence, current.confidence),
@@ -141,6 +142,8 @@ export class FactsRepo {
         asText(patch.cve, current.cve),
         asText(patch.evidence, current.evidence),
         asText(patch.recommendation, current.recommendation),
+        patch.artifact_id === undefined ? current.artifact_id : patch.artifact_id,
+        asText(patch.fact_level, patch.artifact_id || current.artifact_id ? 'fact' : 'observation'),
         new Date().toISOString(), id,
       )
     this.timeline.append(current.engagement_id, {

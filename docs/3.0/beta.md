@@ -10,7 +10,7 @@
 profile：desktop
 bundle：dsh-blue-team-mode@3.0.0-beta.1
 Host API：/blue/api、/blue/v3/api
-工具：78/78
+工具：79/79
 控制台：复用 2.0 右侧栏 12 页签（通过 Host API）
 预设：蓝色防御模式 + 6 个执行角色
 ```

@@ -297,4 +297,16 @@ CREATE TABLE IF NOT EXISTS knowledge_entries (
   UNIQUE (engagement_id, signature)
 );
 CREATE INDEX IF NOT EXISTS idx_knowledge_engagement ON knowledge_entries (engagement_id, status, hits);
+
+CREATE TABLE IF NOT EXISTS artifacts (
+  id TEXT PRIMARY KEY,
+  engagement_id TEXT NOT NULL,
+  kind TEXT NOT NULL DEFAULT 'text',
+  source TEXT NOT NULL DEFAULT '',
+  sha256 TEXT NOT NULL,
+  bytes INTEGER NOT NULL,
+  payload TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_artifacts_engagement ON artifacts (engagement_id, created_at);
 `

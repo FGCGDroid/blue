@@ -1,6 +1,7 @@
 /** 3.0 Host API（M5）：2.0 控制台兼容 + 3.x 快照。 */
 import { join } from 'node:path'
 import { appendFileSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { timingSafeEqual } from 'node:crypto'
 import { runAutopilot } from '../app/tasks/autopilot.js'
 import { createTask } from '../app/tasks/service.js'
@@ -166,12 +167,17 @@ export async function handleApi(ctx, store, request = {}) {
 
   if (op === 'protectStatus') return { ok: true, ...protectionStatus(store, id) }
   if (op === 'collectorInfo') {
+    const host = String(request.host || '').trim()
+    const base = host === '' ? '' : (/^https?:\/\//i.test(host) ? host : `http://${host}`)
+    const token = store.collectorToken()
     return {
       ok: true,
-      token: store.collectorToken(),
-      endpoint: '/blue/collect',
+      token,
+      endpoint: (base || '') + '/blue/collect',
+      download: (base || '') + '/blue/collector.mjs',
       engagement: id,
       log_path: store.collectorLogPath(id),
+      command: base === '' ? '' : `curl -fsSL '${base}/blue/collector.mjs' -o blue-collector.mjs && BLUE_COLLECTOR_TOKEN='${token}' node blue-collector.mjs --url '${base}' --engagement '${id}' --log /var/log/nginx/access.log`,
       collector: ctx.get?.('blueCollector')?.status?.() ?? null,
     }
   }
@@ -314,6 +320,7 @@ export function registerHostApi(ctx, store, paths = ['/blue/api', '/blue/v3/api'
           if (request === null || typeof request !== 'object' || Array.isArray(request)) {
             throw new Error('请求体必须是 JSON 对象')
           }
+          if (typeof request.host !== 'string') request.host = String(req.headers.host || '')
           sendJson(res, 200, await handleApi(ctx, store, request))
         } catch (error) {
           sendJson(res, 400, { ok: false, error: error && error.message ? error.message : String(error) })
@@ -321,6 +328,29 @@ export function registerHostApi(ctx, store, paths = ['/blue/api', '/blue/v3/api'
       },
     }))
   }
+
+  // 采集器脚本下载：不含 token，可公开。
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'exact',
+    path: '/blue/collector.mjs',
+    handler: async (req, res) => {
+      if (req.method !== 'GET') {
+        sendJson(res, 405, { ok: false, error: 'GET only' })
+        return
+      }
+      try {
+        const body = readFileSync(new URL('../../lab/blue-collector.mjs', import.meta.url), 'utf8')
+        res.writeHead(200, {
+          'content-type': 'text/javascript; charset=utf-8',
+          'content-length': Buffer.byteLength(body),
+          'cache-control': 'no-store',
+        })
+        res.end(body)
+      } catch (error) {
+        sendJson(res, 500, { ok: false, error: error && error.message ? error.message : String(error) })
+      }
+    },
+  }))
 
   // 远程采集器专用入口：不走浏览器同源，只认独立 token。
   ctx.effect(() => ctx.webServer.register({

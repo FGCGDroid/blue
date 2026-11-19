@@ -131,6 +131,7 @@ export function toLegacySnapshot(store, ctx, request = {}) {
     report_markdown: buildReport(store, id),
     version: mode?.version ?? null,
     collector: ctx.get?.('blueCollector')?.status?.() ?? null,
+    gateway: ctx.get?.('blueGateway')?.status?.() ?? null,
     skills: mode?.skills ?? 0,
     data_root: mode?.root ?? store.root,
   }

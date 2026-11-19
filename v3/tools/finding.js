@@ -22,6 +22,7 @@ export function register(registerTool, env = {}) {
       task_id: { type: 'string', description: '（可选）产生该发现的任务 id' },
       asset_id: { type: 'string' },
       cve: { type: 'string' },
+      artifact_id: { type: 'string', description: '真实证据 artifact id；high/critical 必填' },
       evidence: { type: 'string', description: '原始请求/日志/命令/文件路径/哈希' },
       recommendation: { type: 'string' },
       status: { type: 'string', description: 'open/fixed/accepted/false_positive' },
@@ -32,7 +33,14 @@ export function register(registerTool, env = {}) {
       }
       const severity = String(args.severity || 'medium').toLowerCase()
       if ((severity === 'high' || severity === 'critical') && String(args.evidence || '').trim() === '') {
-        throw new BlueError('FINDING_EVIDENCE', 'high/critical 发现必须带证据；没有证据只能先记 observation，不能当事实')
+        throw new BlueError('FINDING_EVIDENCE', 'high/critical 发现必须带证据')
+      }
+      if (severity === 'high' || severity === 'critical') {
+        const artifact = store.artifacts.get(String(args.artifact_id || ''))
+        if (artifact === null) throw new BlueError('FINDING_ARTIFACT', 'high/critical 必须引用真实 artifact_id')
+        args.fact_level = 'fact'
+      } else {
+        args.fact_level = String(args.artifact_id || '') === '' ? 'observation' : 'fact'
       }
       const engagement = engagementOf(store, exec, args.engagement)
       return {
@@ -55,6 +63,7 @@ export function register(registerTool, env = {}) {
       source: { type: 'string' },
       task_id: { type: 'string' },
       cve: { type: 'string' },
+      artifact_id: { type: 'string' },
       evidence: { type: 'string' },
       recommendation: { type: 'string' },
       note: { type: 'string' },
@@ -65,6 +74,15 @@ export function register(registerTool, env = {}) {
       }
       if (['fixed', 'accepted'].includes(String(args.status || '')) && String(args.evidence || '').trim() === '') {
         throw new BlueError('FINDING_EVIDENCE', '标记 fixed/accepted 必须带复测证据')
+      }
+      if (['fixed', 'accepted'].includes(String(args.status || ''))) {
+        const current = store.facts.getFinding(args.id)
+        const artifactId = String(args.artifact_id || current?.artifact_id || '')
+        if (artifactId === '' || store.artifacts.get(artifactId) === null) {
+          throw new BlueError('FINDING_ARTIFACT', '标记 fixed/accepted 必须引用真实 artifact_id')
+        }
+        args.artifact_id = artifactId
+        args.fact_level = 'fact'
       }
       const engagement = engagementOf(store, exec, args.engagement)
       return {

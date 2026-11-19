@@ -53,6 +53,8 @@ export function applyFrom20(db) {
     ['source', "TEXT NOT NULL DEFAULT ''"],
     ['task_id', 'TEXT'],
     ['incident_id', 'TEXT'],
+    ['artifact_id', 'TEXT'],
+    ['fact_level', "TEXT NOT NULL DEFAULT 'observation'"],
   ])
 
   addColumns(db, 'alerts', [
