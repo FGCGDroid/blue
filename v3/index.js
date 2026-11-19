@@ -15,6 +15,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createGatewayManager } from './bootstrap/gateway.js'
 import { createCollector } from './bootstrap/collector.js'
+import { createRemoteService } from './remote.js'
 
 /** Cordis 插件名。3.0 与 2.0 用不同名字，方便并行加载。 */
 export const name = 'blue-team-mode-v3'
@@ -99,6 +100,7 @@ export function apply(ctx, config = {}) {
     if (ctx.get?.('blueCollector')) return
     const collector = createCollector(store)
     ctx.provide('blueCollector', collector)
+    ctx.provide('blueRemote', createRemoteService(store))
     collector.start()
     if (typeof ctx.effect === 'function') ctx.effect(() => () => collector.stop())
     ctx.logger?.info?.('blue-team-mode-v3: collector 已启动')

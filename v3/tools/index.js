@@ -32,9 +32,10 @@ import * as knowledge from './knowledge.js'
 import * as review from './review.js'
 import * as collector from './collector.js'
 import * as artifact from './artifact.js'
+import * as remote from './remote.js'
 
 export const TOOL_MODULES = Object.freeze([
   session, asset, alert, finding, ioc, task, incident, decision, timeline, report,
   decoy, detection, telemetry, control, cve, risk, evidence, audit, response,
-  responseExec, policy, gateway, hunt, range, protect, knowledge, review, collector, artifact,
+  responseExec, policy, gateway, hunt, range, protect, knowledge, review, collector, artifact, remote,
 ])

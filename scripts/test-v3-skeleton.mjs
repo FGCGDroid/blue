@@ -106,10 +106,10 @@ try {
     (error) => error.code === 'NOT_IMPLEMENTED',
   )
 
-  assert.equal(ALL_TOOL_NAMES.length, 79)
+  assert.equal(ALL_TOOL_NAMES.length, 80)
   assert.equal(EXISTING_TOOL_NAMES.length, 66)
-  assert.equal(NEW_TOOL_NAMES.length, 13)
-  assert.equal(TOOL_MODULES.length, 29)
+  assert.equal(NEW_TOOL_NAMES.length, 14)
+  assert.equal(TOOL_MODULES.length, 30)
 
   const toolsCtx = fakeCtx()
   toolsCtx.provided.set('blueTeamV3', storeCtx.provided.get('blueTeamV3'))
@@ -120,7 +120,7 @@ try {
     },
   }
   applyTools(toolsCtx)
-  assert.equal(registered.length, 79)
+  assert.equal(registered.length, 80)
   storeCtx.provided.get('blueTeamV3').close()
 
   const counters = createCounters()

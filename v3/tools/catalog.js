@@ -51,6 +51,7 @@ export const TOOL_GROUPS = Object.freeze({
   review: Object.freeze(['blue_review']),
   collector: Object.freeze(['blue_collector']),
   artifact: Object.freeze(['blue_artifact']),
+  remote: Object.freeze(['blue_remote']),
   hunt: Object.freeze([
     'blue_log_scan', 'blue_artifact_triage', 'blue_hardening_check',
     'blue_containment_plan', 'blue_playbook_list',
@@ -73,6 +74,7 @@ export const NEW_TOOL_NAMES = Object.freeze([
   'blue_review',
   'blue_collector',
   'blue_artifact',
+  'blue_remote',
 ])
 
 export const EXISTING_TOOL_NAMES = Object.freeze(

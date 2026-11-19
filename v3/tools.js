@@ -32,6 +32,9 @@ export function apply(ctx) {
     get blueGateway() {
       return typeof ctx.get === 'function' ? ctx.get('blueGateway') : ctx.blueGateway
     },
+    get blueRemote() {
+      return typeof ctx.get === 'function' ? ctx.get('blueRemote') : ctx.blueRemote
+    },
     registeredNames,
     readJsonl: (file, options) => readJsonl(file, { root: store.root, ...options }),
     readText: (file, options) => readText(file, { root: store.root, ...options }),
