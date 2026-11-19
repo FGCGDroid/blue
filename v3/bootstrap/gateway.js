@@ -72,5 +72,10 @@ export function createGatewayManager() {
     }
   }
 
-  return { start, stop, status }
+  function reload() {
+    if (current === null) return { ok: false, running: false }
+    return current.gateway.reload()
+  }
+
+  return { start, stop, status, reload }
 }

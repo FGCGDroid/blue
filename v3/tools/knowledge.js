@@ -67,7 +67,19 @@ export function register(registerTool, env = {}) {
         if (entry === null) throw new BlueError('KNOWLEDGE_NOT_FOUND', '知识条目不存在：' + id)
         const defended = defendEntry(store, engagement.id, id)
         if (defended === null) throw new BlueError('KNOWLEDGE_NOT_FOUND', '知识条目不存在：' + id)
-        return { ok: true, ...defended, note: '已生成防御任务；不会自动改主机或防火墙。' }
+        let applied = null
+        if (entry.defense?.action === 'block_path' && env.blueGateway?.status?.().running && typeof env.savePolicy === 'function' && env.gatewayConfig?.policyPath) {
+          const match = /^http:[^:]+:(.*):\d+$/.exec(entry.signature)
+          const prefix = match ? match[1] : ''
+          if (prefix.startsWith('/') && !env.loadPolicy(env.gatewayConfig.policyPath).policy.deny.some((rule) => rule.prefix === prefix)) {
+            const loaded = env.loadPolicy(env.gatewayConfig.policyPath)
+            const next = { ...loaded.policy, deny: [...loaded.policy.deny, { id: `kb-${id.slice(3, 12).toLowerCase()}`, prefix }] }
+            const saved = env.savePolicy(env.gatewayConfig.policyPath, next)
+            const reloaded = env.blueGateway?.reload?.()
+            applied = { prefix, policy_path: saved.path, hash: saved.hash, reload: reloaded ?? null }
+          }
+        }
+        return { ok: true, ...defended, applied, note: applied ? '已写网关 deny 并热加载；可回滚。' : '已生成防御任务；不会自动改主机或防火墙。' }
       }
 
       throw new BlueError('KNOWLEDGE_ACTION', 'action 只能是 list/learn/deadend/match/defend')
