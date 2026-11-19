@@ -269,6 +269,13 @@ try {
   }, exec)
   assert.equal(finding.ok, true)
   assert.equal(finding.stats.findings, 1)
+  const noEvidence = await call('blue_finding_add', {
+    title: '没有证据的高危结论',
+    severity: 'high',
+    category: 'exposure',
+  }, exec)
+  assert.equal(noEvidence.ok, false)
+  assert.equal(noEvidence.code, 'FINDING_EVIDENCE')
 
   const findingUpdated = await call('blue_finding_update', {
     id: finding.finding.id,
@@ -276,6 +283,12 @@ try {
     evidence: '复测 404',
   }, exec)
   assert.equal(findingUpdated.finding.status, 'fixed')
+  const badFixed = await call('blue_finding_update', {
+    id: finding.finding.id,
+    status: 'fixed',
+  }, exec)
+  assert.equal(badFixed.ok, false)
+  assert.equal(badFixed.code, 'FINDING_EVIDENCE')
 
   const findings = await call('blue_finding_list', { status: 'fixed' }, exec)
   assert.equal(findings.count, 1)

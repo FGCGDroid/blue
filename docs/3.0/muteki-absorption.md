@@ -150,3 +150,15 @@ P2 资源 lane 锁（多目标共享主机时才需要）
 ```
 
 能，就吸收；不能，就只是多一层 agent 包装。
+
+## 五、已落地（2026-11-19）
+
+```text
+blue_knowledge action=deadend   死路记账
+blue_review                     只读复核
+blue_finding_add                 high/critical 无证据直接拒绝
+blue_finding_update              fixed/accepted 无复测证据直接拒绝
+```
+
+这不是完整证据门：还没有 artifact id 注册表。
+下一步才是把 finding 的 evidence 升级成可校验的 artifact_id。

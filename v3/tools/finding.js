@@ -30,6 +30,10 @@ export function register(registerTool, env = {}) {
       if (typeof args.title !== 'string' || args.title.trim() === '') {
         throw new BlueError('FINDING_INPUT', 'title 不能为空')
       }
+      const severity = String(args.severity || 'medium').toLowerCase()
+      if ((severity === 'high' || severity === 'critical') && String(args.evidence || '').trim() === '') {
+        throw new BlueError('FINDING_EVIDENCE', 'high/critical 发现必须带证据；没有证据只能先记 observation，不能当事实')
+      }
       const engagement = engagementOf(store, exec, args.engagement)
       return {
         ok: true,
@@ -58,6 +62,9 @@ export function register(registerTool, env = {}) {
     execute: safe(async (args, exec) => {
       if (typeof args.id !== 'string' || args.id.trim() === '') {
         throw new BlueError('FINDING_ID', 'id 不能为空')
+      }
+      if (['fixed', 'accepted'].includes(String(args.status || '')) && String(args.evidence || '').trim() === '') {
+        throw new BlueError('FINDING_EVIDENCE', '标记 fixed/accepted 必须带复测证据')
       }
       const engagement = engagementOf(store, exec, args.engagement)
       return {
