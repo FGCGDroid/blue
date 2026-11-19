@@ -1,7 +1,7 @@
 /** 工具组：保护我的服务器（入门向导）。 */
 import { defineTool, safe } from './define.js'
 import { engagementOf, bindEngagement, bindingViewOf, syncUiBinding } from './context.js'
-import { protectionStatus, startProtection } from '../app/onboarding/service.js'
+import { protectionStatus, startProtectionWithGateway } from '../app/onboarding/service.js'
 import { closeEngagement } from '../app/session/service.js'
 import { BlueError } from '../domain/shared/errors.js'
 
@@ -18,13 +18,15 @@ export function register(registerTool, env = {}) {
       target: { type: 'string', description: '服务器 IP、域名或网址；start 必填' },
       name: { type: 'string', description: '防护目标名称，默认“保护 <host>”' },
       kind: { type: 'string', description: 'web/host/db/cloud/container/other，默认 web' },
+      gateway: { type: 'boolean', description: '本机回环目标是否自动起网关，默认 true' },
+      gateway_port: { type: 'number', description: '自动网关端口，默认 18787' },
       engagement: { type: 'string', description: 'status/stop 可指定目标；默认当前绑定' },
     },
     execute: safe(async (args, exec) => {
       const action = String(args.action || '').trim().toLowerCase()
 
       if (action === 'start') {
-        const result = startProtection(store, args)
+        const result = await startProtectionWithGateway(store, env.blueGateway, args)
         const keys = bindEngagement(exec, result.engagement.id)
         syncUiBinding(store, exec, result.engagement.id)
         return { ok: true, action: 'start', ...result, session: bindingViewOf(exec, store), bound_keys: keys }

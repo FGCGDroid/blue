@@ -29,6 +29,9 @@ export function apply(ctx) {
     get ctfLab() {
       return typeof ctx.get === 'function' ? ctx.get('ctfLab') : ctx.ctfLab
     },
+    get blueGateway() {
+      return typeof ctx.get === 'function' ? ctx.get('blueGateway') : ctx.blueGateway
+    },
     registeredNames,
     readJsonl: (file, options) => readJsonl(file, { root: store.root, ...options }),
     readText: (file, options) => readText(file, { root: store.root, ...options }),

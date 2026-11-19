@@ -11,7 +11,7 @@ import { buildEvidenceBundle } from '../app/evidence/export.js'
 import { evaluateControls } from '../app/controls/service.js'
 import { scanEvents, rulesFor } from '../app/detection/service.js'
 import { bindSession, resolveEngagement, toLegacySnapshot } from './legacy-view.js'
-import { protectionStatus, startProtection } from '../app/onboarding/service.js'
+import { protectionStatus, startProtectionWithGateway } from '../app/onboarding/service.js'
 import { learnAlert } from '../app/knowledge/service.js'
 import { defendEntry } from '../app/knowledge/service.js'
 
@@ -147,7 +147,7 @@ export async function handleApi(ctx, store, request = {}) {
   }
 
   if (op === 'protectStart') {
-    const result = startProtection(store, request)
+    const result = await startProtectionWithGateway(store, ctx.get?.('blueGateway'), request)
     bindSession(store, request.session, result.engagement.id)
     return { ok: true, ...result, snapshot: toLegacySnapshot(store, ctx, { ...request, engagement: result.engagement.id }) }
   }

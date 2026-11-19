@@ -13,6 +13,7 @@ import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createGatewayManager } from './bootstrap/gateway.js'
 
 /** Cordis 插件名。3.0 与 2.0 用不同名字，方便并行加载。 */
 export const name = 'blue-team-mode-v3'
@@ -84,6 +85,7 @@ export function apply(ctx, config = {}) {
     skills: skills.skills,
     paths: packagePaths(),
   }))
+  ctx.provide('blueGateway', createGatewayManager())
   ctx.logger?.info?.('blue-team-mode-v3: %s 就绪（%s）', V3_VERSION, root)
 }
 

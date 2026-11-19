@@ -57,6 +57,52 @@ export function startProtection(store, input = {}) {
   }
 }
 
+function isLoopbackHost(host) {
+  const value = String(host || '').toLowerCase()
+  return value === '127.0.0.1' || value === 'localhost' || value === '::1' || value === '[::1]'
+}
+
+export function targetLabel(raw) {
+  return targetInfo(raw).display
+}
+
+/**
+ * 一键真实防守：本机目标先起进程内网关，再把资产指向网关入口。
+ * 远程目标不自动起网关，避免把无关主机当上游。
+ */
+export async function startProtectionWithGateway(store, manager, input = {}) {
+  const info = targetInfo(input.target)
+  const gatewayPort = Number(input.gateway_port) || 18787
+  if (!manager || typeof manager.start !== 'function' || !isLoopbackHost(info.host) || input.gateway === false
+    || Number(info.port) === gatewayPort) {
+    return { ...startProtection(store, input), gateway: null }
+  }
+  let upstream
+  try {
+    const url = new URL(/^[a-z]+:\/\//i.test(info.address) ? info.address : `http://${info.address}`)
+    upstream = url.origin
+  } catch {
+    upstream = `http://${info.address}`
+  }
+  const started = await manager.start({ upstream, port: gatewayPort })
+  const result = startProtection(store, {
+    ...input,
+    target: started.url + '/',
+    name: input.name || `保护 ${info.display}`,
+  })
+  let telemetry = null
+  try {
+    telemetry = store.telemetry.addSource(result.engagement.id, {
+      name: 'gateway-decisions',
+      kind: 'jsonl',
+      path: started.log_path,
+    })
+  } catch (error) {
+    telemetry = { error: error?.message ?? String(error) }
+  }
+  return { ...result, gateway: started, direct_target: info.address, telemetry }
+}
+
 export function protectionStatus(store, engagementId) {
   const engagement = store.engagements.get(engagementId)
   if (engagement === null) throw new BlueError('ENGAGEMENT_NOT_FOUND', '防护目标不存在：' + engagementId)
