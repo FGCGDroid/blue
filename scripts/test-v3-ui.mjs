@@ -118,6 +118,15 @@ try {
   }, { origin: 'http://10.0.0.5:9999', headers: { authorization: 'Bearer bad' } })
   assert.equal(badRemote.status, 401)
 
+  const allow = await call('/blue/api', { op: 'collectorAllow', session: 'S-UI', allow_ips: ['203.0.113.7'] })
+  assert.equal(allow.body.ok, true)
+  const deniedIp = await call('/blue/collect', {
+    engagement: engagementId,
+    events: [{ path: '/x' }],
+  }, { origin: 'http://10.0.0.5:9999', headers: { authorization: 'Bearer ' + collectorInfo.body.token } })
+  assert.equal(deniedIp.status, 403)
+  await call('/blue/api', { op: 'collectorAllow', session: 'S-UI', allow_ips: [] })
+
   const overview = await call('/blue/api', { op: 'overview', session: 'S-UI' })
   assert.equal(overview.status, 200)
   assert.equal(overview.body.engagement.id, engagementId)
