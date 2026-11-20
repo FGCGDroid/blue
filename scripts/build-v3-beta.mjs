@@ -6,7 +6,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const VERSION = '3.0.0-beta.14'
+const VERSION = '3.0.0-beta.15'
 const STAGE = join(ROOT, '.tmp', 'beta-package')
 const OUT = join(ROOT, 'dist', `dsh-blue-team-mode-${VERSION}.tgz`)
 

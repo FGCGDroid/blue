@@ -69,12 +69,19 @@ async function call(path, body, options = {}) {
 
 try {
   apply(ctx)
-  assert.equal(routes.size, 5)
+  assert.equal(routes.size, 6)
   assert.ok(routes.has('/blue/api'))
   assert.ok(routes.has('/blue/v3/api'))
   assert.ok(routes.has('/blue/protect'))
   assert.ok(routes.has('/blue/collect'))
   assert.ok(routes.has('/blue/collector.mjs'))
+  assert.ok(routes.has('/blue/console.css'))
+
+  const cssRes = makeRes()
+  await routes.get('/blue/console.css').handler(makeReq({}, { method: 'GET' }), cssRes)
+  assert.equal(cssRes.state.status, 200)
+  assert.match(String(cssRes.state.headers['content-type']), /text\/css/)
+  assert.ok(String(cssRes.state.body).includes('--bt-accent'))
 
   const empty = await call('/blue/api', { op: 'overview' })
   assert.equal(empty.status, 200)
@@ -158,6 +165,7 @@ try {
   assert.ok(Array.isArray(overview.body.tasks))
   assert.ok(['critical', 'attention', 'watch', 'stable'].includes(overview.body.stats.posture))
   assert.equal(typeof overview.body.stats.findings_open, 'number')
+  assert.equal(typeof overview.body.ui_css_hash, 'string')
   assert.ok(typeof overview.body.report_markdown === 'string')
   assert.equal(overview.body.version, '3.0.0-dev')
 
@@ -229,7 +237,7 @@ try {
   assert.equal(unknown.status, 400)
   assert.equal(unknown.body.ok, false)
 
-  console.log('✓ v3 M5 Host API 兼容通过：5 条路由 / 2.0 op / 同源校验 + 采集 token')
+  console.log('✓ v3 M5 Host API 兼容通过：6 条路由 / 2.0 op / 同源校验 + 采集 token')
 } finally {
   store.close()
   rmSync(root, { recursive: true, force: true })

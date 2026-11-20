@@ -4,6 +4,7 @@ import { listControls } from '../app/controls/service.js'
 import { buildRiskGraph } from '../app/risk/service.js'
 import { protectionStatus } from '../app/onboarding/service.js'
 import { cveSummary, listCves } from '../domain/cve/pack.js'
+import { consoleCssHash } from './console-css.js'
 
 function statsOf(store, engagementId) {
   const base = store.engagements.stats(engagementId)
@@ -100,6 +101,7 @@ export function toLegacySnapshot(store, ctx, request = {}) {
       engagement: null,
       engagements: listEngagements(store),
       version: mode?.version ?? null,
+      ui_css_hash: consoleCssHash(),
       collector: ctx.get?.('blueCollector')?.status?.() ?? null,
       skills: mode?.skills ?? 0,
       audit: null,
@@ -159,6 +161,7 @@ export function toLegacySnapshot(store, ctx, request = {}) {
     graph: buildRiskGraph(store, id),
     report_markdown: buildReport(store, id),
     version: mode?.version ?? null,
+    ui_css_hash: consoleCssHash(),
     collector: ctx.get?.('blueCollector')?.status?.() ?? null,
     gateway: ctx.get?.('blueGateway')?.status?.() ?? null,
     skills: mode?.skills ?? 0,
