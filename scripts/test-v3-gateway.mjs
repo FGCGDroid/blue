@@ -153,6 +153,28 @@ try {
   })).status, 403)
   assert.equal(hits.public, 1)
 
+  assert.equal((await request('/public', {
+    headers: { cookie: 'token=a; token=b' },
+  })).status, 403)
+  assert.equal((await request('/public', {
+    headers: { cookie: 'token=eyJhbGciOiJub25lIn0.eyJzdWIiOiJ4In0.' },
+  })).status, 403)
+  assert.equal((await request('/public', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: '{"__proto__":{"polluted":true}}',
+  })).status, 403)
+  assert.equal((await request('/public', {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: 'json=' + encodeURIComponent(JSON.stringify({ is_admin: true })),
+  })).status, 403)
+  assert.equal((await request('/public', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ user: { role: 'admin' } }),
+  })).status, 403)
+
   assert.equal((await request('/public/x?y=1')).status, 200)
   assert.equal(hits.publicX, 1)
   assert.equal(hits.lastUrl, '/public/x?y=1')

@@ -76,6 +76,39 @@ const cases = [
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ is_admin: true }),
   },
+  {
+    name: '重复 Cookie',
+    path: '/api/me',
+    method: 'GET',
+    headers: { cookie: 'token=a; token=b' },
+  },
+  {
+    name: 'JWT Cookie',
+    path: '/api/me',
+    method: 'GET',
+    headers: { cookie: 'token=eyJhbGciOiJub25lIn0.eyJzdWIiOiJhZG1pbiJ9.' },
+  },
+  {
+    name: '原型污染',
+    path: '/api/profile',
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: '{"__proto__":{"polluted":true}}',
+  },
+  {
+    name: '表单提权',
+    path: '/api/profile',
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: 'json=' + encodeURIComponent(JSON.stringify({ is_admin: true })),
+  },
+  {
+    name: '嵌套提权',
+    path: '/api/profile',
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ user: { role: 'admin' } }),
+  },
 ]
 
 console.log('2.0 vs 3.0 网关对照（同一 upstream）\n')
