@@ -125,7 +125,9 @@ export function createRemoteService(store) {
         'mkdir -p /opt/blue-collector',
         'mv /tmp/blue-collector.mjs /opt/blue-collector/blue-collector.mjs',
         'pkill -f /opt/blue-collector/blue-collector.mjs || true',
-        `nohup env ${quote(`BLUE_COLLECTOR_TOKEN=${token}`)} ${quote(`BLUE_COLLECTOR_URL=${collectorUrl}`)} ${quote(`BLUE_COLLECTOR_ENGAGEMENT=${engagement}`)} ${quote(`BLUE_COLLECTOR_LOG=${text(input.log, '/var/log/nginx/access.log')}`)} node /opt/blue-collector/blue-collector.mjs --url ${quote(collectorUrl)} --engagement ${quote(engagement)} --log ${quote(text(input.log, '/var/log/nginx/access.log'))} >/opt/blue-collector/collector.log 2>&1 &`,
+        'NODE_BIN=$(command -v node || ls -1 /www/server/nodejs/*/bin/node 2>/dev/null | tail -1 || true)',
+        '[ -n "$NODE_BIN" ] || { echo NODE_NOT_FOUND; exit 2; }',
+        `nohup env ${quote(`BLUE_COLLECTOR_TOKEN=${token}`)} ${quote(`BLUE_COLLECTOR_URL=${collectorUrl}`)} ${quote(`BLUE_COLLECTOR_ENGAGEMENT=${engagement}`)} ${quote(`BLUE_COLLECTOR_LOG=${text(input.log, '/www/wwwlogs/access.log')}`)} "$NODE_BIN" /opt/blue-collector/blue-collector.mjs --url ${quote(collectorUrl)} --engagement ${quote(engagement)} --log ${quote(text(input.log, '/www/wwwlogs/access.log'))} >/opt/blue-collector/collector.log 2>&1 &`,
       ].join(' && ')
       const install = await run('ssh', [...sshBase(config), remote])
       return { ok: install.ok, step: install.ok ? 'deployed' : 'ssh', ...install }

@@ -6,15 +6,20 @@ set -euo pipefail
 URL="${1:?DSH URL}"
 TOKEN="${2:?collector token}"
 ENGAGEMENT="${3:?engagement id}"
-LOG="${4:-/var/log/nginx/access.log}"
+LOG="${4:-/www/wwwlogs/access.log}"
 DIR=/opt/blue-collector
 
 if [ "$(id -u)" -ne 0 ]; then
   echo "需要 root：sudo bash install-collector.sh ..." >&2
   exit 1
 fi
-if ! command -v node >/dev/null 2>&1; then
-  echo "缺少 node（需要 Node.js 18+）" >&2
+
+NODE_BIN="${NODE_BIN:-$(command -v node || true)}"
+if [ -z "$NODE_BIN" ]; then
+  NODE_BIN="$(ls -1 /www/server/nodejs/*/bin/node 2>/dev/null | tail -1 || true)"
+fi
+if [ -z "$NODE_BIN" ]; then
+  echo "缺少 node（宝塔可在软件商店安装 Node.js，或设置 NODE_BIN）" >&2
   exit 1
 fi
 
@@ -36,7 +41,7 @@ After=network-online.target
 [Service]
 Type=simple
 EnvironmentFile=$DIR/collector.env
-ExecStart=/usr/bin/env node $DIR/blue-collector.mjs --url \$BLUE_COLLECTOR_URL --engagement \$BLUE_COLLECTOR_ENGAGEMENT --log \$BLUE_COLLECTOR_LOG
+ExecStart=$NODE_BIN $DIR/blue-collector.mjs --url \$BLUE_COLLECTOR_URL --engagement \$BLUE_COLLECTOR_ENGAGEMENT --log \$BLUE_COLLECTOR_LOG
 Restart=always
 RestartSec=5
 
@@ -47,3 +52,4 @@ EOF
 systemctl daemon-reload
 systemctl enable --now blue-collector
 echo "已安装：systemctl status blue-collector"
+echo "node=$NODE_BIN log=$LOG"
