@@ -114,6 +114,10 @@ try {
   const rebound = await call('/blue/api', { op: 'bindEngagement', session: 'S-UI', engagement: engagementId })
   assert.equal(rebound.body.ok, true)
 
+  // 新会话没有绑定时应回到上次选择的防守目标，而不是随机的第一个 active。
+  const preferred = await call('/blue/api', { op: 'overview', session: 'S-FRESH' })
+  assert.equal(preferred.body.engagement.id, engagementId)
+
   // 并发名额：保存后必须持久，overview 不能把值弹回默认 3。
   const slotsSaved = await call('/blue/api', { op: 'setSlots', session: 'S-UI', slots: 4 })
   assert.equal(slotsSaved.body.ok, true)

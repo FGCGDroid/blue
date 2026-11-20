@@ -36,7 +36,12 @@ function bindingKey(session) {
   return 'ui:binding:' + session
 }
 
+/** 上次手动选择的防守目标：换会话/重启后优先回到它，而不是随机的第一个 active。 */
+const PREFERRED_KEY = 'ui:preferred'
+
 export function bindSession(store, session, engagementId) {
+  if (typeof engagementId !== 'string' || engagementId === '') return
+  store.db.setMeta(PREFERRED_KEY, engagementId)
   if (typeof session !== 'string' || session === '') return
   store.db.setMeta(bindingKey(session), engagementId)
 }
@@ -53,13 +58,18 @@ export function resolveEngagement(store, request = {}) {
       throw new Error('会话绑定的防守目标已不存在：' + bound)
     }
   }
+  const preferred = store.db.getMeta(PREFERRED_KEY, '')
+  if (typeof preferred === 'string' && preferred !== '') {
+    const hit = store.engagements.get(preferred)
+    if (hit !== null && hit.status !== 'closed') return hit
+  }
   const active = store.engagements.list().filter((item) => item.status === 'active')
   return active.length > 0 ? active[0] : null
 }
 
 function slotsOf(store, engagementId) {
   const value = Number(store.db.getMeta('autopilot:slots:' + engagementId, 4))
-  return Number.isFinite(value) ? Math.min(Math.max(Math.trunc(value), 1), 8) : 3
+  return Number.isFinite(value) ? Math.min(Math.max(Math.trunc(value), 1), 8) : 4
 }
 
 export function toLegacySnapshot(store, ctx, request = {}) {
