@@ -32,6 +32,17 @@ const BYPASS_HEADERS = new Set([
   'x-forwarded-uri', 'x-forwarded-path', 'x-envoy-original-path',
 ])
 
+/**
+ * 上游指纹头不往客户端透传（M01/M04）。
+ * date 也在这里去掉，交给 Node 只发一层 Date，避免“两个 Date”自己暴露双层结构。
+ */
+const STRIP_RESPONSE_HEADERS = new Set([
+  'server', 'x-powered-by', 'x-aspnet-version', 'x-aspnetmvc-version',
+  'x-generator', 'via', 'x-drupal-cache', 'x-drupal-dynamic-cache',
+  'x-runtime', 'x-rack-cache', 'x-varnish', 'x-backend-server', 'x-served-by',
+  'x-debug-token', 'x-debug-token-link', 'date',
+])
+
 function isLoopbackRemote(address) {
   return address === '127.0.0.1' || address === '::1' || address === '::ffff:127.0.0.1'
 }
@@ -214,7 +225,9 @@ export async function startGateway(config, deps = {}) {
     counters.inc('blue_gateway_allowed_total')
     const headers = {}
     for (const [name, value] of Object.entries(response.headers)) {
-      if (value === undefined || HOP.has(name.toLowerCase()) || name.toLowerCase() === 'content-length') continue
+      const lower = name.toLowerCase()
+      if (value === undefined || HOP.has(lower) || lower === 'content-length') continue
+      if (STRIP_RESPONSE_HEADERS.has(lower)) continue
       headers[name] = value
     }
     headers['content-length'] = String(response.body.length)

@@ -45,7 +45,7 @@ f.addEventListener('submit', async (event) => {
     });
     const data = await response.json();
     if (!data.ok) throw new Error(data.error || '建立失败');
-    out.textContent = [
+    const lines = [
       '已建立：' + data.engagement.name,
       '资产：' + (data.asset?.address || target),
       '',
@@ -53,7 +53,25 @@ f.addEventListener('submit', async (event) => {
       ...data.checklist.map((item, index) => (index + 1) + '. ' + item.title + '：' + item.action),
       '',
       '然后：' + data.next_actions.join('；'),
-    ].join('\\n');
+    ];
+    try {
+      const statusResponse = await fetch('/blue/api', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ op: 'protectStatus', engagement: data.engagement.id, session: 'protect-page' }),
+      });
+      const status = await statusResponse.json();
+      const cover = status && status.attack_coverage;
+      if (status && status.ok && cover) {
+        lines.push('', '常见 ' + cover.total + ' 种攻击打法：网关直接拦 ' + cover.blocked
+          + ' 种，降指纹 ' + cover.reduced + ' 种，规则发现 ' + cover.detected
+          + ' 种，需站点自己改 ' + cover.owner + ' 种。');
+        if (status.advisories && status.advisories.length > 0) {
+          lines.push('可再收紧：' + status.advisories.slice(0, 4).map((item) => item.path).join('、'));
+        }
+      }
+    } catch (ignored) { /* 覆盖信息拿不到不影响建档 */ }
+    out.textContent = lines.join('\\n');
   } catch (error) {
     out.textContent = '失败：' + (error.message || error);
   }

@@ -6,7 +6,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const VERSION = '3.0.0-beta.1'
+const VERSION = '3.0.0-beta.2'
 const STAGE = join(ROOT, '.tmp', 'beta-package')
 const OUT = join(ROOT, 'dist', `dsh-blue-team-mode-${VERSION}.tgz`)
 
@@ -40,7 +40,7 @@ const base = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'))
 const pkg = {
   name: 'dsh-blue-team-mode',
   version: VERSION,
-  description: '蓝队防御模式 3.0 beta：80 个工具、保护向导、打法知识库、只读复核、远程采集、证据 artifact、SSH/云审批',
+  description: '蓝队防御模式 3.0 beta：80 个工具、保护向导、打法知识库、只读复核、远程采集、证据 artifact、SSH/云审批、32 种打法覆盖加固',
   license: base.license,
   author: base.author,
   repository: base.repository,

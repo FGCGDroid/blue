@@ -1,5 +1,25 @@
 # Changelog
 
+## 3.0.0-beta.2 — 2026-11-20（对照《攻击方法全集》加固）
+
+### Added
+
+- `v3/domain/gateway/techniques.js`：M01–M32 覆盖表（拦/降指纹/发现/站点自改/不适用），接入 `blue_gateway_status` 与保护向导。
+- `docs/3.0/attack-methods.md`：逐条对照说明与未覆盖边界。
+- `scripts/test-v3-attack-methods.mjs`：55 项按文档 payload 的回归，带对照组与连发三次确定性检查。
+- 策略新增 `builtin_allow`：确实需要时显式放行内置拦截路径（会进决策日志）。
+
+### Fixed
+
+- M32：目录规则只保护目录本身 → 现在按段边界覆盖子资源，`/backup` 被拦时 `/backup/flag.txt` 一起拦。
+- 默认拦截补齐：`.hg/.bzr/.ssh/.aws/.htaccess/.htpasswd/.npmrc/.DS_Store/wp-config.php/phpinfo.php/db.sql/dump.sql/www.zip` 等，文件规则覆盖 `.bak`/`~` 后缀。
+- M05：`alg` 大小写/空白/`null`/缺失/同对象重复键都会被拦。
+- M06：同名 token 类 Cookie 重复即拦，名字大小写不敏感、顺序无关。
+- M11/M13：`\uXXXX` 转义、同一对象内危险键重复、重复 `json` 参数都会拦。
+- M15：multipart 里的 `json` 字段、深嵌套（>8 层）、chunked body 同样检查；上传文件内容不误拦。
+- M01/M04：网关不再透传上游 `Server`/`X-Powered-By`/`Via`，`Date` 只发一层。
+- 保护向导 `protectStatus` 增加 `attack_coverage` 与 `advisories`（只提示不拦）。
+
 ## 2.0.0 — 2026-11-17
 
 ### Added

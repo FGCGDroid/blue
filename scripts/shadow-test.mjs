@@ -38,8 +38,38 @@ async function timed(fn) {
   }
 }
 
+function rawRequest(url, options = {}) {
+  return new Promise((resolve, reject) => {
+    const request = http.request(url, { method: options.method || 'GET', headers: options.headers || {}, agent: false }, (response) => {
+      const chunks = []
+      response.on('data', (chunk) => chunks.push(chunk))
+      response.on('end', () => resolve({
+        status: response.statusCode,
+        rawHeaders: response.rawHeaders,
+        body: Buffer.concat(chunks).toString('utf8'),
+      }))
+    })
+    request.on('error', reject)
+    if (options.body !== undefined) request.write(options.body)
+    request.end()
+  })
+}
+
+function countRawHeader(rawHeaders, name) {
+  let count = 0
+  for (let index = 0; index + 1 < rawHeaders.length; index += 2) {
+    if (String(rawHeaders[index]).toLowerCase() === name) count += 1
+  }
+  return count
+}
+
 const upstream = http.createServer((req, res) => {
-  res.writeHead(200, { 'content-type': 'text/plain' })
+  res.writeHead(200, {
+    'content-type': 'text/plain',
+    server: 'shadow-upstream',
+    'x-powered-by': 'UpstreamShadow',
+    via: '1.1 shadow',
+  })
   res.end(req.url === '/.env' ? 'FAKE_ENV=1\n' : 'ok\n')
 })
 await new Promise((resolve) => upstream.listen(0, '127.0.0.1', resolve))
@@ -75,6 +105,29 @@ try {
 
   const allowed = await timed(() => fetch(`${gatewayUrl}/`))
   record('网关 / 放行', allowed.value.status === 200, allowed.ms, `HTTP ${allowed.value.status}`)
+
+  // M01/M04：网关响应不能暴露上游指纹，Date 只能有一层（两层就等于自报双层结构）。
+  const finger = await timed(() => rawRequest(`${gatewayUrl}/`))
+  const headerCount = (name) => countRawHeader(finger.value.rawHeaders, name)
+  record('去指纹：无 Server', headerCount('server') === 0, finger.ms, `server=${headerCount('server')}`)
+  record('去指纹：无 X-Powered-By', headerCount('x-powered-by') === 0, 0, `via=${headerCount('via')}`)
+  record('去指纹：Date 只有一层', headerCount('date') === 1, 0, `date=${headerCount('date')}`)
+
+  // M32：目录被保护时，子资源也要一起拦，不能只拦目录本身。
+  const directBackup = await timed(() => fetch(`http://127.0.0.1:${upstreamPort}/backup/flag.txt`))
+  record('直连 /backup/flag.txt 暴露', directBackup.value.status === 200, directBackup.ms, `HTTP ${directBackup.value.status}`)
+  const childBackup = await timed(() => fetch(`${gatewayUrl}/backup/flag.txt`))
+  record('网关拦 /backup/flag.txt', childBackup.value.status === 403, childBackup.ms, `HTTP ${childBackup.value.status}`)
+  const dirBackup = await timed(() => fetch(`${gatewayUrl}/backup`))
+  record('网关拦 /backup', dirBackup.value.status === 403, dirBackup.ms, `HTTP ${dirBackup.value.status}`)
+
+  // M14：没有“首次放行”窗口，同一请求连发三次结果必须一致。
+  const repeats = await timed(async () => {
+    const statuses = []
+    for (let index = 0; index < 3; index += 1) statuses.push((await fetch(`${gatewayUrl}/backup/flag.txt`)).status)
+    return statuses
+  })
+  record('无状态化放行窗口', repeats.value.every((status) => status === 403), repeats.ms, repeats.value.join('/'))
 
   const storeLocal = new BlueStoreV3(root)
   store = storeLocal

@@ -1,5 +1,7 @@
 /** 面向“有服务器但不会防御”的入门向导（M5.1）。 */
 import { BlueError } from '../../domain/shared/errors.js'
+import { ADVISORY_PATHS } from '../../domain/gateway/policy.js'
+import { techniqueCoverage } from '../../domain/gateway/techniques.js'
 
 function targetInfo(raw) {
   const value = String(raw || '').trim()
@@ -142,6 +144,8 @@ export function protectionStatus(store, engagementId) {
   }
   if (openAlerts > 0) next.push(`有 ${openAlerts} 条未处理告警，先看告警页`)
   if (next.length === 0) next.push('日志已自动接入，有异常会直接出现在告警里')
+  const coverage = techniqueCoverage()
+  next.push(`常见 ${coverage.total} 种打法：网关直接拦 ${coverage.blocked} 种，${coverage.owner} 种要站点自己改`)
   return {
     engagement: { id: engagement.id, name: engagement.name, scope: engagement.scope },
     headline,
@@ -152,6 +156,16 @@ export function protectionStatus(store, engagementId) {
       tasks_open: Number(stats.tasks_active || 0) + Number(stats.tasks_queued || 0) + Number(stats.tasks_pending_approval || 0),
       telemetry_sources: telemetry.length,
     },
+    attack_coverage: {
+      total: coverage.total,
+      blocked: coverage.blocked,
+      reduced: coverage.reduced,
+      detected: coverage.detected,
+      owner: coverage.owner,
+      not_applicable: coverage.not_applicable,
+      note: coverage.note,
+    },
+    advisories: ADVISORY_PATHS.map((item) => ({ path: item.prefix, why: item.why })),
     next_actions: next,
     note: '人话结论只基于已接入的事实；没有日志/探测时不会写“安全”。',
   }
