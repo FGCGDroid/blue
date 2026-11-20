@@ -156,6 +156,8 @@ try {
   assert.equal(overview.body.engagement.id, engagementId)
   assert.ok(Array.isArray(overview.body.assets))
   assert.ok(Array.isArray(overview.body.tasks))
+  assert.ok(['critical', 'attention', 'watch', 'stable'].includes(overview.body.stats.posture))
+  assert.equal(typeof overview.body.stats.findings_open, 'number')
   assert.ok(typeof overview.body.report_markdown === 'string')
   assert.equal(overview.body.version, '3.0.0-dev')
 

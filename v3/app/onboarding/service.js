@@ -132,11 +132,25 @@ export function protectionStatus(store, engagementId) {
   const assets = store.facts.queryAssets(engagementId, { limit: 50 })
   const local = assetLooksLocal(assets)
   const openAlerts = Number(stats.alerts_open || 0)
+  const sev = (table, severity) => Number(store.db.sql(
+    `SELECT COUNT(*) AS n FROM ${table} WHERE engagement_id = ? AND status IN ('open','investigating') AND severity = ?`,
+  ).get(engagementId, severity)?.n ?? 0)
+  const criticalOpen = sev('alerts', 'critical') + sev('findings', 'critical')
+  const highOpen = sev('alerts', 'high') + sev('findings', 'high')
+  const findingsOpen = Number(store.db.sql(
+    "SELECT COUNT(*) AS n FROM findings WHERE engagement_id = ? AND status IN ('open','investigating')",
+  ).get(engagementId)?.n ?? 0)
   let headline = '还没看到日志'
   let level = 'setup'
-  if (openAlerts > 0) {
-    headline = '有风险，需要处理'
+  if (criticalOpen > 0) {
+    headline = '有严重告警，需立即处置'
     level = 'risk'
+  } else if (highOpen > 0) {
+    headline = '有高风险，优先处理'
+    level = 'risk'
+  } else if (openAlerts + findingsOpen > 0) {
+    headline = '有告警，建议跟进'
+    level = 'setup'
   } else if (telemetry.length > 0 && Number(stats.assets || 0) > 0) {
     headline = '监控中'
     level = 'watching'

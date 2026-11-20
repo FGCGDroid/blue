@@ -9,8 +9,27 @@ function statsOf(store, engagementId) {
   const base = store.engagements.stats(engagementId)
   const tasks = store.tasks.counts(engagementId)
   const decoys = store.decoys.list(engagementId)
+  const sevCount = (table, severity) => Number(store.db.sql(
+    `SELECT COUNT(*) AS n FROM ${table} WHERE engagement_id = ? AND status IN ('open','investigating') AND severity = ?`,
+  ).get(engagementId, severity)?.n ?? 0)
+  const openOnly = (table) => Number(store.db.sql(
+    `SELECT COUNT(*) AS n FROM ${table} WHERE engagement_id = ? AND status IN ('open','investigating')`,
+  ).get(engagementId)?.n ?? 0)
+  const alertsCritical = sevCount('alerts', 'critical')
+  const alertsHigh = sevCount('alerts', 'high')
+  const findingsCritical = sevCount('findings', 'critical')
+  const findingsHigh = sevCount('findings', 'high')
+  const findingsOpen = openOnly('findings')
+  const critical = alertsCritical + findingsCritical
+  const high = alertsHigh + findingsHigh
   return {
     ...base,
+    alerts_critical: alertsCritical,
+    alerts_high: alertsHigh,
+    findings_critical: findingsCritical,
+    findings_high: findingsHigh,
+    findings_open: findingsOpen,
+    posture: critical > 0 ? 'critical' : high > 0 ? 'attention' : (base.alerts_open > 0 || findingsOpen > 0) ? 'watch' : 'stable',
     tasks_active: Number(tasks.dispatched || 0) + Number(tasks.running || 0),
     tasks_queued: Number(tasks.queued || 0),
     tasks_pending_approval: Number(tasks.pending_approval || 0),
