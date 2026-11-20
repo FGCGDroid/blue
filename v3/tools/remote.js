@@ -19,14 +19,17 @@ export function register(registerTool, env = {}) {
 
   registerTool(defineTool({
     name: 'blue_remote',
-    description: '远程接入：SSH 私钥部署采集器，或云 Webhook 封 IP。写操作必须先走 high 任务审批。',
+    description: '远程接入：SSH 部署采集器/无人值守防御组，或云 Webhook 封 IP。写操作必须先走 high 任务审批。',
     parameters: {
-      action: { type: 'string', required: true, description: 'info/setup/test/prepare/deploy/block' },
+      action: { type: 'string', required: true, description: 'info/setup/test/prepare/deploy/unattended/block' },
       engagement: { type: 'string', description: '（可选）防守目标；默认当前绑定' },
       host: { type: 'string' }, user: { type: 'string' }, key_path: { type: 'string' }, port: { type: 'number' },
       cloud_url: { type: 'string' }, cloud_token: { type: 'string' },
       task_id: { type: 'string', description: 'prepare 返回的审批任务 id' },
       collector_url: { type: 'string' }, token: { type: 'string' }, log: { type: 'string' },
+      allow_ips: { type: 'string', description: '永不封禁的来源 IP，逗号分隔' },
+      enforce: { type: 'boolean', description: 'true=真正 nftables 封禁；默认 dry-run' },
+      mode: { type: 'string', description: 'unattended 时用于任务标题' },
       ip: { type: 'string' }, ttl_seconds: { type: 'number' }, reason: { type: 'string' },
     },
     execute: safe(async (args, exec) => {
@@ -51,8 +54,7 @@ export function register(registerTool, env = {}) {
           priority: 'P1',
           risk_level: 'high',
           title: `远程写操作审批：${args.host || 'remote'}`,
-          brief: '远程部署采集器或云封禁前，必须由人确认目标、授权和回滚方式。',
-          acceptance: '审批人确认目标归属与回滚方案。',
+          brief: '远程部署采集器或云封禁前，必须由人确认目标、授权和回滚方式。',          acceptance: '审批人确认目标归属与回滚方案。',
         })
         return { ok: true, task, next: '人工 blue_task_approve 后，再用 blue_remote deploy/block 带 task_id 执行。' }
       }
@@ -62,13 +64,19 @@ export function register(registerTool, env = {}) {
         try { store.tasks.update(task.id, { status: 'done', result: JSON.stringify(result).slice(0, 4000) }) } catch { /* 结果回填失败不隐藏执行结果 */ }
         return { ok: result.ok === true, task_id: task.id, ...result }
       }
+      if (action === 'unattended') {
+        const task = requireTask(store, engagement.id, args.task_id)
+        const result = await remote.deployUnattended(args)
+        try { store.tasks.update(task.id, { status: 'done', result: JSON.stringify(result).slice(0, 4000) }) } catch { /* ignore */ }
+        return { ok: result.ok === true, task_id: task.id, ...result }
+      }
       if (action === 'block') {
         const task = requireTask(store, engagement.id, args.task_id)
         const result = await remote.cloudBlock(args)
         try { store.tasks.update(task.id, { status: 'done', result: JSON.stringify(result).slice(0, 4000) }) } catch { /* ignore */ }
         return { ok: result.ok === true, task_id: task.id, ...result }
       }
-      throw new BlueError('REMOTE_ACTION', 'action 只能是 info/setup/test/prepare/deploy/block')
+      throw new BlueError('REMOTE_ACTION', 'action 只能是 info/setup/test/prepare/deploy/unattended/block')
     }),
   }))
 }

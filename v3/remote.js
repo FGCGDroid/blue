@@ -136,6 +136,40 @@ export function createRemoteService(store) {
     }
   }
 
+  async function deployUnattended(input = {}) {
+    const config = { ...settings(), ...input }
+    if (!keyOk(config.key_path)) return { ok: false, error: '私钥不存在' }
+    const collectorUrl = text(input.collector_url).replace(/\/+$/, '')
+    const token = text(input.token)
+    const engagement = text(input.engagement)
+    if (collectorUrl === '' || token === '' || engagement === '') {
+      return { ok: false, error: '需要 collector_url / token / engagement' }
+    }
+    let agent
+    let installer
+    try {
+      agent = readFileSync(new URL('../lab/blue-agent.mjs', import.meta.url), 'utf8')
+      installer = readFileSync(new URL('../lab/install-unattended.sh', import.meta.url), 'utf8')
+    } catch (error) {
+      return { ok: false, error: '读取无人值守文件失败：' + error.message }
+    }
+    const dir = mkdtempSync(join(tmpdir(), 'blue-unattended-'))
+    const agentFile = join(dir, 'blue-agent.mjs')
+    const installerFile = join(dir, 'install-unattended.sh')
+    writeFileSync(agentFile, agent, 'utf8')
+    writeFileSync(installerFile, installer, 'utf8')
+    try {
+      const scp = await run('scp', ['-i', config.key_path, '-P', String(config.port), '-o', 'StrictHostKeyChecking=accept-new', agentFile, installerFile, `${config.user}@${config.host}:/tmp/`])
+      if (!scp.ok) return { ok: false, step: 'scp', ...scp }
+      const mode = input.enforce === true ? 'enforce' : 'dry-run'
+      const command = `if [ "$(id -u)" -eq 0 ]; then bash /tmp/install-unattended.sh ${quote(collectorUrl)} ${quote(token)} ${quote(engagement)} ${quote(text(input.log, '/www/wwwlogs/access.log'))} ${quote(text(input.allow_ips, ''))} ${quote(mode)}; else sudo -n bash /tmp/install-unattended.sh ${quote(collectorUrl)} ${quote(token)} ${quote(engagement)} ${quote(text(input.log, '/www/wwwlogs/access.log'))} ${quote(text(input.allow_ips, ''))} ${quote(mode)}; fi`
+      const install = await run('ssh', [...sshBase(config), command], 60000)
+      return { ok: install.ok, mode, step: install.ok ? 'installed' : 'install', ...install }
+    } finally {
+      try { rmSync(dir, { recursive: true, force: true }) } catch { /* ignore */ }
+    }
+  }
+
   async function cloudBlock(input = {}) {
     const config = { ...settings(), ...input }
     const url = text(config.cloud_url)
@@ -155,5 +189,5 @@ export function createRemoteService(store) {
     }
   }
 
-  return { settings, save, test, deploy, cloudBlock }
+  return { settings, save, test, deploy, deployUnattended, cloudBlock }
 }
