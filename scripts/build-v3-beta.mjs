@@ -19,11 +19,12 @@ for (const entry of ['v3', 'presets', 'skills', 'locale', 'lab']) {
 }
 // 不把历史 soak 日志打进安装包。
 rmSync(join(STAGE, 'lab', '.run'), { recursive: true, force: true })
-for (const file of ['lib/client.js', 'icon.svg', 'README.md', 'LICENSE', 'DISCLOSURE', 'SECURITY.md', 'shadow-test.cmd']) {
+for (const file of ['lib/client.js', 'icon.svg', 'README.md', 'LICENSE', 'DISCLOSURE', 'SECURITY.md', 'shadow-test.cmd', 'compare-2.0-3.0.cmd']) {
   cpSync(join(ROOT, file), join(STAGE, file))
 }
 mkdirSync(join(STAGE, 'scripts'), { recursive: true })
 cpSync(join(ROOT, 'scripts', 'shadow-test.mjs'), join(STAGE, 'scripts', 'shadow-test.mjs'))
+cpSync(join(ROOT, 'scripts', 'compare-2.0-3.0.mjs'), join(STAGE, 'scripts', 'compare-2.0-3.0.mjs'))
 // 兼容 DSH 旧解析器：即使它仍按 lib/*.js 找入口，也落到 v3。
 for (const [file, target] of [
   ['index.js', '../v3/index.js'],
@@ -57,7 +58,7 @@ const pkg = {
     './locale/*.json': './locale/*.json',
     './icon': './icon.svg',
   },
-  files: ['v3', 'lab', 'scripts/shadow-test.mjs', 'shadow-test.cmd', 'lib/client.js', 'presets', 'skills', 'locale', 'icon.svg', 'cordis.patch.yml', 'README.md', 'SECURITY.md', 'LICENSE', 'DISCLOSURE'],
+  files: ['v3', 'lab', 'scripts/shadow-test.mjs', 'scripts/compare-2.0-3.0.mjs', 'shadow-test.cmd', 'compare-2.0-3.0.cmd', 'lib/client.js', 'presets', 'skills', 'locale', 'icon.svg', 'cordis.patch.yml', 'README.md', 'SECURITY.md', 'LICENSE', 'DISCLOSURE'],
   scripts: {
     lab: 'node lab/start.mjs',
     'test:lab': 'node lab/scenarios/acceptance.mjs && node lab/scenarios/vectors.mjs',
