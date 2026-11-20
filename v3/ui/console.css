@@ -127,6 +127,15 @@ body[data-ds-dark-theme] .bt-root{
 .bt-btn-sm{padding:2px 8px;font-size:10.5px;border-radius:5px;line-height:16px}
 .bt-btn-icon{display:inline-flex;align-items:center}
 
+/* 人工值守 / 无人值守 切换 */
+.bt-mode{display:inline-flex;border:1px solid var(--bt-hair);border-radius:6px;overflow:hidden;
+  margin:0 0 10px;background:rgba(79,140,255,.04)}
+.bt-mode button{border:0;background:transparent;color:var(--bt-muted);cursor:pointer;
+  font:600 10.5px/1 var(--bt-mono);letter-spacing:.04em;padding:7px 14px}
+.bt-mode button + button{border-left:1px solid var(--bt-hair)}
+.bt-mode button:hover:not(.on){color:var(--bt-text);background:rgba(79,140,255,.1)}
+.bt-mode button.on{color:#fff;background:linear-gradient(135deg,var(--bt-accent),var(--bt-cyan))}
+
 /* ================= 页签 ================= */
 .bt-tabs{display:flex;align-items:stretch;gap:2px;padding:0 10px;flex:none;overflow-x:auto;
   border-bottom:1px solid rgba(90,140,255,.18);scrollbar-width:none;
