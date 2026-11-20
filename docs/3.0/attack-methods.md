@@ -105,6 +105,22 @@ www.zip site.zip web.zip backup.tar.gz
 - `blue_protect action=status` 返回 `attack_coverage`，保护页建档后直接显示。
 - 提示项 `ADVISORY_PATHS` 只提示不拦：`/config.json`、`/settings.json`、`/debug`、`/internal` 等。
 
+## 进打法库（M01–M32 全部入库）
+
+新建防守目标时，32 条打法会自动写进「打法库」页，不用再翻文档：
+
+```text
+【内置】M05 JWT alg=none 不验签
+tech:M05 · M05 网关直接拦：alg 统一小写后比对 none/null/缺失 · 0 次
+```
+
+规则：
+
+- 重复建档/重复点导入不会重复入库，也不累加命中数；
+- **hits 只统计真实告警**，内置基线永远是 0 次，不会把“知道这种打法”当成“被打过”；
+- 老目标在打法库页点「导入内置打法」，或让智能体执行 `blue_knowledge action=seed`；
+- 点「生成防御建议」：`网关管不了` 的那 10 种不给任务，只回一句说明，避免造垃圾任务。
+
 ## 没做到的部分（避免误判）
 
 - 网关只看 HTTP 请求内容，不看后端业务逻辑：M18/M20/M21/M22 得站点自己改。

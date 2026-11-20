@@ -89,7 +89,15 @@ try {
   assert.equal(opened.body.ok, true)
   assert.equal(opened.body.engagement.name, 'UI 合成目标')
   assert.ok(opened.body.protection && typeof opened.body.protection.headline === 'string')
+  assert.equal(opened.body.knowledge.total, 32)
   const engagementId = opened.body.engagement.id
+
+  const seedApi = await call('/blue/api', { op: 'knowledgeSeed', session: 'S-UI' })
+  assert.equal(seedApi.body.ok, true)
+  assert.equal(seedApi.body.total, 32)
+  assert.equal(seedApi.body.created, 0)
+  const kbOverview = await call('/blue/api', { op: 'overview', session: 'S-UI' })
+  assert.equal((kbOverview.body.knowledge || []).filter((entry) => entry.kind === 'technique').length, 32)
 
   const protect = await call('/blue/api', {
     op: 'protectStart',

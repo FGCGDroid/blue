@@ -100,6 +100,38 @@ export class KnowledgeRepo {
     return { entry: this.get(id), created: true }
   }
 
+  /**
+   * 内置打法基线：幂等写入，不累加 hits，不写 timeline。
+   * 只更新 title/attack/defense，保留真实命中次数。
+   */
+  seed(engagementId, entry = {}) {
+    const signature = asText(entry.signature).trim()
+    if (signature === '') throw new Error('seed 需要 signature')
+    const kind = asText(entry.kind, 'technique')
+    const title = asText(entry.title).trim() || signature
+    const attack = asText(entry.attack).trim()
+    const defense = entry.defense && typeof entry.defense === 'object' ? entry.defense : {}
+    const encoded = JSON.stringify(defense)
+    const at = new Date().toISOString()
+    const existing = this.db.sql('SELECT * FROM knowledge_entries WHERE engagement_id = ? AND signature = ?')
+      .get(engagementId, signature)
+    if (existing !== undefined) {
+      if (existing.title === title && existing.attack === attack && existing.defense === encoded
+        && existing.kind === kind) {
+        return { entry: this.get(existing.id), created: false, unchanged: true }
+      }
+      this.db.sql('UPDATE knowledge_entries SET kind = ?, title = ?, attack = ?, defense = ?, updated_at = ? WHERE id = ?')
+        .run(kind, title, attack, encoded, at, existing.id)
+      return { entry: this.get(existing.id), created: false, unchanged: false }
+    }
+    const id = idOf(engagementId, signature)
+    this.db.sql(`INSERT INTO knowledge_entries
+      (id, engagement_id, signature, kind, title, attack, defense, auto_block, hits, first_seen, last_seen, status, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, 'active', ?, ?)`)
+      .run(id, engagementId, signature, kind, title, attack, encoded, at, at, at, at)
+    return { entry: this.get(id), created: true, unchanged: false }
+  }
+
   toEntry(row) {
     let defense = {}
     try { defense = JSON.parse(row.defense) } catch { defense = {} }

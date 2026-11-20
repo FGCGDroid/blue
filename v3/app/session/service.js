@@ -1,11 +1,19 @@
 /** 3.0 session 用例：建立/关闭目标、预检。 */
 import { BlueError } from '../../domain/shared/errors.js'
+import { seedTechniqueLibrary } from '../knowledge/service.js'
 
 export function openEngagement(store, { name, scope, note } = {}) {
   const engagement = store.engagements.open(name, scope, note)
+  let knowledge = null
+  try {
+    knowledge = seedTechniqueLibrary(store, engagement.id)
+  } catch (error) {
+    knowledge = { ok: false, error: error?.message ?? String(error) }
+  }
   return {
     engagement: { ...engagement, stats: store.engagements.stats(engagement.id) },
     scope_assets: 0,
+    knowledge,
     note: '已绑定到本会话；子智能体会继承。scope 资产自动导入待 M5。',
   }
 }

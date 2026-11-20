@@ -12,7 +12,7 @@
  * 不验证业务，不读真实数据库，不监听端口。
  */
 import assert from 'node:assert/strict'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -57,7 +57,8 @@ try {
   const mode = ctx.provided.get('blueTeamModeV3')
   assert.equal(mode.skeleton, false)
   assert.equal(mode.root, tmp)
-  assert.equal(mode.version, '3.0.0-beta.1')
+  const pkgVersion = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version
+  assert.equal(mode.version, pkgVersion, 'V3_VERSION 必须跟 package.json 一致，不能写死')
 
   const storeCtx = fakeCtx()
   applyStore(storeCtx, { root: tmp })

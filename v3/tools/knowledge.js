@@ -1,7 +1,7 @@
 /** 工具组：攻击打法知识库（M5.1）。 */
 import { defineTool, safe } from './define.js'
 import { engagementOf } from './context.js'
-import { defendEntry, learnAlert } from '../app/knowledge/service.js'
+import { defendEntry, learnAlert, seedTechniqueLibrary } from '../app/knowledge/service.js'
 import { signatureOf } from '../domain/knowledge/signature.js'
 import { BlueError } from '../domain/shared/errors.js'
 
@@ -12,9 +12,9 @@ export function register(registerTool, env = {}) {
 
   registerTool(defineTool({
     name: 'blue_knowledge',
-    description: '攻击打法知识库：记录攻击签名、匹配历史、生成可回滚的防御动作。告警入库时会自动学习；阻断动作不会自动改防火墙。',
+    description: '攻击打法知识库：记录攻击签名、匹配历史、生成可回滚的防御动作。告警入库时会自动学习；seed 把内置打法（M01–M32）推进库里；阻断动作不会自动改防火墙。',
     parameters: {
-      action: { type: 'string', required: true, description: 'list/learn/deadend/match/defend' },
+      action: { type: 'string', required: true, description: 'list/learn/deadend/match/seed/defend' },
       engagement: { type: 'string', description: '（可选）防守目标；默认当前绑定' },
       id: { type: 'string', description: '知识条目 id；defend 必填' },
       alert_id: { type: 'string', description: 'learn 时从已有告警学习' },
@@ -60,6 +60,10 @@ export function register(registerTool, env = {}) {
         return { ok: true, ...learned, note: '已记为死路；后续 match 命中会提醒不要重复。' }
       }
 
+      if (action === 'seed') {
+        return { ok: true, ...seedTechniqueLibrary(store, engagement.id) }
+      }
+
       if (action === 'defend') {
         const id = String(args.id || '').trim()
         if (id === '') throw new BlueError('KNOWLEDGE_ID', 'defend 需要 id')
@@ -79,10 +83,17 @@ export function register(registerTool, env = {}) {
             applied = { prefix, policy_path: saved.path, hash: saved.hash, reload: reloaded ?? null }
           }
         }
-        return { ok: true, ...defended, applied, note: applied ? '已写网关 deny 并热加载；可回滚。' : '已生成防御任务；不会自动改主机或防火墙。' }
+        return {
+          ok: true,
+          ...defended,
+          applied,
+          note: defended.task === null
+            ? defended.note
+            : (applied ? '已写网关 deny 并热加载；可回滚。' : '已生成防御任务；不会自动改主机或防火墙。'),
+        }
       }
 
-      throw new BlueError('KNOWLEDGE_ACTION', 'action 只能是 list/learn/deadend/match/defend')
+      throw new BlueError('KNOWLEDGE_ACTION', 'action 只能是 list/learn/deadend/match/seed/defend')
     }),
   }))
 }

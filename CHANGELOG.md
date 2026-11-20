@@ -1,5 +1,25 @@
 # Changelog
 
+## 3.0.0-beta.4 — 2026-11-20（版本号跟包走）
+
+### Fixed
+
+- `V3_VERSION` 改为读取 `package.json`，不再写死；左上角版本标签不会停在上一个 beta。
+- 骨架测试改为断言版本与 `package.json` 一致，防止再写死。
+
+## 3.0.0-beta.3 — 2026-11-20（打法入库）
+
+### Added
+
+- 新建防守目标时，自动把 M01–M32 写入「打法库」（`tech:Mxx` 签名，幂等，不累加命中）。
+- `blue_knowledge action=seed`：老目标一键补内置打法；Host API 新增 `knowledgeSeed`。
+- 打法库页新增「导入内置打法」，条目改为显示标题 + 签名 + 说明 + 命中。
+- 对「网关管不了」的打法，生成防御建议只回说明，不造空任务。
+
+### Changed
+
+- `knowledge_entries` 新增 `seed()`：只同步标题/说明，`hits` 仅由真实告警累加。
+
 ## 3.0.0-beta.2 — 2026-11-20（对照《攻击方法全集》加固）
 
 ### Added

@@ -906,6 +906,22 @@ try {
   assert.equal(deadend.created, true)
   assert.equal(deadend.entry.kind, 'deadend')
 
+  // 内置打法基线：M01–M32 幂等入库，不累加 hits，na 项不生成任务。
+  const seeded = await call('blue_knowledge', { action: 'seed' }, exec)
+  assert.equal(seeded.ok, true)
+  assert.equal(seeded.total, 32)
+  const seededAgain = await call('blue_knowledge', { action: 'seed' }, exec)
+  assert.equal(seededAgain.created, 0)
+  const allKnowledge = await call('blue_knowledge', { action: 'list' }, exec)
+  const techniqueEntries = allKnowledge.entries.filter((entry) => entry.kind === 'technique')
+  assert.equal(techniqueEntries.length, 32)
+  assert.ok(techniqueEntries.every((entry) => entry.hits === 0))
+  const naEntry = techniqueEntries.find((entry) => entry.signature === 'tech:M08')
+  assert.ok(naEntry, '缺少 tech:M08 基线')
+  const naDefend = await call('blue_knowledge', { action: 'defend', id: naEntry.id }, exec)
+  assert.equal(naDefend.task, null)
+  assert.ok(naDefend.note)
+
   const review = await call('blue_review', {}, exec)
   assert.equal(review.ok, true)
   assert.equal(review.verdict, 'attention')

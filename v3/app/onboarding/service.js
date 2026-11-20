@@ -2,6 +2,7 @@
 import { BlueError } from '../../domain/shared/errors.js'
 import { ADVISORY_PATHS } from '../../domain/gateway/policy.js'
 import { techniqueCoverage } from '../../domain/gateway/techniques.js'
+import { seedTechniqueLibrary } from '../knowledge/service.js'
 
 function targetInfo(raw) {
   const value = String(raw || '').trim()
@@ -30,6 +31,12 @@ export function startProtection(store, input = {}) {
   const name = String(input.name || `保护 ${display}`).trim()
   const kind = String(input.kind || 'web').trim()
   const engagement = store.engagements.open(name, [host], '通过“保护我的服务器”向导建立')
+  let knowledge = null
+  try {
+    knowledge = seedTechniqueLibrary(store, engagement.id)
+  } catch (error) {
+    knowledge = { ok: false, error: error?.message ?? String(error) }
+  }
   const asset = store.facts.addAsset(engagement.id, {
     name: String(input.asset_name || display),
     address,
@@ -50,6 +57,7 @@ export function startProtection(store, input = {}) {
     engagement: { id: engagement.id, name: engagement.name, scope: engagement.scope },
     asset,
     checklist,
+    knowledge,
     next_actions: [
       '先完成“只开放必要端口”和“管理入口强口令”两项',
       '把这台服务器的访问日志接入 blue_telemetry',

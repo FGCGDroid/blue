@@ -15,8 +15,8 @@ import { evaluateControls } from '../app/controls/service.js'
 import { scanEvents, rulesFor } from '../app/detection/service.js'
 import { bindSession, resolveEngagement, toLegacySnapshot } from './legacy-view.js'
 import { protectionStatus, startProtectionWithGateway } from '../app/onboarding/service.js'
-import { learnAlert } from '../app/knowledge/service.js'
-import { defendEntry } from '../app/knowledge/service.js'
+import { defendEntry, learnAlert, seedTechniqueLibrary } from '../app/knowledge/service.js'
+import { openEngagement as openSessionEngagement } from '../app/session/service.js'
 
 const MAX_BODY_BYTES = 4 * 1024 * 1024
 const collectorRate = new Map()
@@ -145,9 +145,9 @@ export async function handleApi(ctx, store, request = {}) {
     const scope = Array.isArray(request.scope)
       ? request.scope
       : String(request.scope || '').split(/[\s,]+/).filter(Boolean)
-    const engagement = store.engagements.open(name, scope, String(request.note || ''))
-    bindSession(store, request.session, engagement.id)
-    return toLegacySnapshot(store, ctx, { ...request, engagement: engagement.id })
+    const opened = openSessionEngagement(store, { name, scope, note: String(request.note || '') })
+    bindSession(store, request.session, opened.engagement.id)
+    return { ...toLegacySnapshot(store, ctx, { ...request, engagement: opened.engagement.id }), knowledge: opened.knowledge }
   }
 
   if (op === 'protectStart') {
@@ -193,6 +193,7 @@ export async function handleApi(ctx, store, request = {}) {
     return { ok: true, allow_ips: store.setCollectorAllowIps(request.allow_ips || []) }
   }
   if (op === 'knowledgeList') return { ok: true, entries: store.knowledge.list(id, { limit: request.limit }) }
+  if (op === 'knowledgeSeed') return { ok: true, ...seedTechniqueLibrary(store, id) }
   if (op === 'remoteInfo') {
     const remote = ctx.get?.('blueRemote')
     if (!remote) return { ok: true, available: false }

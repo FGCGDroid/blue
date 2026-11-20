@@ -23,8 +23,8 @@ export const name = 'blue-team-mode-v3'
 /** 骨架阶段没有硬依赖。 */
 export const inject = []
 
-/** 3.0 开发版本；GA 时改成 package.json 的版本。 */
-export const V3_VERSION = '3.0.0-beta.1'
+/** 3.0 版本：直接跟 package.json 走，发版后左上角不会还挂着旧标签。 */
+export const V3_VERSION = packageVersion()
 
 /** 本包根目录。 */
 export function packagePaths() {
