@@ -27,11 +27,7 @@ export const DEFAULT_POLICY = Object.freeze({
   case_insensitive: true,
   max_path_length: 4096,
   reject_semicolon: true,
-  protected: Object.freeze([
-    Object.freeze({ id: 'admin', prefix: '/admin', action: 'block', allow: Object.freeze([]) }),
-    Object.freeze({ id: 'manage', prefix: '/manage', action: 'block', allow: Object.freeze([]) }),
-    Object.freeze({ id: 'console', prefix: '/console', action: 'block', allow: Object.freeze([]) }),
-  ]),
+  protected: Object.freeze([]),
   deny: Object.freeze([]),
 })
 

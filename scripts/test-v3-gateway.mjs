@@ -217,6 +217,19 @@ try {
   assert.ok(broken.error)
   assert.equal((await request('/admin')).status, 200)
 
+  // 默认策略不能一刀切封 admin；敏感文件仍然要拦。
+  const defaultGateway = await startGateway({
+    host: '127.0.0.1',
+    port: 0,
+    upstream: `http://127.0.0.1:${upstreamPort}`,
+    policyPath: join(tmp, 'missing-default-policy.json'),
+    logPath: join(tmp, 'default-gateway.jsonl'),
+    mode: 'enforce',
+  })
+  assert.equal((await fetch(defaultGateway.url + '/admin')).status, 200)
+  assert.equal((await fetch(defaultGateway.url + '/.env')).status, 403)
+  await defaultGateway.close()
+
   console.log('✓ v3 网关集成通过：阻断/放行/canary/body/内容/日志/metrics/热加载')
 } finally {
   if (gateway) await gateway.close()
