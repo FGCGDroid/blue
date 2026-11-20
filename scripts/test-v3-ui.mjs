@@ -89,6 +89,7 @@ try {
   assert.equal(opened.body.ok, true)
   assert.equal(opened.body.engagement.name, 'UI 合成目标')
   assert.ok(opened.body.protection && typeof opened.body.protection.headline === 'string')
+  assert.equal(opened.body.slots.max, 4)
   assert.equal(opened.body.knowledge.total, 32)
   const engagementId = opened.body.engagement.id
 

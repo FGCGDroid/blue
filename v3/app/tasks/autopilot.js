@@ -11,7 +11,7 @@ function asInt(value, fallback) {
 }
 
 function slotsOf(store, engagementId) {
-  return Math.min(Math.max(asInt(store.db.getMeta('autopilot:slots:' + engagementId, 3), 3), 1), 8)
+  return Math.min(Math.max(asInt(store.db.getMeta('autopilot:slots:' + engagementId, 4), 4), 1), 8)
 }
 
 function gateOf(store, engagementId) {
@@ -117,7 +117,7 @@ export async function runAutopilot(store, engagementId, args = {}) {
   const stats = store.engagements.stats(engagementId)
 
   if (action === 'set_slots') {
-    const nextSlots = Math.min(Math.max(asInt(args.slots, 3), 1), 8)
+    const nextSlots = Math.min(Math.max(asInt(args.slots, 4), 1), 8)
     store.db.setMeta('autopilot:slots:' + engagementId, nextSlots)
     return { ok: true, max_slots: nextSlots, stats }
   }

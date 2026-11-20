@@ -58,7 +58,7 @@ export function resolveEngagement(store, request = {}) {
 }
 
 function slotsOf(store, engagementId) {
-  const value = Number(store.db.getMeta('autopilot:slots:' + engagementId, 3))
+  const value = Number(store.db.getMeta('autopilot:slots:' + engagementId, 4))
   return Number.isFinite(value) ? Math.min(Math.max(Math.trunc(value), 1), 8) : 3
 }
 

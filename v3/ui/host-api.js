@@ -335,7 +335,7 @@ export async function handleApi(ctx, store, request = {}) {
     return { ok: true, ...buildEvidenceBundle(store, id, { actor: 'console' }), snapshot: snapshot() }
   }
   if (op === 'setSlots') {
-    const next = Math.min(Math.max(Number(request.slots) || 3, 1), 8)
+    const next = Math.min(Math.max(Number(request.slots) || 4, 1), 8)
     store.db.setMeta('autopilot:slots:' + id, next)
     return { ok: true, slots: { max: next }, snapshot: snapshot() }
   }
