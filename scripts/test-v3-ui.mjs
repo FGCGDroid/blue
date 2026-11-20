@@ -113,6 +113,17 @@ try {
   const rebound = await call('/blue/api', { op: 'bindEngagement', session: 'S-UI', engagement: engagementId })
   assert.equal(rebound.body.ok, true)
 
+  // 并发名额：保存后必须持久，overview 不能把值弹回默认 3。
+  const slotsSaved = await call('/blue/api', { op: 'setSlots', session: 'S-UI', slots: 4 })
+  assert.equal(slotsSaved.body.ok, true)
+  assert.equal(slotsSaved.body.slots.max, 4)
+  const slotsAfter = await call('/blue/api', { op: 'overview', session: 'S-UI' })
+  assert.equal(slotsAfter.body.slots.max, 4)
+  const slotsClamp = await call('/blue/api', { op: 'setSlots', session: 'S-UI', slots: 99 })
+  assert.equal(slotsClamp.body.slots.max, 8)
+  const slotsRestore = await call('/blue/api', { op: 'setSlots', session: 'S-UI', slots: 3 })
+  assert.equal(slotsRestore.body.slots.max, 3)
+
   const collectorInfo = await call('/blue/api', { op: 'collectorInfo', session: 'S-UI' })
   assert.equal(collectorInfo.body.ok, true)
   const remote = await call('/blue/collect', {
