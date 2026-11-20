@@ -193,6 +193,38 @@ export async function handleApi(ctx, store, request = {}) {
     return { ok: true, allow_ips: store.setCollectorAllowIps(request.allow_ips || []) }
   }
   if (op === 'knowledgeList') return { ok: true, entries: store.knowledge.list(id, { limit: request.limit }) }
+  if (op === 'remoteInfo') {
+    const remote = ctx.get?.('blueRemote')
+    if (!remote) return { ok: true, available: false }
+    const settings = remote.settings()
+    return {
+      ok: true,
+      available: true,
+      ssh: { host: settings.host, user: settings.user, key_path: settings.key_path, port: settings.port },
+      cloud: { url: settings.cloud_url, token_set: settings.cloud_token !== '' },
+    }
+  }
+  if (op === 'remoteSetup') {
+    const remote = ctx.get?.('blueRemote')
+    if (!remote) throw new Error('远程服务未加载')
+    return { ok: true, ...remote.save(request) }
+  }
+  if (op === 'remoteTest') {
+    const remote = ctx.get?.('blueRemote')
+    if (!remote) throw new Error('远程服务未加载')
+    return { ok: true, ...(await remote.test(request)) }
+  }
+  if (op === 'remotePrepare') {
+    const task = store.tasks.create(id, {
+      role: 'hardening',
+      priority: 'P1',
+      risk_level: 'high',
+      title: `远程写操作审批：${request.host || 'remote'}`,
+      brief: '远程部署采集器/无人值守防御组前，必须由人确认目标、授权和回滚方式。',
+      acceptance: '审批人确认目标归属与回滚方案。',
+    })
+    return { ok: true, task }
+  }
   if (op === 'knowledgeDefend') {
     const result = defendEntry(store, id, String(request.entry || request.id || ''))
     if (result === null) throw new Error('知识条目不存在')
