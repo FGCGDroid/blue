@@ -7,24 +7,19 @@ import { fileURLToPath } from 'node:url'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const VERSION = process.env.BLUE_VERSION || '3.0.0-beta.20'
-const STAGE = join(ROOT, '.tmp', 'beta-package')
+const STAGE = process.env.BLUE_STAGE || join(ROOT, '.tmp', 'beta-package')
 const OUT = join(ROOT, 'dist', `dsh-blue-team-mode-${VERSION}.tgz`)
 
 rmSync(STAGE, { recursive: true, force: true })
 mkdirSync(STAGE, { recursive: true })
 mkdirSync(join(ROOT, 'dist'), { recursive: true })
 
-for (const entry of ['v3', 'presets', 'skills', 'locale', 'lab']) {
+for (const entry of ['v3', 'presets', 'skills', 'locale']) {
   cpSync(join(ROOT, entry), join(STAGE, entry), { recursive: true })
 }
-// 不把历史 soak 日志打进安装包。
-rmSync(join(STAGE, 'lab', '.run'), { recursive: true, force: true })
-for (const file of ['lib/client.js', 'icon.svg', 'README.md', 'LICENSE', 'DISCLOSURE', 'SECURITY.md', 'shadow-test.cmd', 'compare-2.0-3.0.cmd']) {
+for (const file of ['lib/client.js', 'icon.svg', 'README.md', 'CHANGELOG.md', 'LICENSE', 'DISCLOSURE', 'SECURITY.md']) {
   cpSync(join(ROOT, file), join(STAGE, file))
 }
-mkdirSync(join(STAGE, 'scripts'), { recursive: true })
-cpSync(join(ROOT, 'scripts', 'shadow-test.mjs'), join(STAGE, 'scripts', 'shadow-test.mjs'))
-cpSync(join(ROOT, 'scripts', 'compare-2.0-3.0.mjs'), join(STAGE, 'scripts', 'compare-2.0-3.0.mjs'))
 // 兼容 DSH 旧解析器：即使它仍按 lib/*.js 找入口，也落到 v3。
 for (const [file, target] of [
   ['index.js', '../v3/index.js'],
@@ -58,11 +53,7 @@ const pkg = {
     './locale/*.json': './locale/*.json',
     './icon': './icon.svg',
   },
-  files: ['v3', 'lab', 'scripts/shadow-test.mjs', 'scripts/compare-2.0-3.0.mjs', 'shadow-test.cmd', 'compare-2.0-3.0.cmd', 'lib/client.js', 'presets', 'skills', 'locale', 'icon.svg', 'cordis.patch.yml', 'README.md', 'SECURITY.md', 'LICENSE', 'DISCLOSURE'],
-  scripts: {
-    lab: 'node lab/start.mjs',
-    'test:lab': 'node lab/scenarios/acceptance.mjs && node lab/scenarios/vectors.mjs',
-  },
+  files: ['v3', 'lib/client.js', 'presets', 'skills', 'locale', 'icon.svg', 'cordis.patch.yml', 'README.md', 'CHANGELOG.md', 'SECURITY.md', 'LICENSE', 'DISCLOSURE'],
   dsh: {
     bundle: { patch: './cordis.patch.yml' },
     client: {
