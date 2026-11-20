@@ -80,8 +80,9 @@ export function apply(ctx, config = {}) {
   mkdirSync(root, { recursive: true })
   const skills = installSkills(root)
   ctx.provide('blueTeamModeV3', Object.freeze({
-    version: V3_VERSION,
-    package_version: packageVersion(),
+    // 用 getter 现读 package.json：热更新换了包，左上角版本也能立刻跟上。
+    get version() { return packageVersion() },
+    get package_version() { return packageVersion() },
     skeleton: false,
     root,
     skills: skills.skills,
