@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: '要发布的版本号，例如 3.0.0-beta.19'
+        description: '要发布的版本号，例如 3.0.0-beta.20'
         required: true
 
 permissions:
@@ -15,7 +15,7 @@ permissions:
   id-token: write
 
 jobs:
-  publish:
+  release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,11 +23,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-
-      - name: 使用 npm 11（支持可信发布）
-        run: |
-          npm install -g npm@11
-          npm --version
 
       - name: 解析版本
         run: |
@@ -41,10 +36,6 @@ jobs:
 
       - name: 构建 beta 包
         run: node scripts/build-v3-beta.mjs
-
-      - name: 发布到 npm（OIDC 可信发布，不需要 token）
-        working-directory: .tmp/beta-package
-        run: npm publish --tag beta --access public --provenance
 
       - name: 附到 GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
