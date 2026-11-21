@@ -215,8 +215,40 @@ export async function handleApi(ctx, store, request = {}) {
     if (!remote) throw new Error('远程服务未加载')
     return { ok: true, ...(await remote.test(request)) }
   }
-  if (op === 'remotePrepare') {
-    const task = store.tasks.create(id, {
+  if (op === 'remoteUnattended') {
+    const remote = ctx.get?.('blueRemote')
+    if (!remote) throw new Error('远程服务未加载')
+    const settings = remote.settings()
+    const host = String(request.host || settings.host || '').trim()
+    if (host === '') throw new Error('先填公网 IP 并保存远程配置')
+    const allow = (Array.isArray(request.allow_ips) ? request.allow_ips.join(',') : String(request.allow_ips || ''))
+      .split(',').map((item) => item.trim()).filter(Boolean).join(',')
+    if (allow === '') throw new Error('真实封禁必须填白名单 IP（自己的出口 IP），否则可能把自己封掉')
+    const collectorUrl = String(request.collector_url || '').trim().replace(/\/+$/, '')
+    if (!/^https?:\/\//i.test(collectorUrl)) throw new Error('DSH 地址必须是 http(s):// 开头')
+    const ttl = Math.min(Math.max(Number(request.ttl) || 1800, 60), 7200)
+    const result = await remote.deployUnattended({
+      ...request,
+      host,
+      collector_url: collectorUrl,
+      token: store.collectorToken(),
+      engagement: id,
+      enforce: true,
+      ttl,
+      allow_ips: allow,
+      log: String(request.log || '/www/wwwlogs/access.log'),
+    })
+    try {
+      store.timeline.append(id, {
+        actor: 'commander',
+        action: 'remote_unattended',
+        target: host,
+        detail: `mode=enforce ttl=${ttl}s allow=${allow}`,
+      })
+    } catch { /* 时间线失败不阻塞 */ }
+    return { ok: result.ok === true, mode: 'enforce', ttl, ...result }
+  }
+  if (op === 'remotePrepare') {    const task = store.tasks.create(id, {
       role: 'hardening',
       priority: 'P1',
       risk_level: 'high',

@@ -146,25 +146,30 @@ export function createRemoteService(store) {
       return { ok: false, error: '需要 collector_url / token / engagement' }
     }
     let agent
+    let detect
     let installer
     try {
       agent = readFileSync(new URL('../lab/blue-agent.mjs', import.meta.url), 'utf8')
+      detect = readFileSync(new URL('../lab/agent-detect.mjs', import.meta.url), 'utf8')
       installer = readFileSync(new URL('../lab/install-unattended.sh', import.meta.url), 'utf8')
     } catch (error) {
       return { ok: false, error: '读取无人值守文件失败：' + error.message }
     }
     const dir = mkdtempSync(join(tmpdir(), 'blue-unattended-'))
     const agentFile = join(dir, 'blue-agent.mjs')
+    const detectFile = join(dir, 'agent-detect.mjs')
     const installerFile = join(dir, 'install-unattended.sh')
     writeFileSync(agentFile, agent, 'utf8')
+    writeFileSync(detectFile, detect, 'utf8')
     writeFileSync(installerFile, installer, 'utf8')
     try {
-      const scp = await run('scp', ['-i', config.key_path, '-P', String(config.port), '-o', 'StrictHostKeyChecking=accept-new', agentFile, installerFile, `${config.user}@${config.host}:/tmp/`])
+      const scp = await run('scp', ['-i', config.key_path, '-P', String(config.port), '-o', 'StrictHostKeyChecking=accept-new', agentFile, detectFile, installerFile, `${config.user}@${config.host}:/tmp/`])
       if (!scp.ok) return { ok: false, step: 'scp', ...scp }
       const mode = input.enforce === true ? 'enforce' : 'dry-run'
-      const command = `if [ "$(id -u)" -eq 0 ]; then bash /tmp/install-unattended.sh ${quote(collectorUrl)} ${quote(token)} ${quote(engagement)} ${quote(text(input.log, '/www/wwwlogs/access.log'))} ${quote(text(input.allow_ips, ''))} ${quote(mode)}; else sudo -n bash /tmp/install-unattended.sh ${quote(collectorUrl)} ${quote(token)} ${quote(engagement)} ${quote(text(input.log, '/www/wwwlogs/access.log'))} ${quote(text(input.allow_ips, ''))} ${quote(mode)}; fi`
+      const ttl = Math.min(Math.max(Number(input.ttl) || 1800, 60), 7200)
+      const command = `if [ "$(id -u)" -eq 0 ]; then bash /tmp/install-unattended.sh ${quote(collectorUrl)} ${quote(token)} ${quote(engagement)} ${quote(text(input.log, '/www/wwwlogs/access.log'))} ${quote(text(input.allow_ips, ''))} ${quote(mode)} ${quote(String(ttl))}; else sudo -n bash /tmp/install-unattended.sh ${quote(collectorUrl)} ${quote(token)} ${quote(engagement)} ${quote(text(input.log, '/www/wwwlogs/access.log'))} ${quote(text(input.allow_ips, ''))} ${quote(mode)} ${quote(String(ttl))}; fi`
       const install = await run('ssh', [...sshBase(config), command], 60000)
-      return { ok: install.ok, mode, step: install.ok ? 'installed' : 'install', ...install }
+      return { ok: install.ok, mode, ttl, step: install.ok ? 'installed' : 'install', ...install }
     } finally {
       try { rmSync(dir, { recursive: true, force: true }) } catch { /* ignore */ }
     }

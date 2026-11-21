@@ -9,6 +9,7 @@ ENGAGEMENT="${3:?engagement id}"
 LOG="${4:-/www/wwwlogs/access.log}"
 ALLOW="${5:-}"
 MODE="${6:-dry-run}"
+TTL="${7:-1800}"
 DIR=/opt/blue-agent
 
 if [ "$(id -u)" -ne 0 ]; then
@@ -35,7 +36,7 @@ mkdir -p "$DIR" /etc/blue-agent
 
 # 创建独立 table/set/chain；已存在则跳过。
 nft list table inet blue_guard >/dev/null 2>&1 || nft add table inet blue_guard
-nft list set inet blue_guard blocked >/dev/null 2>&1 || nft add set inet blue_guard blocked '{ type ipv4_addr; flags timeout; timeout 600s; }'
+nft list set inet blue_guard blocked >/dev/null 2>&1 || nft add set inet blue_guard blocked '{ type ipv4_addr; flags timeout; timeout 1800s; }'
 nft list chain inet blue_guard input >/dev/null 2>&1 || nft add chain inet blue_guard input '{ type filter hook input priority -10; policy accept; }'
 if ! nft list chain inet blue_guard input 2>/dev/null | grep -q '@blocked'; then
   nft add rule inet blue_guard input tcp dport '{ 80, 443 }' ip saddr @blocked drop
@@ -47,6 +48,7 @@ if [ ! -f /tmp/blue-agent.mjs ]; then
   exit 3
 fi
 mv /tmp/blue-agent.mjs "$DIR/blue-agent.mjs"
+mv /tmp/agent-detect.mjs "$DIR/agent-detect.mjs"
 chmod 755 "$DIR/blue-agent.mjs"
 
 cat > /etc/blue-agent/agent.env <<EOF
@@ -68,7 +70,7 @@ After=network-online.target
 [Service]
 Type=simple
 EnvironmentFile=/etc/blue-agent/agent.env
-ExecStart=$NODE_BIN $DIR/blue-agent.mjs --url \$BLUE_AGENT_URL --token \$BLUE_AGENT_TOKEN --engagement \$BLUE_AGENT_ENGAGEMENT --log \$BLUE_AGENT_LOG --allow-ips "\$BLUE_AGENT_ALLOW_IPS" $EXTRA
+ExecStart=$NODE_BIN $DIR/blue-agent.mjs --url \$BLUE_AGENT_URL --token \$BLUE_AGENT_TOKEN --engagement \$BLUE_AGENT_ENGAGEMENT --log \$BLUE_AGENT_LOG --allow-ips "\$BLUE_AGENT_ALLOW_IPS" $EXTRA --ttl "$TTL"
 Restart=always
 RestartSec=5
 

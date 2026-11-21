@@ -29,6 +29,12 @@ for (const [file, target] of [
 ]) {
   writeFileSync(join(STAGE, 'lib', file), `export * from '${target}'\nexport { default } from '${target}'\n`, 'utf8')
 }
+
+// 远程无人值守运行时只带 4 个脚本，靶场/攻击样本仍不进包。
+mkdirSync(join(STAGE, 'lab'), { recursive: true })
+for (const file of ['blue-agent.mjs', 'agent-detect.mjs', 'install-unattended.sh', 'blue-collector.mjs']) {
+  cpSync(join(ROOT, 'lab', file), join(STAGE, 'lab', file))
+}
 cpSync(join(ROOT, 'cordis.patch.yml'), join(STAGE, 'cordis.patch.yml'))
 
 const base = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'))
@@ -53,7 +59,7 @@ const pkg = {
     './locale/*.json': './locale/*.json',
     './icon': './icon.svg',
   },
-  files: ['v3', 'lib/client.js', 'presets', 'skills', 'locale', 'icon.svg', 'cordis.patch.yml', 'README.md', 'CHANGELOG.md', 'SECURITY.md', 'LICENSE', 'DISCLOSURE'],
+  files: ['v3', 'lib/client.js', 'presets', 'skills', 'locale', 'icon.svg', 'cordis.patch.yml', 'README.md', 'CHANGELOG.md', 'SECURITY.md', 'LICENSE', 'DISCLOSURE', 'lab/blue-agent.mjs', 'lab/agent-detect.mjs', 'lab/install-unattended.sh', 'lab/blue-collector.mjs'],
   dsh: {
     bundle: { patch: './cordis.patch.yml' },
     client: {

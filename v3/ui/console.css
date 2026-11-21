@@ -746,3 +746,5 @@ body[data-ds-dark-theme] .bt-root{background:
 }
 
 .bt-proto-copy{min-width:0}
+
+.bt-proto-status.bad{color:#ff8a8a;text-shadow:0 0 14px rgba(255,95,109,.6)}

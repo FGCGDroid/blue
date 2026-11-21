@@ -1,5 +1,22 @@
 # Changelog
 
+## 3.0.0-beta.27 — 2026-11-21（远程无人值守改为真实封禁）
+
+### Changed
+
+- 远程无人值守从 dry-run 改为真实 nftables 封禁：
+  - 命中 **上传 webshell / XSS / 目录穿越 / 扫描器 UA / 敏感路径 / 10 分钟内 6 次 401/403** → 直接加入 `inet blue_guard blocked` 集合
+  - 默认封禁 **30 分钟**（TTL 可调 60s–2h），到期自动解封
+  - 只 drop 入站 80/443；白名单 IP、内网段、回环永不封
+- 安装器支持第 7 个参数 TTL，agent 默认 1800 秒；部署时连同 `agent-detect.mjs` 一起上传。
+- 远程无人值守表单新增：日志路径、白名单 IP（必填）、封禁时长、DSH 地址；「开启值守」走新增 Host API `remoteUnattended`，昆仑协议动画显示真实部署结果。
+- npm 包重新纳入 4 个运行时脚本 `lab/blue-agent.mjs`、`agent-detect.mjs`、`install-unattended.sh`、`blue-collector.mjs`（靶场/攻击样本仍不进包）。
+
+### Safety
+
+- 未填白名单时拒绝启动真实封禁
+- 卸载脚本 `bash /opt/blue-agent/uninstall.sh` 会停服务并删除 `blue_guard` 表
+
 ## 3.0.0-beta.26 — 2026-11-21（无人值守接入「昆仑协议」启动动画）
 
 ### Added
