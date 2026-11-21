@@ -7,6 +7,8 @@
 import { spawn } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
+import { REMOTE_BAN, normalizeTtl } from './domain/remote/config.js'
+import { unbanElementCommand, flushBanCommand } from './domain/remote/commands.js'
 import { join } from 'node:path'
 
 function text(value, fallback = '') {
@@ -112,7 +114,7 @@ export function createRemoteService(store) {
     if (collectorUrl === '' || token === '' || engagement === '') {
       return { ok: false, error: '需要 collector_url / token / engagement' }
     }
-    const localScript = new URL('../lab/blue-collector.mjs', import.meta.url)
+    const localScript = new URL('./infra/remote/assets/blue-collector.mjs', import.meta.url)
     let script
     try { script = readFileSync(localScript, 'utf8') } catch (error) { return { ok: false, error: '读取采集器失败：' + error.message } }
     const dir = mkdtempSync(join(tmpdir(), 'blue-remote-'))
@@ -149,9 +151,9 @@ export function createRemoteService(store) {
     let detect
     let installer
     try {
-      agent = readFileSync(new URL('../lab/blue-agent.mjs', import.meta.url), 'utf8')
-      detect = readFileSync(new URL('../lab/agent-detect.mjs', import.meta.url), 'utf8')
-      installer = readFileSync(new URL('../lab/install-unattended.sh', import.meta.url), 'utf8')
+      agent = readFileSync(new URL('./infra/remote/assets/blue-agent.mjs', import.meta.url), 'utf8')
+      detect = readFileSync(new URL('./domain/remote/agent-detect.js', import.meta.url), 'utf8')
+      installer = readFileSync(new URL('./infra/remote/assets/install-unattended.sh', import.meta.url), 'utf8')
     } catch (error) {
       return { ok: false, error: '读取无人值守文件失败：' + error.message }
     }
@@ -166,7 +168,7 @@ export function createRemoteService(store) {
       const scp = await run('scp', ['-i', config.key_path, '-P', String(config.port), '-o', 'StrictHostKeyChecking=accept-new', agentFile, detectFile, installerFile, `${config.user}@${config.host}:/tmp/`])
       if (!scp.ok) return { ok: false, step: 'scp', ...scp }
       const mode = input.enforce === true ? 'enforce' : 'dry-run'
-      const ttl = Math.min(Math.max(Number(input.ttl) || 1800, 60), 7200)
+      const ttl = normalizeTtl(input.ttl)
       const command = `if [ "$(id -u)" -eq 0 ]; then bash /tmp/install-unattended.sh ${quote(collectorUrl)} ${quote(token)} ${quote(engagement)} ${quote(text(input.log, '/www/wwwlogs/access.log'))} ${quote(text(input.allow_ips, ''))} ${quote(mode)} ${quote(String(ttl))}; else sudo -n bash /tmp/install-unattended.sh ${quote(collectorUrl)} ${quote(token)} ${quote(engagement)} ${quote(text(input.log, '/www/wwwlogs/access.log'))} ${quote(text(input.allow_ips, ''))} ${quote(mode)} ${quote(String(ttl))}; fi`
       const install = await run('ssh', [...sshBase(config), command], 60000)
       return { ok: install.ok, mode, ttl, step: install.ok ? 'installed' : 'install', ...install }
@@ -194,5 +196,16 @@ export function createRemoteService(store) {
     }
   }
 
-  return { settings, save, test, deploy, deployUnattended, cloudBlock }
+
+  async function unban(input = {}) {
+    const config = { ...settings(), ...input }
+    if (!keyOk(config.key_path)) return { ok: false, error: '私钥不存在' }
+    const ip = text(input.ip).trim()
+    const command = ip === '' ? flushBanCommand() : unbanElementCommand(ip)
+    if (command === null) return { ok: false, error: 'ip 不合法' }
+    const result = await run('ssh', [...sshBase(config), command])
+    return { ok: result.ok, mode: ip === '' ? 'flush' : 'element', ip, ...result }
+  }
+
+  return { settings, save, test, deploy, deployUnattended, unban, cloudBlock }
 }

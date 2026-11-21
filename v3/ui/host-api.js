@@ -14,6 +14,7 @@ import { buildEvidenceBundle } from '../app/evidence/export.js'
 import { evaluateControls } from '../app/controls/service.js'
 import { scanEvents, rulesFor } from '../app/detection/service.js'
 import { bindSession, resolveEngagement, toLegacySnapshot } from './legacy-view.js'
+import { REMOTE_BAN, normalizeAllowIps, normalizeTtl } from '../domain/remote/config.js'
 import { protectionStatus, startProtectionWithGateway } from '../app/onboarding/service.js'
 import { defendEntry, learnAlert, seedTechniqueLibrary } from '../app/knowledge/service.js'
 import { openEngagement as openSessionEngagement } from '../app/session/service.js'
@@ -203,6 +204,7 @@ export async function handleApi(ctx, store, request = {}) {
       available: true,
       ssh: { host: settings.host, user: settings.user, key_path: settings.key_path, port: settings.port },
       cloud: { url: settings.cloud_url, token_set: settings.cloud_token !== '' },
+      ban: REMOTE_BAN,
     }
   }
   if (op === 'remoteSetup') {
@@ -221,12 +223,25 @@ export async function handleApi(ctx, store, request = {}) {
     const settings = remote.settings()
     const host = String(request.host || settings.host || '').trim()
     if (host === '') throw new Error('先填公网 IP 并保存远程配置')
-    const allow = (Array.isArray(request.allow_ips) ? request.allow_ips.join(',') : String(request.allow_ips || ''))
-      .split(',').map((item) => item.trim()).filter(Boolean).join(',')
-    if (allow === '') throw new Error('真实封禁必须填白名单 IP（自己的出口 IP），否则可能把自己封掉')
+    const allow = normalizeAllowIps(request.allow_ips)
+    if (allow.length === 0) throw new Error('真实封禁必须填白名单 IP（自己的出口 IP），否则可能把自己封掉')
     const collectorUrl = String(request.collector_url || '').trim().replace(/\/+$/, '')
     if (!/^https?:\/\//i.test(collectorUrl)) throw new Error('DSH 地址必须是 http(s):// 开头')
-    const ttl = Math.min(Math.max(Number(request.ttl) || 1800, 60), 7200)
+    const ttl = normalizeTtl(request.ttl)
+    const task = store.tasks.create(id, {
+      role: 'hardening',
+      priority: 'P1',
+      risk_level: 'high',
+      title: '远程无人值守上线：' + host,
+      brief: '真实 nftables 封禁，TTL ' + ttl + 's，白名单 ' + allow.join(',') + '；命中上传/XSS/穿越/扫描器/敏感路径即封。',
+      acceptance: '确认目标归属、白名单、封禁时长与卸载方式。',
+    })
+    try {
+      store.tasks.approve(task.id, { actor: 'console:owner', note: '控制台一键开启真实封禁（账号主人本人操作）' })
+    } catch (error) {
+      store.tasks.update(task.id, { status: 'cancelled', result: String(error?.message || error) })
+      throw error
+    }
     const result = await remote.deployUnattended({
       ...request,
       host,
@@ -235,18 +250,39 @@ export async function handleApi(ctx, store, request = {}) {
       engagement: id,
       enforce: true,
       ttl,
-      allow_ips: allow,
-      log: String(request.log || '/www/wwwlogs/access.log'),
+      allow_ips: allow.join(','),
+      log: String(request.log || REMOTE_BAN.defaultLog),
     })
+    try {
+      store.tasks.update(task.id, {
+        status: result.ok === true ? 'done' : 'blocked',
+        result: JSON.stringify(result).slice(0, 4000),
+      })
+    } catch { /* 回填失败不影响部署结果 */ }
     try {
       store.timeline.append(id, {
         actor: 'commander',
         action: 'remote_unattended',
         target: host,
-        detail: `mode=enforce ttl=${ttl}s allow=${allow}`,
+        detail: 'task=' + task.id + ' mode=enforce ttl=' + ttl + 's allow=' + allow.join(','),
       })
-    } catch { /* 时间线失败不阻塞 */ }
-    return { ok: result.ok === true, mode: 'enforce', ttl, ...result }
+    } catch { /* ignore */ }
+    return { ok: result.ok === true, task_id: task.id, mode: 'enforce', ttl, allow_ips: allow, ...result }
+  }
+  if (op === 'remoteUnban') {
+    const remote = ctx.get?.('blueRemote')
+    if (!remote) throw new Error('远程服务未加载')
+    const ip = String(request.ip || '').trim()
+    const result = await remote.unban({ ip })
+    try {
+      store.timeline.append(id, {
+        actor: 'commander',
+        action: 'remote_unban',
+        target: ip || 'all',
+        detail: 'mode=' + (ip === '' ? 'flush' : 'element') + ' ok=' + (result.ok === true),
+      })
+    } catch { /* ignore */ }
+    return { ok: result.ok === true, ...result }
   }
   if (op === 'remotePrepare') {    const task = store.tasks.create(id, {
       role: 'hardening',
@@ -415,7 +451,7 @@ export function registerHostApi(ctx, store, paths = ['/blue/api', '/blue/v3/api'
         return
       }
       try {
-        const body = readFileSync(new URL('../../lab/blue-collector.mjs', import.meta.url), 'utf8')
+        const body = readFileSync(new URL('../infra/remote/assets/blue-collector.mjs', import.meta.url), 'utf8')
         res.writeHead(200, {
           'content-type': 'text/javascript; charset=utf-8',
           'content-length': Buffer.byteLength(body),

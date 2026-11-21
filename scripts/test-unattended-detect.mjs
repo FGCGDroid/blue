@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { parseLine, shouldBlock, isPrivate } from '../lab/agent-detect.mjs'
+import { parseLine, shouldBlock, isPrivate } from '../v3/domain/remote/agent-detect.js'
 
 const allow = new Set(['203.0.113.99'])
 const state = { allow, failures: new Map() }

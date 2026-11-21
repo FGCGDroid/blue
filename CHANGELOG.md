@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.0.0-beta.28 — 2026-11-21（清理远程封禁的技术债）
+
+### Changed
+
+- 远程运行时资产从 `lab/` 移到 `v3/infra/remote/assets/`；检测规则移入 `v3/domain/remote/agent-detect.js`，分层检查不再漏看。
+- TTL/白名单默认值收敛到 `v3/domain/remote/config.js`；nft 命令统一由 `v3/domain/remote/commands.js` 生成。
+- Host API `remoteUnattended` 也建 high 任务并记录 `approved_by`，与工具层审批路径统一，任务状态回填成功/阻塞。
+- 新增 `remoteUnban` Host API 和远程页「清空封禁」按钮。
+- 新增测试：`test-v3-remote-config.mjs`（TTL/白名单/命令）、`test-unattended-detect.mjs`（上传/XSS/穿越/白名单/阈值）。
+
 ## 3.0.0-beta.27 — 2026-11-21（远程无人值守改为真实封禁）
 
 ### Changed
