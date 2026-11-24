@@ -79,7 +79,24 @@ export class KnowledgeRepo {
     if (existing !== undefined) {
       this.db.sql('UPDATE knowledge_entries SET hits = hits + 1, last_seen = ?, updated_at = ? WHERE id = ?')
         .run(at, at, existing.id)
-      return { entry: this.get(existing.id), created: false }
+      let updated = false
+      if (options.overwrite === true) {
+        const title = asText(options.title).trim()
+        const attack = asText(options.attack).trim()
+        const defense = options.defense === undefined ? null : JSON.stringify(options.defense)
+        this.db.sql('UPDATE knowledge_entries SET title = COALESCE(?, title), attack = COALESCE(?, attack), defense = COALESCE(?, defense), updated_at = ? WHERE id = ?')
+          .run(title === '' ? null : title, attack === '' ? null : attack, defense, at, existing.id)
+        updated = true
+        if (this.timeline !== null) {
+          this.timeline.append(engagementId, {
+            actor: 'analyst',
+            action: 'knowledge_override',
+            target: existing.id,
+            detail: signature,
+          })
+        }
+      }
+      return { entry: this.get(existing.id), created: false, updated }
     }
     const id = idOf(engagementId, signature)
     const defense = options.defense || defaultDefense(signature, event)

@@ -15,6 +15,7 @@ export function register(registerTool, env = {}) {
     description: '攻击打法知识库：记录攻击签名、匹配历史、生成可回滚的防御动作。告警入库时会自动学习；seed 把内置打法（M01–M32）推进库里；阻断动作不会自动改防火墙。',
     parameters: {
       action: { type: 'string', required: true, description: 'list/learn/deadend/match/seed/defend' },
+      overwrite: { type: 'boolean', description: 'learn/deadend 时覆盖已有条目的标题/攻击描述/防御动作（默认 false，保留自动学习条目）' },
       engagement: { type: 'string', description: '（可选）防守目标；默认当前绑定' },
       id: { type: 'string', description: '知识条目 id；defend 必填' },
       alert_id: { type: 'string', description: 'learn 时从已有告警学习' },
@@ -45,6 +46,7 @@ export function register(registerTool, env = {}) {
           return { ok: true, ...learnAlert(store, engagement.id, alert) }
         }
         const learned = store.knowledge.observe(engagement.id, args, {
+          overwrite: args.overwrite === true,
           title: args.title,
           defense: args.defense ? { action: 'detect', summary: String(args.defense) } : undefined,
         })
@@ -53,6 +55,7 @@ export function register(registerTool, env = {}) {
 
       if (action === 'deadend') {
         const learned = store.knowledge.observe(engagement.id, args, {
+          overwrite: args.overwrite === true,
           kind: 'deadend',
           title: args.title || `死路：${signatureOf(args)}`,
           defense: { action: 'deadend', summary: String(args.defense || '已验证无效，不要重复同一打法') },
