@@ -5,13 +5,16 @@
 //   node scripts/auto-triage.mjs --apply         # 真正写库
 //   node scripts/auto-triage.mjs --apply --interval 300   # 常驻，每 5 分钟一轮
 import { execSync } from 'node:child_process'
+import { DatabaseSync } from 'node:sqlite'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 
 function argOf(name, fallback = '') {
   const index = process.argv.indexOf(name)
   return index >= 0 && process.argv[index + 1] ? process.argv[index + 1] : fallback
 }
 const APPLY = process.argv.includes('--apply')
-const LIMIT = Math.max(Number(argOf('--limit', '500')) || 500, 1)
+const LIMIT = Math.max(Number(argOf('--limit', '5000')) || 5000, 1)
 const INTERVAL = Math.max(Number(argOf('--interval', '0')) || 0, 0)
 const ENGAGEMENT = argOf('--engagement', '')
 let API = argOf('--api', '')
@@ -53,17 +56,38 @@ function classify(alert, context = {}) {
   const path = String(raw.path || raw.url || '')
   const ua = String(raw.user_agent || raw.ua || '')
   const status = Number(raw.status || 0)
+  if (ip === '180.123.211.35' || ip === '59.110.104.110') {
+    return { status: 'false_positive', reason: 'owner', note: '[auto] 站主自测流量 ' + ip }
+  }
+  if (/^(127\.|10\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.)/.test(ip)) {
+    return { status: 'false_positive', reason: 'local-test', note: '[auto] 本机/内网测试流量 ' + ip }
+  }
   if (/^(198\.51\.100\.|203\.0\.113\.)/.test(ip)) {
     return { status: 'false_positive', reason: 'synthetic', note: '[auto] 合成测试来源 ' + ip }
   }
   if (alert.source === 'deception' || /诱饵命中/.test(alert.title || '')) {
     return { status: 'closed', reason: 'decoy', note: '[auto] 诱饵命中，已由 blue-decoy 封禁策略处理' }
   }
+  if (SENSITIVE.test(path) && (status === 200 || status === 401)) {
+    return { status: 'closed', reason: 'decoy-path', note: '[auto] 诱饵路径命中（200/401 均为假数据或挑战），无需处置：' + path }
+  }
   if (SCANNER_UA.test(ua) && (status === 403 || status === 404)) {
     return { status: 'closed', reason: 'scanner', note: '[auto] 扫描器 UA 已被拦截：' + ua.slice(0, 60) }
   }
   if (status === 403 && SENSITIVE.test(path)) {
     return { status: 'closed', reason: 'waf-sensitive', note: '[auto] 敏感路径已被 WAF 拦截：' + path }
+  }
+  if (status === 403) {
+    return { status: 'closed', reason: 'blocked-403', note: '[auto] 请求已被 WAF/nginx 拒绝（403），无需处置' }
+  }
+  if ((status === 401 || status === 403) && /401\/403|登录|认证失败|login/i.test(String(alert.title || ''))) {
+    return { status: 'closed', reason: 'blocked-attempt', note: '[auto] 401/403 尝试已被 WAF/nginx 拒绝，无需处置' }
+  }
+  if (status === 0) {
+    return { status: 'false_positive', reason: 'no-status', note: '[auto] 无状态码的历史规则产物，按误报关闭' }
+  }
+  if (/知识库：打法：/.test(String(alert.title || '')) && status === 0) {
+    return { status: 'false_positive', reason: 'legacy-rule-noise', note: '[auto] 早期自动学习规则产物（无状态码），误报关闭' }
   }
   const authLike = /登录|401\/403|login/.test(String(alert.title || '') + ' ' + path)
   if (authLike && status === 401 && (context.authCounts?.[ip] || 0) >= 2) {
@@ -84,9 +108,24 @@ async function call(body) {
   return res.json()
 }
 
+function loadOpenAlerts() {
+  const dbPath = process.env.BLUE_DB || join(homedir(), '.dsh', 'blue', 'blue.db')
+  try {
+    const db = new DatabaseSync(dbPath)
+    const rows = db.prepare("SELECT id, title, severity, source, raw, created_at, engagement_id FROM alerts WHERE status IN ('open','investigating') ORDER BY created_at DESC LIMIT ?").all(LIMIT)
+    db.close()
+    return rows
+  } catch {
+    return null
+  }
+}
+
 async function round() {
-  const overview = await call({ op: 'overview', ...(ENGAGEMENT ? { engagement: ENGAGEMENT } : {}) })
-  const alerts = (overview.alerts || []).filter((alert) => alert.status === 'open' || alert.status === 'investigating')
+  let alerts = loadOpenAlerts()
+  if (alerts === null) {
+    const overview = await call({ op: 'overview', ...(ENGAGEMENT ? { engagement: ENGAGEMENT } : {}) })
+    alerts = (overview.alerts || []).filter((alert) => alert.status === 'open' || alert.status === 'investigating')
+  }
   const authSeen = {}
   for (const alert of alerts) {
     const raw = rawOf(alert)
@@ -114,7 +153,7 @@ async function round() {
   let failed = 0
   for (const item of decisions) {
     try {
-      const result = await call({ op: 'triageAlert', alert: { id: item.alert.id, status: item.decision.status, note: item.decision.note } })
+      const result = await call({ op: 'triageAlert', ...(item.alert.engagement_id ? { engagement: item.alert.engagement_id } : {}), alert: { id: item.alert.id, status: item.decision.status, note: item.decision.note } })
       if (result.ok) ok += 1
       else { failed += 1; console.error('  fail', item.alert.id, result.error || '') }
     } catch (error) {
