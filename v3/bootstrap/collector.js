@@ -48,6 +48,29 @@ export function createCollector(store, options = {}) {
             try { learnAlert(store, engagementId, alert) } catch { /* 知识库失败不阻塞采集 */ }
           }
         }
+        try { /* decoy hit auto */
+          const decoys = store.decoys.list(engagementId).filter((d) => d.status !== 'retired')
+          for (const event of raw) {
+            const status = Number(event.status || 0)
+            if (status !== 200 && status !== 401) continue
+            const path = String(event.path || event.url || '').split('?')[0]
+            const decoy = decoys.find((d) => {
+              const target = String(d.target || '')
+              let hitPath = target
+              try { if (target.includes('://')) hitPath = new URL(target).pathname } catch { /* ignore */ }
+              hitPath = hitPath.replace(/\/$/, '')
+              return hitPath !== '' && (path === hitPath || path.startsWith(hitPath + '/'))
+            })
+            if (decoy === undefined) continue
+            store.decoys.addHit(decoy.id, {
+              source: 'collector',
+              evidence: JSON.stringify(event).slice(0, 2000),
+              event_key: `${decoy.id}|${event.remote}|${event.at}|${path}`,
+              actor: 'collector',
+              severity: 'high',
+            })
+          }
+        } catch { /* 诱饵计数失败不阻塞采集 */ }
         alerts += created.length
         store.telemetry.saveCursor(source.id, {
           cursor: start + raw.length,
