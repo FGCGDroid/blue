@@ -47,7 +47,7 @@ function rawOf(alert) {
   try { return JSON.parse(alert.raw) } catch { return {} }
 }
 
-function classify(alert) {
+function classify(alert, context = {}) {
   const raw = rawOf(alert)
   const ip = String(raw.remote || raw.src_ip || '')
   const path = String(raw.path || raw.url || '')
@@ -64,6 +64,10 @@ function classify(alert) {
   }
   if (status === 403 && SENSITIVE.test(path)) {
     return { status: 'closed', reason: 'waf-sensitive', note: '[auto] 敏感路径已被 WAF 拦截：' + path }
+  }
+  const authLike = /登录|401\/403|login/.test(String(alert.title || '') + ' ' + path)
+  if (authLike && status === 401 && (context.authCounts?.[ip] || 0) >= 2) {
+    return { status: 'closed', reason: 'auth-threshold', note: '[auto] 同 IP 登录失败达到 nginx-login 阈值，已封禁：' + ip }
   }
   if (status === 404 && !SENSITIVE.test(path) && /检测命中/.test(alert.title || '')) {
     return { status: 'false_positive', reason: '404-noise', note: '[auto] 404 普通探测噪音：' + path }
@@ -83,9 +87,20 @@ async function call(body) {
 async function round() {
   const overview = await call({ op: 'overview', ...(ENGAGEMENT ? { engagement: ENGAGEMENT } : {}) })
   const alerts = (overview.alerts || []).filter((alert) => alert.status === 'open' || alert.status === 'investigating')
+  const authSeen = {}
+  for (const alert of alerts) {
+    const raw = rawOf(alert)
+    const ip = String(raw.remote || raw.src_ip || '')
+    const hit = Number(raw.status || 0) === 401 && /登录|401\/403|login/.test(String(alert.title || '') + ' ' + String(raw.path || ''))
+    if (!hit) continue
+    if (!authSeen[ip]) authSeen[ip] = new Set()
+    authSeen[ip].add(String(raw.at || raw.time || alert.event_time || alert.created_at || ''))
+  }
+  const authCounts = Object.fromEntries(Object.entries(authSeen).map(([ip, times]) => [ip, times.size]))
+  const context = { authCounts }
   const decisions = []
   for (const alert of alerts.slice(0, LIMIT)) {
-    const decision = classify(alert)
+    const decision = classify(alert, context)
     if (decision) decisions.push({ alert, decision })
   }
   const counts = {}
