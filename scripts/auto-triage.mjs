@@ -17,7 +17,8 @@ const APPLY = process.argv.includes('--apply')
 const LIMIT = Math.max(Number(argOf('--limit', '5000')) || 5000, 1)
 const INTERVAL = Math.max(Number(argOf('--interval', '0')) || 0, 0)
 const ENGAGEMENT = argOf('--engagement', '')
-let API = argOf('--api', '')
+const API_LOCK = argOf('--api', '')
+let API = API_LOCK
 
 function discoverApi() {
   try {
@@ -100,12 +101,23 @@ function classify(alert, context = {}) {
 }
 
 async function call(body) {
-  const res = await fetch(API, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', origin: new URL(API).origin },
-    body: JSON.stringify(body),
-  })
-  return res.json()
+  const send = async () => {
+    const res = await fetch(API, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', origin: new URL(API).origin },
+      body: JSON.stringify(body),
+    })
+    return res.json()
+  }
+  try {
+    return await send()
+  } catch (error) {
+    if (API_LOCK) throw error
+    const found = discoverApi()
+    if (!found || found === API) throw error
+    API = found
+    return send()
+  }
 }
 
 function loadOpenAlerts() {
@@ -121,6 +133,7 @@ function loadOpenAlerts() {
 }
 
 async function round() {
+  if (!API_LOCK) API = discoverApi() || API
   let alerts = loadOpenAlerts()
   if (alerts === null) {
     const overview = await call({ op: 'overview', ...(ENGAGEMENT ? { engagement: ENGAGEMENT } : {}) })
