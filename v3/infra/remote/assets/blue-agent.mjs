@@ -7,7 +7,8 @@
  *
  * 默认 dry-run；只有显式 --enforce 才真正改 nftables。
  */
-import { closeSync, openSync, readSync, statSync, appendFileSync, mkdirSync } from 'node:fs'
+import { closeSync, openSync, readSync, statSync, appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { dirname } from 'node:path'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { spawn } from 'node:child_process'
 import { parseLine, shouldBlock as detectBlock } from './agent-detect.mjs'
@@ -28,17 +29,65 @@ const token = String(args.token || process.env.BLUE_AGENT_TOKEN || '')
 const engagement = String(args.engagement || process.env.BLUE_AGENT_ENGAGEMENT || '')
 const logPath = String(args.log || process.env.BLUE_AGENT_LOG || '/www/wwwlogs/access.log')
 const dryRun = args.enforce !== 'true'
-const ttl = Math.min(Math.max(Number(args.ttl) || 1800, 60), 7200)
+const ttl = Math.min(Math.max(Number(args.ttl) || 1800, 60), 86400)
 const allow = new Set(String(args['allow-ips'] || process.env.BLUE_AGENT_ALLOW_IPS || '').split(',').map((item) => item.trim()).filter(Boolean))
 const stateLog = '/var/log/blue-agent.log'
+const spoolPath = String(args.spool || process.env.BLUE_AGENT_SPOOL || '/opt/blue-agent/spool.jsonl')
+const webhook = String(args.webhook || process.env.BLUE_AGENT_WEBHOOK || '')
+const digestHour = Math.min(Math.max(Number(args['digest-hour'] || process.env.BLUE_AGENT_DIGEST_HOUR || 9), 0), 23)
+const digestPath = '/opt/blue-agent/digest.json'
+let digest = { day: '', blocked: 0, would: 0, failed: 0, lastSent: '' }
+try { digest = Object.assign(digest, JSON.parse(readFileSync(digestPath, 'utf8'))) } catch { /* 首次运行 */ }
+function saveDigest() { try { writeFileSync(digestPath, JSON.stringify(digest)) } catch { /* 忽略 */ } }
+function loadSpool() {
+  try {
+    for (const line of readFileSync(spoolPath, 'utf8').split('\n')) {
+      if (line.trim() === '') continue
+      const event = JSON.parse(line)
+      if (event && typeof event === 'object') pending.push(event)
+    }
+  } catch { /* 无 spool */ }
+}
+function saveSpool() {
+  try {
+    mkdirSync(dirname(spoolPath), { recursive: true })
+    writeFileSync(spoolPath, pending.slice(-5000).map((event) => JSON.stringify(event)).join('\n'))
+  } catch { /* 忽略 */ }
+}
+async function maybeDigest() {
+  if (webhook === '') return
+  const nowMs = Date.now()
+  const hours = Math.max(Number(args['report-interval-hours'] || 2), 1)
+  const intervalMs = hours * 3600000
+  if (nowMs - (Number(digest.lastSentAt) || 0) < intervalMs) return
+  const day = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
+  if (digest.day !== day) { digest.day = day; digest.would = 0 }
+  const label = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Shanghai', hour: '2-digit', minute: '2-digit' }).format(new Date())
+  const content = '蓝队汇报 ' + day + ' ' + label + '｜近 ' + hours + ' 小时封禁 ' + (digest.blocked || 0) + '｜失败 ' + (digest.failed || 0)
+  try {
+    await fetch(webhook, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(webhook.includes('oapi.dingtalk.com') ? { msgtype: 'text', text: { content } } : { text: content }),
+    })
+    digest.lastSentAt = Date.now()
+    digest.blocked = 0
+    digest.failed = 0
+    saveDigest()
+  } catch { /* 下分钟重试 */ }
+}
+setInterval(() => { void maybeDigest() }, 60000)
+
 
 if (!url || !token || !engagement) {
   console.error('缺少 --url / --token / --engagement')
   process.exit(2)
 }
 
-let position = args['from-start'] === 'true' ? 0 : Math.max(statSync(logPath).size, 0)
+function logSize() { try { return statSync(logPath).size } catch { return 0 } }
+let position = args['from-start'] === 'true' ? 0 : Math.max(logSize(), 0)
 let pending = []
+loadSpool()
 const failures = new Map()
 const blockedAt = new Map()
 
@@ -61,30 +110,40 @@ function nft(commandArgs) {
 
 async function block(ip, reason) {
   if (dryRun) {
+    digest.would += 1
+    saveDigest()
     writeState({ action: 'would_block', ip, reason, ttl })
     return false
   }
   if (blockedAt.has(ip) && Date.now() - blockedAt.get(ip) < ttl * 1000) return false
   const result = await nft(['add', 'element', 'inet', 'blue_guard', 'blocked', '{', ip, 'timeout', `${ttl}s`, '}'])
   if (result.ok) blockedAt.set(ip, Date.now())
+  if (result.ok) digest.blocked += 1; else digest.failed += 1
+  saveDigest()
   writeState({ action: result.ok ? 'blocked' : 'block_failed', ip, reason, ttl, error: result.stderr || result.error })
   return result.ok
 }
 
 async function flush() {
   if (pending.length === 0) return
-  const batch = pending.splice(0, 200)
+  const batch = pending.slice(0, 200)
+  saveSpool()
   try {
     await fetch(url + '/blue/collect', {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token },
       body: JSON.stringify({ engagement, events: batch }),
+      signal: AbortSignal.timeout(5000),
     })
+    pending = pending.slice(batch.length)
+    saveSpool()
   } catch (error) {
-    pending = batch.concat(pending).slice(-1000)
+    saveSpool()
     writeState({ action: 'post_failed', error: error.message })
   }
 }
+
+setInterval(() => { if (pending.length > 0) void flush() }, 5000)
 
 async function readOnce() {
   let size

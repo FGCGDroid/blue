@@ -10,6 +10,8 @@ LOG="${4:-/www/wwwlogs/access.log}"
 ALLOW="${5:-}"
 MODE="${6:-dry-run}"
 TTL="${7:-1800}"
+WEBHOOK="${8:-}"
+DIGEST_HOUR="${9:-9}"
 DIR=/opt/blue-agent
 
 if [ "$(id -u)" -ne 0 ]; then
@@ -57,11 +59,23 @@ BLUE_AGENT_TOKEN=$TOKEN
 BLUE_AGENT_ENGAGEMENT=$ENGAGEMENT
 BLUE_AGENT_LOG=$LOG
 BLUE_AGENT_ALLOW_IPS=$ALLOW
+BLUE_AGENT_WEBHOOK=$WEBHOOK
+BLUE_AGENT_DIGEST_HOUR=$DIGEST_HOUR
 EOF
 chmod 600 /etc/blue-agent/agent.env
 
 EXTRA=""
 [ "$MODE" = "enforce" ] && EXTRA="--enforce"
+cat > "$DIR/ensure-nft.sh" <<'NFT'
+#!/usr/bin/env bash
+set -e
+nft list table inet blue_guard >/dev/null 2>&1 || nft add table inet blue_guard
+nft list set inet blue_guard blocked >/dev/null 2>&1 || nft add set inet blue_guard blocked '{ type ipv4_addr; flags timeout; timeout 1800s; }'
+nft list chain inet blue_guard input >/dev/null 2>&1 || nft add chain inet blue_guard input '{ type filter hook input priority -10; policy accept; }'
+nft list chain inet blue_guard input | grep -q '@blocked' || nft add rule inet blue_guard input tcp dport '{ 80, 443 }' ip saddr @blocked drop
+NFT
+chmod 755 "$DIR/ensure-nft.sh"
+
 cat > /etc/systemd/system/blue-agent.service <<EOF
 [Unit]
 Description=DSH Blue Team unattended defense agent
@@ -70,7 +84,8 @@ After=network-online.target
 [Service]
 Type=simple
 EnvironmentFile=/etc/blue-agent/agent.env
-ExecStart=$NODE_BIN $DIR/blue-agent.mjs --url \$BLUE_AGENT_URL --token \$BLUE_AGENT_TOKEN --engagement \$BLUE_AGENT_ENGAGEMENT --log \$BLUE_AGENT_LOG --allow-ips "\$BLUE_AGENT_ALLOW_IPS" $EXTRA --ttl "$TTL"
+ExecStartPre=$DIR/ensure-nft.sh
+ExecStart=$NODE_BIN $DIR/blue-agent.mjs --url \$BLUE_AGENT_URL --token \$BLUE_AGENT_TOKEN --engagement \$BLUE_AGENT_ENGAGEMENT --log \$BLUE_AGENT_LOG --allow-ips "\$BLUE_AGENT_ALLOW_IPS" $EXTRA --ttl "$TTL" --webhook "$WEBHOOK" --digest-hour "$DIGEST_HOUR"
 Restart=always
 RestartSec=5
 
@@ -79,7 +94,8 @@ WantedBy=multi-user.target
 EOF
 
 systemctl daemon-reload
-systemctl enable --now blue-agent
+systemctl enable blue-agent
+systemctl restart blue-agent
 echo "已安装 blue-agent；mode=$MODE"
 echo "查看：systemctl status blue-agent && tail -f /var/log/blue-agent.log"
 

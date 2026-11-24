@@ -748,3 +748,10 @@ body[data-ds-dark-theme] .bt-root{background:
 .bt-proto-copy{min-width:0}
 
 .bt-proto-status.bad{color:#ff8a8a;text-shadow:0 0 14px rgba(255,95,109,.6)}
+
+.bt-log-row{cursor:pointer}
+.bt-log-row:hover{background:rgba(34,211,238,.06)}
+.bt-event{display:flex;flex-direction:column;gap:8px;font-size:12px}
+.bt-event-row{display:flex;gap:10px;border-bottom:1px dashed rgba(34,211,238,.12);padding-bottom:6px}
+.bt-event-row b{color:#7fe9ff;min-width:72px;font-weight:600}
+.bt-event-row span{color:#cfe9f5;word-break:break-all}

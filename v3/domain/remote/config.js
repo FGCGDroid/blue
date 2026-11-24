@@ -2,7 +2,7 @@
 export const REMOTE_BAN = Object.freeze({
   ttlDefaultSec: 1800,
   ttlMinSec: 60,
-  ttlMaxSec: 7200,
+  ttlMaxSec: 86400,
   defaultLog: '/www/wwwlogs/access.log',
   set: 'blocked',
   table: 'blue_guard',

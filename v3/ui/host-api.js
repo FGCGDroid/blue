@@ -204,6 +204,15 @@ export async function handleApi(ctx, store, request = {}) {
       available: true,
       ssh: { host: settings.host, user: settings.user, key_path: settings.key_path, port: settings.port },
       cloud: { url: settings.cloud_url, token_set: settings.cloud_token !== '' },
+      unattended: {
+        host: store.db.getMeta('unattended:host', ''),
+        log: store.db.getMeta('unattended:log', ''),
+        allow_ips: store.db.getMeta('unattended:allow_ips', ''),
+        collector_url: store.db.getMeta('unattended:collector_url', ''),
+        webhook: store.db.getMeta('unattended:webhook', ''),
+        ttl_min: Number(store.db.getMeta('unattended:ttl', '1800')) / 60,
+        digest_hour: Number(store.db.getMeta('unattended:digest_hour', '9')),
+      },
       ban: REMOTE_BAN,
     }
   }
@@ -242,14 +251,35 @@ export async function handleApi(ctx, store, request = {}) {
       store.tasks.update(task.id, { status: 'cancelled', result: String(error?.message || error) })
       throw error
     }
+    for (const [key, value] of Object.entries({
+      host,
+      log: String(request.log || REMOTE_BAN.defaultLog),
+      allow_ips: allow.join(','),
+      collector_url: collectorUrl,
+      webhook: String(request.webhook || '').trim(),
+      ttl: String(ttl),
+      digest_hour: String(Number(request.digest_hour) || 9),
+    })) {
+      try { store.db.setMeta('unattended:' + key, String(value)) } catch { /* meta 持久化失败不阻塞部署 */ }
+    }
+    const scopeOf = (e) => {
+      const raw = e && e.scope
+      if (Array.isArray(raw)) return raw.map(String)
+      try { return JSON.parse(raw || '[]').map(String) } catch { return [] }
+    }
+    const remoteEngagement = store.engagements.list().find((e) => e.status === 'active' && scopeOf(e).some((s) => s.includes(host) || host.includes(s)))
+      || store.engagements.open('远程值守：' + host, [host])
+    bindSession(store, request.session, remoteEngagement.id)
     const result = await remote.deployUnattended({
       ...request,
       host,
       collector_url: collectorUrl,
       token: store.collectorToken(),
-      engagement: id,
+      engagement: remoteEngagement.id,
       enforce: true,
       ttl,
+      webhook: String(request.webhook || '').trim(),
+      digest_hour: Number(request.digest_hour) || 9,
       allow_ips: allow.join(','),
       log: String(request.log || REMOTE_BAN.defaultLog),
     })
@@ -260,14 +290,23 @@ export async function handleApi(ctx, store, request = {}) {
       })
     } catch { /* 回填失败不影响部署结果 */ }
     try {
-      store.timeline.append(id, {
+      store.timeline.append(remoteEngagement.id, {
         actor: 'commander',
         action: 'remote_unattended',
         target: host,
         detail: 'task=' + task.id + ' mode=enforce ttl=' + ttl + 's allow=' + allow.join(','),
       })
     } catch { /* ignore */ }
-    return { ok: result.ok === true, task_id: task.id, mode: 'enforce', ttl, allow_ips: allow, ...result }
+    return {
+      ok: result.ok === true,
+      task_id: task.id,
+      mode: 'enforce',
+      ttl,
+      allow_ips: allow,
+      engagement: remoteEngagement,
+      snapshot: toLegacySnapshot(store, ctx, { ...request, engagement: remoteEngagement.id }),
+      ...result,
+    }
   }
   if (op === 'remoteUnban') {
     const remote = ctx.get?.('blueRemote')

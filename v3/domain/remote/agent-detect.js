@@ -66,7 +66,8 @@ export function shouldBlock(event, state = {}) {
   if (/sqlmap|nikto|nuclei|gobuster|dirsearch|masscan|zgrab|acunetix|nessus/i.test(ua)) {
     return { reason: 'scanner-ua', path }
   }
-  if (Number(event.status) === 401 || Number(event.status) === 403) {
+  const authPath = /\/(?:login|signin|sign-in|auth|admin|user\/login|wp-login)(?:\/|$)/i.test(path)
+  if (authPath && (Number(event.status) === 401 || Number(event.status) === 403)) {
     const entry = failures.get(ip) || { count: 0, first: now }
     if (now - entry.first > 60000) {
       entry.count = 0

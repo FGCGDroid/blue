@@ -169,9 +169,11 @@ export function createRemoteService(store) {
       if (!scp.ok) return { ok: false, step: 'scp', ...scp }
       const mode = input.enforce === true ? 'enforce' : 'dry-run'
       const ttl = normalizeTtl(input.ttl)
-      const command = `if [ "$(id -u)" -eq 0 ]; then bash /tmp/install-unattended.sh ${quote(collectorUrl)} ${quote(token)} ${quote(engagement)} ${quote(text(input.log, '/www/wwwlogs/access.log'))} ${quote(text(input.allow_ips, ''))} ${quote(mode)} ${quote(String(ttl))}; else sudo -n bash /tmp/install-unattended.sh ${quote(collectorUrl)} ${quote(token)} ${quote(engagement)} ${quote(text(input.log, '/www/wwwlogs/access.log'))} ${quote(text(input.allow_ips, ''))} ${quote(mode)} ${quote(String(ttl))}; fi`
+      const webhook = text(input.webhook).trim()
+      const digestHour = Math.min(Math.max(Number(input.digest_hour) || 9, 0), 23)
+      const command = `if [ "$(id -u)" -eq 0 ]; then bash /tmp/install-unattended.sh ${quote(collectorUrl)} ${quote(token)} ${quote(engagement)} ${quote(text(input.log, '/www/wwwlogs/access.log'))} ${quote(text(input.allow_ips, ''))} ${quote(mode)} ${quote(String(ttl))} ${quote(webhook)} ${quote(String(digestHour))}; else sudo -n bash /tmp/install-unattended.sh ${quote(collectorUrl)} ${quote(token)} ${quote(engagement)} ${quote(text(input.log, '/www/wwwlogs/access.log'))} ${quote(text(input.allow_ips, ''))} ${quote(mode)} ${quote(String(ttl))} ${quote(webhook)} ${quote(String(digestHour))}; fi`
       const install = await run('ssh', [...sshBase(config), command], 60000)
-      return { ok: install.ok, mode, ttl, step: install.ok ? 'installed' : 'install', ...install }
+      return { ok: install.ok, mode, ttl, webhook: webhook !== '', step: install.ok ? 'installed' : 'install', ...install }
     } finally {
       try { rmSync(dir, { recursive: true, force: true }) } catch { /* ignore */ }
     }
