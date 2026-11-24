@@ -7,6 +7,8 @@ import { fileURLToPath } from 'node:url'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const VERSION = process.env.BLUE_VERSION || '3.0.0-beta.20'
+import { assertNoSensitiveFiles } from './guard-release.mjs'
+
 const STAGE = process.env.BLUE_STAGE || join(ROOT, '.tmp', 'beta-package')
 const OUT = join(ROOT, 'dist', `dsh-blue-team-mode-${VERSION}.tgz`)
 
@@ -72,6 +74,7 @@ const pkg = {
 writeFileSync(join(STAGE, 'package.json'), JSON.stringify(pkg, null, 2) + '\n', 'utf8')
 
 rmSync(OUT, { force: true })
+assertNoSensitiveFiles(STAGE)
 execFileSync('tar', ['-czf', OUT, '-C', STAGE, '.'], { stdio: 'inherit' })
 console.log(`✓ beta 包：${OUT}`)
 console.log(`  安装：file:${OUT}`)
