@@ -15,6 +15,8 @@ export function createCollector(store, options = {}) {
   let lastAlerts = 0
   let lastError = ''
 
+  const alertSeen = new Map()
+
   async function pollEngagement(engagementId) {
     const sources = store.telemetry.listSources(engagementId).filter((source) => source.status !== 'retired')
     const rules = rulesFor(store, engagementId).filter((rule) => rule.enabled)
@@ -32,6 +34,12 @@ export function createCollector(store, options = {}) {
         const result = scanEvents(rules, events, { maxHits: 200 })
         const created = []
         for (const hit of result.hits) {
+          const ruleKey = String(hit.rule?.key || hit.rule?.rule_key || hit.rule?.name || hit.title || '')
+          const dedupeKey = engagementId + '|' + ruleKey + '|' + String(hit.event.remote || '')
+          const nowMs = Date.now()
+          if (nowMs - (alertSeen.get(dedupeKey) || 0) < 300000) continue
+          alertSeen.set(dedupeKey, nowMs)
+          if (alertSeen.size > 10000) alertSeen.clear()
           const alert = store.facts.addAlert(engagementId, {
             title: `检测命中：${hit.title}`,
             severity: hit.severity,
