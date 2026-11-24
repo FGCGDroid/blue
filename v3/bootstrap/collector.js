@@ -23,8 +23,12 @@ export function createCollector(store, options = {}) {
       try {
         const loaded = store.readJsonl(source.path, { maxEvents: 20000 })
         const start = Math.min(source.cursor, loaded.events.length)
-        const events = loaded.events.slice(start)
-        if (events.length === 0) continue
+        const raw = loaded.events.slice(start)
+        if (raw.length === 0) continue
+        let suppress = []
+        try { suppress = JSON.parse(store.db.getMeta('collector:suppress_ips', '[]')) } catch { suppress = [] }
+        const suppressed = new Set(Array.isArray(suppress) ? suppress.map(String) : [])
+        const events = raw.filter((event) => !suppressed.has(String(event.remote || '')))
         const result = scanEvents(rules, events, { maxHits: 200 })
         const created = []
         for (const hit of result.hits) {
@@ -46,7 +50,7 @@ export function createCollector(store, options = {}) {
         }
         alerts += created.length
         store.telemetry.saveCursor(source.id, {
-          cursor: start + events.length,
+          cursor: start + raw.length,
           events: Number(source.events_total) + events.length,
           alerts: Number(source.alerts_total) + created.length,
           last_event_at: events.length > 0 ? new Date().toISOString() : source.last_event_at,

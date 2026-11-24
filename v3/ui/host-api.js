@@ -190,6 +190,12 @@ export async function handleApi(ctx, store, request = {}) {
     const token = store.rotateCollectorToken()
     return { ok: true, token, note: '旧 token 已失效；采集器需要更新环境变量。' }
   }
+  if (op === 'collectorSuppress') {
+    const list = Array.isArray(request.ips) ? request.ips : String(request.ips || '').split(',')
+    const ips = list.map((item) => String(item).trim()).filter((item) => item !== '')
+    store.db.setMeta('collector:suppress_ips', JSON.stringify(ips))
+    return { ok: true, suppress_ips: ips }
+  }
   if (op === 'collectorAllow') {
     return { ok: true, allow_ips: store.setCollectorAllowIps(request.allow_ips || []) }
   }
