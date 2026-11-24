@@ -73,6 +73,8 @@ nft list table inet blue_guard >/dev/null 2>&1 || nft add table inet blue_guard
 nft list set inet blue_guard blocked >/dev/null 2>&1 || nft add set inet blue_guard blocked '{ type ipv4_addr; flags timeout; timeout 1800s; }'
 nft list chain inet blue_guard input >/dev/null 2>&1 || nft add chain inet blue_guard input '{ type filter hook input priority -10; policy accept; }'
 nft list chain inet blue_guard input | grep -q '@blocked' || nft add rule inet blue_guard input tcp dport '{ 80, 443 }' ip saddr @blocked drop
+nft list set inet blue_guard blocked_net >/dev/null 2>&1 || nft add set inet blue_guard blocked_net '{ type ipv4_addr; flags interval,timeout; timeout 30d; }'
+nft list chain inet blue_guard input | grep -q '@blocked_net' || nft add rule inet blue_guard input tcp dport '{ 80, 443 }' ip saddr @blocked_net drop
 NFT
 chmod 755 "$DIR/ensure-nft.sh"
 
