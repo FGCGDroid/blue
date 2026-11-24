@@ -93,9 +93,20 @@ const mergedSeen = new Map()
 const MERGE_PATH = /^\/\.(?:env|git)|^\/download|^\/wp-admin|^\/administrator|^\/phpinfo|^\/server-status|^\/admin$/i
 function shouldMerge(event) {
   const path = String(event.path || '')
-  if (!MERGE_PATH.test(path)) return false
-  const key = [event.remote, event.method, path, event.status].join('|')
   const now = Date.now()
+  let key = ''
+  if (path === '/') {
+    const raw = String(event.raw_path || '')
+    const query = raw.split('?')[1] || ''
+    if (query === '') return false
+    const names = Array.from(new Set(query.split('&').map((pair) => pair.split('=')[0]).filter(Boolean))).sort().join(',')
+    if (names === '') return false
+    key = [event.remote, event.method, '/', names, event.status].join('|')
+  } else if (MERGE_PATH.test(path)) {
+    key = [event.remote, event.method, path, event.status].join('|')
+  } else {
+    return false
+  }
   const last = mergedSeen.get(key) || 0
   if (now - last < 300000) return true
   mergedSeen.set(key, now)
