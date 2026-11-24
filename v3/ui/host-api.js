@@ -380,7 +380,10 @@ export async function handleApi(ctx, store, request = {}) {
     return { ok: true, task: result.task, snapshot: snapshot() }
   }
   if (op === 'triageAlert') {
-    const result = triageAlert(store, id, request.alert ?? request)
+    const input = typeof request.alert === 'string'
+      ? { ...request, id: request.alert }
+      : (request.alert !== null && typeof request.alert === 'object' ? request.alert : request)
+    const result = triageAlert(store, id, input)
     return { ok: true, alert: result.alert, task: result.task, snapshot: snapshot() }
   }
   if (op === 'updateFinding') {
