@@ -31,6 +31,7 @@ export function register(registerTool, env = {}) {
       if (typeof args.title !== 'string' || args.title.trim() === '') {
         throw new BlueError('FINDING_INPUT', 'title 不能为空')
       }
+      const input = { ...args }
       const severity = String(args.severity || 'medium').toLowerCase()
       if ((severity === 'high' || severity === 'critical') && String(args.evidence || '').trim() === '') {
         throw new BlueError('FINDING_EVIDENCE', 'high/critical 发现必须带证据')
@@ -38,15 +39,15 @@ export function register(registerTool, env = {}) {
       if (severity === 'high' || severity === 'critical') {
         const artifact = store.artifacts.get(String(args.artifact_id || ''))
         if (artifact === null) throw new BlueError('FINDING_ARTIFACT', 'high/critical 必须引用真实 artifact_id')
-        args.fact_level = 'fact'
+        input.fact_level = 'fact'
       } else {
-        args.fact_level = String(args.artifact_id || '') === '' ? 'observation' : 'fact'
+        input.fact_level = String(args.artifact_id || '') === '' ? 'observation' : 'fact'
       }
       const engagement = engagementOf(store, exec, args.engagement)
       return {
         ok: true,
         engagement: { id: engagement.id, name: engagement.name },
-        ...addFinding(store, engagement.id, args),
+        ...addFinding(store, engagement.id, input),
       }
     }),
   }))
@@ -75,20 +76,21 @@ export function register(registerTool, env = {}) {
       if (['fixed', 'accepted'].includes(String(args.status || '')) && String(args.evidence || '').trim() === '') {
         throw new BlueError('FINDING_EVIDENCE', '标记 fixed/accepted 必须带复测证据')
       }
+      const input = { ...args }
       if (['fixed', 'accepted'].includes(String(args.status || ''))) {
         const current = store.facts.getFinding(args.id)
         const artifactId = String(args.artifact_id || current?.artifact_id || '')
         if (artifactId === '' || store.artifacts.get(artifactId) === null) {
           throw new BlueError('FINDING_ARTIFACT', '标记 fixed/accepted 必须引用真实 artifact_id')
         }
-        args.artifact_id = artifactId
-        args.fact_level = 'fact'
+        input.artifact_id = artifactId
+        input.fact_level = 'fact'
       }
       const engagement = engagementOf(store, exec, args.engagement)
       return {
         ok: true,
         engagement: { id: engagement.id, name: engagement.name },
-        ...updateFinding(store, engagement.id, args),
+        ...updateFinding(store, engagement.id, input),
       }
     }),
   }))
