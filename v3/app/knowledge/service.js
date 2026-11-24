@@ -37,10 +37,16 @@ function eventOf(alert) {
  *  3. 生成一条 queued 防御任务（低风险，供人/智能体执行）。
  * 不自动改防火墙、不自动封 IP；阻断路径需要网关在链路上。
  */
+const DECOY_PATHS = [/^\/\.env$/i, /^\/\.git\/config$/i, /^\/server-status$/i, /^\/phpinfo$/i, /^\/download$/i, /^\/wp-admin(\/|$)/i, /^\/administrator(\/|$)/i]
+function isDecoyPath(path) { return DECOY_PATHS.some((re) => re.test(path)) }
+
 export function learnAlert(store, engagementId, alert, options = {}) {
   const event = eventOf(alert)
-  const learned = store.knowledge.observe(engagementId, event, { auto_block: false })
-  if (!learned.created || options.auto === false) return learned
+  const decoy = isDecoyPath(String(event.path || '').split('?')[0])
+  const learned = store.knowledge.observe(engagementId, event, decoy
+    ? { auto_block: false, title: '诱饵命中：' + String(event.path || ''), defense: { action: 'observe', summary: '诱饵/蜜罐命中，不生成泄露或封禁规则' } }
+    : { auto_block: false })
+  if (decoy || !learned.created || options.auto === false) return { ...learned, decoy }
   const entry = learned.entry
   const path = String(event.path || '').split('?')[0]
   const status = Number(event.status || 0)
