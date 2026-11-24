@@ -16,6 +16,7 @@ export function createCollector(store, options = {}) {
   let lastError = ''
 
   const alertSeen = new Map()
+  const ruleSeen = new Map()
 
   async function pollEngagement(engagementId) {
     const sources = store.telemetry.listSources(engagementId).filter((source) => source.status !== 'retired')
@@ -39,6 +40,10 @@ export function createCollector(store, options = {}) {
           const nowMs = Date.now()
           if (nowMs - (alertSeen.get(dedupeKey) || 0) < 300000) continue
           alertSeen.set(dedupeKey, nowMs)
+          const ruleKeyOnly = engagementId + '|' + ruleKey
+          if (nowMs - (ruleSeen.get(ruleKeyOnly) || 0) < 60000) continue
+          ruleSeen.set(ruleKeyOnly, nowMs)
+          if (ruleSeen.size > 2000) ruleSeen.clear()
           if (alertSeen.size > 10000) alertSeen.clear()
           const alert = store.facts.addAlert(engagementId, {
             title: `检测命中：${hit.title}`,
