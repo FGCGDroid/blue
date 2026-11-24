@@ -89,6 +89,19 @@ let position = args['from-start'] === 'true' ? 0 : Math.max(logSize(), 0)
 let pending = []
 loadSpool()
 const failures = new Map()
+const mergedSeen = new Map()
+const MERGE_PATH = /^\/\.(?:env|git)|^\/download|^\/wp-admin|^\/administrator|^\/phpinfo|^\/server-status|^\/admin$/i
+function shouldMerge(event) {
+  const path = String(event.path || '')
+  if (!MERGE_PATH.test(path)) return false
+  const key = [event.remote, event.method, path, event.status].join('|')
+  const now = Date.now()
+  const last = mergedSeen.get(key) || 0
+  if (now - last < 300000) return true
+  mergedSeen.set(key, now)
+  if (mergedSeen.size > 5000) mergedSeen.clear()
+  return false
+}
 const blockedAt = new Map()
 
 function writeState(event) {
@@ -165,6 +178,7 @@ async function readOnce() {
         event.block_reason = hit.reason
         await block(String(event.remote), hit.reason)
       }
+      if (shouldMerge(event)) continue
       pending.push(event)
     }
   } finally {
