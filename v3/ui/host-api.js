@@ -137,14 +137,11 @@ function telemetryPoll(store, engagementId, request = {}) {
 export async function handleApi(ctx, store, request = {}) {
   const op = typeof request.op === 'string' ? request.op : ''
   async function fetchUpdateMeta() {
-    const urls = [
-      'https://raw.githubusercontent.com/FGCGDroid/blue/3.0-dev/update.json',
-      'https://cdn.jsdelivr.net/gh/FGCGDroid/blue@3.0-dev/update.json',
-    ]
+    const url = 'https://raw.githubusercontent.com/FGCGDroid/blue/3.0-dev/update.json'
     let last = null
-    for (const url of urls) {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
-        const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
+        const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
         if (res.ok) return await res.json()
         last = new Error('update source ' + res.status)
       } catch (e) { last = e }

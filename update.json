@@ -1,6 +1,6 @@
 {
-  "version": "3.0.5",
-  "url": "https://github.com/FGCGDroid/blue/releases/tag/v3.0.5",
-  "asset": "https://cdn.jsdelivr.net/gh/FGCGDroid/blue@v3.0.5/releases/dsh-blue-team-mode-3.0.5.tgz",
-  "notes": "更新源双通道+重试，超时提示改中文"
+  "version": "3.0.6",
+  "url": "https://github.com/FGCGDroid/blue/releases/tag/v3.0.6",
+  "asset": "https://cdn.jsdelivr.net/gh/FGCGDroid/blue@v3.0.6/releases/dsh-blue-team-mode-3.0.6.tgz",
+  "notes": "修复更新检查读到缓存旧版本"
 }
