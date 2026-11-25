@@ -144,7 +144,7 @@ export async function handleApi(ctx, store, request = {}) {
       if (!metaRes.ok) return { ok: false, error: 'update source ' + metaRes.status }
       const info = await metaRes.json()
       const asset = String(info.asset || '')
-      if (!asset.startsWith('https://github.com/FGCGDroid/blue/releases/download/')) return { ok: false, error: 'asset url missing' }
+      if (!/^https:\/\/(github\.com\/FGCGDroid\/blue\/releases\/download\/|cdn\.jsdelivr\.net\/gh\/FGCGDroid\/blue@)/.test(asset)) return { ok: false, error: 'asset url missing' }
       const dl = await fetch(asset, { signal: AbortSignal.timeout(60000) })
       if (!dl.ok) return { ok: false, error: 'download ' + dl.status }
       const buf = Buffer.from(await dl.arrayBuffer())
