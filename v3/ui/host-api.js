@@ -1,7 +1,9 @@
 /** 3.0 Host API（M5）：2.0 控制台兼容 + 3.x 快照。 */
 import { join } from 'node:path'
 import { appendFileSync } from 'node:fs'
-import { readFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
+import { spawn } from 'node:child_process'
+import { homedir, tmpdir } from 'node:os'
 import { timingSafeEqual } from 'node:crypto'
 import { runAutopilot } from '../app/tasks/autopilot.js'
 import { createTask } from '../app/tasks/service.js'
@@ -134,6 +136,34 @@ function telemetryPoll(store, engagementId, request = {}) {
 
 export async function handleApi(ctx, store, request = {}) {
   const op = typeof request.op === 'string' ? request.op : ''
+  if (op === 'updateInstall') {
+    const mode = ctx.get?.('blueTeamModeV3') ?? null
+    const current = String(mode?.version || '')
+    try {
+      const metaRes = await fetch('https://raw.githubusercontent.com/FGCGDroid/blue/3.0-dev/update.json', { signal: AbortSignal.timeout(5000) })
+      if (!metaRes.ok) return { ok: false, error: 'update source ' + metaRes.status }
+      const info = await metaRes.json()
+      const asset = String(info.asset || '')
+      if (!asset.startsWith('https://github.com/FGCGDroid/blue/releases/download/')) return { ok: false, error: 'asset url missing' }
+      const dl = await fetch(asset, { signal: AbortSignal.timeout(60000) })
+      if (!dl.ok) return { ok: false, error: 'download ' + dl.status }
+      const buf = Buffer.from(await dl.arrayBuffer())
+      const file = join(tmpdir(), 'dsh-blue-team-mode-' + String(info.version || 'latest') + '.tgz')
+      writeFileSync(file, buf)
+      const result = await new Promise((resolve) => {
+        const child = spawn('dsh.cmd', ['plugin', '--profile', 'desktop', 'add', file], { cwd: homedir(), shell: true })
+        let output = ''
+        const timer = setTimeout(() => { child.kill(); resolve({ ok: false, error: 'install timeout', output }) }, 180000)
+        child.stdout.on('data', (d) => { output += String(d) })
+        child.stderr.on('data', (d) => { output += String(d) })
+        child.on('close', (code) => { clearTimeout(timer); resolve({ ok: code === 0, code, output: output.slice(-800), file }) })
+        child.on('error', (e) => { clearTimeout(timer); resolve({ ok: false, error: String(e.message || e), output }) })
+      })
+      return { ...result, current, latest: String(info.version || '') }
+    } catch (e) {
+      return { ok: false, error: String(e.message || e) }
+    }
+  }
   if (op === 'checkUpdate') {
     const mode = ctx.get?.('blueTeamModeV3') ?? null
     const current = String(mode?.version || '')
