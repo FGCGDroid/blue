@@ -1,6 +1,6 @@
 {
-  "version": "3.0.4",
-  "url": "https://github.com/FGCGDroid/blue/releases/tag/v3.0.4",
-  "asset": "https://cdn.jsdelivr.net/gh/FGCGDroid/blue@v3.0.4/releases/dsh-blue-team-mode-3.0.4.tgz",
-  "notes": "更新下载改走 jsDelivr，避开 GitHub 下载超时"
+  "version": "3.0.5",
+  "url": "https://github.com/FGCGDroid/blue/releases/tag/v3.0.5",
+  "asset": "https://cdn.jsdelivr.net/gh/FGCGDroid/blue@v3.0.5/releases/dsh-blue-team-mode-3.0.5.tgz",
+  "notes": "更新源双通道+重试，超时提示改中文"
 }

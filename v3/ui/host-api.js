@@ -136,17 +136,39 @@ function telemetryPoll(store, engagementId, request = {}) {
 
 export async function handleApi(ctx, store, request = {}) {
   const op = typeof request.op === 'string' ? request.op : ''
+  async function fetchUpdateMeta() {
+    const urls = [
+      'https://raw.githubusercontent.com/FGCGDroid/blue/3.0-dev/update.json',
+      'https://cdn.jsdelivr.net/gh/FGCGDroid/blue@3.0-dev/update.json',
+    ]
+    let last = null
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
+        if (res.ok) return await res.json()
+        last = new Error('update source ' + res.status)
+      } catch (e) { last = e }
+    }
+    throw last || new Error('update source unreachable')
+  }
+
   if (op === 'updateInstall') {
     const mode = ctx.get?.('blueTeamModeV3') ?? null
     const current = String(mode?.version || '')
     try {
-      const metaRes = await fetch('https://raw.githubusercontent.com/FGCGDroid/blue/3.0-dev/update.json', { signal: AbortSignal.timeout(5000) })
-      if (!metaRes.ok) return { ok: false, error: 'update source ' + metaRes.status }
-      const info = await metaRes.json()
+      const info = await fetchUpdateMeta()
       const asset = String(info.asset || '')
       if (!/^https:\/\/(github\.com\/FGCGDroid\/blue\/releases\/download\/|cdn\.jsdelivr\.net\/gh\/FGCGDroid\/blue@)/.test(asset)) return { ok: false, error: 'asset url missing' }
-      const dl = await fetch(asset, { signal: AbortSignal.timeout(60000) })
-      if (!dl.ok) return { ok: false, error: 'download ' + dl.status }
+      let dl = null
+      let lastErr = null
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+          dl = await fetch(asset, { signal: AbortSignal.timeout(120000) })
+          if (dl.ok) break
+          lastErr = new Error('download ' + dl.status)
+        } catch (e) { lastErr = e }
+      }
+      if (!dl || !dl.ok) throw lastErr || new Error('download failed')
       const buf = Buffer.from(await dl.arrayBuffer())
       const file = join(tmpdir(), 'dsh-blue-team-mode-' + String(info.version || 'latest') + '.tgz')
       writeFileSync(file, buf)
@@ -161,19 +183,19 @@ export async function handleApi(ctx, store, request = {}) {
       })
       return { ...result, current, latest: String(info.version || '') }
     } catch (e) {
-      return { ok: false, error: String(e.message || e) }
+      const msg = String(e && e.message ? e.message : e)
+      return { ok: false, error: /timeout|abort/i.test(msg) ? '更新源连接超时，请稍后重试' : msg }
     }
   }
   if (op === 'checkUpdate') {
     const mode = ctx.get?.('blueTeamModeV3') ?? null
     const current = String(mode?.version || '')
     try {
-      const res = await fetch('https://raw.githubusercontent.com/FGCGDroid/blue/3.0-dev/update.json', { signal: AbortSignal.timeout(4000) })
-      if (!res.ok) return { ok: false, error: 'update source ' + res.status, current }
-      const info = await res.json()
+      const info = await fetchUpdateMeta()
       return { ok: true, current, latest: String(info.version || ''), url: String(info.url || ''), notes: String(info.notes || ''), updateAvailable: String(info.version || '') !== current }
     } catch (e) {
-      return { ok: false, error: String(e.message || e), current }
+      const msg = String(e && e.message ? e.message : e)
+      return { ok: false, error: /timeout|abort/i.test(msg) ? '更新源连接超时，请稍后重试' : msg, current }
     }
   }
   if (op === 'overview') return toLegacySnapshot(store, ctx, request)
