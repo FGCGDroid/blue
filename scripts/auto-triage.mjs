@@ -90,6 +90,9 @@ function classify(alert, context = {}) {
   if (/知识库：打法：/.test(String(alert.title || '')) && status === 0) {
     return { status: 'false_positive', reason: 'legacy-rule-noise', note: '[auto] 早期自动学习规则产物（无状态码），误报关闭' }
   }
+  if (SENSITIVE.test(path)) {
+    return { status: 'closed', reason: 'sensitive-path', note: '[auto] 敏感路径探测（任何状态均为拒绝/假响应）：' + path }
+  }
   const authLike = /登录|401\/403|login/.test(String(alert.title || '') + ' ' + path)
   if (authLike && status === 401 && (context.authCounts?.[ip] || 0) >= 2) {
     return { status: 'closed', reason: 'auth-threshold', note: '[auto] 同 IP 登录失败达到 nginx-login 阈值，已封禁：' + ip }

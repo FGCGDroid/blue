@@ -42,6 +42,21 @@ export class KnowledgeRepo {
   constructor(db, timeline = null) {
     this.db = db
     this.timeline = timeline
+    this.migrate()
+  }
+
+  migrate() {
+    try {
+      const cols = this.db.sql('PRAGMA table_info(knowledge_entries)').all().map((c) => c.name)
+      if (!cols.includes('technique')) this.db.sql("ALTER TABLE knowledge_entries ADD COLUMN technique TEXT NOT NULL DEFAULT 'other'").run()
+      if (!cols.includes('variant')) this.db.sql("ALTER TABLE knowledge_entries ADD COLUMN variant TEXT NOT NULL DEFAULT 'plain'").run()
+      const rows = this.db.sql("SELECT id, signature, title FROM knowledge_entries WHERE technique = 'other' AND variant = 'plain'").all()
+      for (const row of rows) {
+        const text = row.signature + ' ' + row.title
+        this.db.sql('UPDATE knowledge_entries SET technique = ?, variant = ? WHERE id = ?')
+          .run(techniqueOf(text), variantOf(text), row.id)
+      }
+    } catch { /* 迁移失败不阻塞 */ }
   }
 
   list(engagementId, filters = {}) {
@@ -102,10 +117,12 @@ export class KnowledgeRepo {
     const defense = options.defense || defaultDefense(signature, event)
     const title = asText(options.title).trim() || `打法：${signature}`
     const attack = asText(options.attack).trim() || asText(event.title || event.rule_key || '').slice(0, 500)
+    const technique = techniqueOf(signature + ' ' + title + ' ' + attack)
+    const variant = variantOf(signature + ' ' + title + ' ' + attack)
     this.db.sql(`INSERT INTO knowledge_entries
-      (id, engagement_id, signature, kind, title, attack, defense, auto_block, hits, first_seen, last_seen, status, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`)
-      .run(id, engagementId, signature, asText(options.kind, 'http'), title, attack, JSON.stringify(defense), options.auto_block === true ? 1 : 0, 1, at, at, at, at)
+      (id, engagement_id, signature, kind, title, attack, defense, auto_block, hits, first_seen, last_seen, status, created_at, updated_at, technique, variant)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)`)
+      .run(id, engagementId, signature, asText(options.kind, 'http'), title, attack, JSON.stringify(defense), options.auto_block === true ? 1 : 0, 1, at, at, at, at, technique, variant)
     if (this.timeline !== null) {
       this.timeline.append(engagementId, {
         actor: 'monitor',

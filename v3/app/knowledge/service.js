@@ -50,20 +50,9 @@ export function learnAlert(store, engagementId, alert, options = {}) {
   const entry = learned.entry
   const path = String(event.path || '').split('?')[0]
   const status = Number(event.status || 0)
-  let rule = null
-  try {
-    if (path !== '') {
-      rule = store.detection.upsert(engagementId, {
-        rule_key: `kb-${entry.id.slice(3, 15).toLowerCase()}`,
-        title: `知识库：${entry.title}`,
-        severity: alert.severity === 'critical' ? 'critical' : 'high',
-        selection: { path: [path], ...(status > 0 ? { status: [status] } : {}) },
-        condition: 'all',
-        tags: ['knowledge', 'auto'],
-      })
-    }
-  } catch { /* 规则冲突不阻塞学习 */ }
-  return { ...learned, rule }
+  // 自动学习只记观测，不再自动生成检测规则（改由人工确认）
+  return { ...learned, rule: null }
+
 }
 
 export function knowledgeRuleKey(entryId) {
