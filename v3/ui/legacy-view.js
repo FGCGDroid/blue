@@ -156,7 +156,7 @@ export function toLegacySnapshot(store, ctx, request = {}) {
     telemetry: store.telemetry.listSources(id),
     responses: store.responses.list(id, { limit: 80 }),
     detection_rules: store.detection.list(id),
-    knowledge: store.knowledge.list(id, { limit: 120 }),
+    knowledge: store.knowledge.list(id, { limit: 500 }),
     cve: { summary: cveSummary(), items: listCves() },
     graph: buildRiskGraph(store, id),
     report_markdown: buildReport(store, id),
