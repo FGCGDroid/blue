@@ -2,6 +2,7 @@
 import { createHash } from 'node:crypto'
 import { asText } from './shared.js'
 import { signatureOf } from '../../../domain/knowledge/signature.js'
+import { techniqueOf, variantOf } from '../../../domain/knowledge/classify.js'
 
 function idOf(engagementId, signature) {
   return `KB-${createHash('sha256').update(`${engagementId}|${signature}`).digest('hex').slice(0, 16).toUpperCase()}`
@@ -173,6 +174,8 @@ export class KnowledgeRepo {
       id: row.id,
       signature: row.signature,
       kind: row.kind,
+      technique: row.technique || 'other',
+      variant: row.variant || 'plain',
       title: row.title,
       attack: row.attack,
       defense,
