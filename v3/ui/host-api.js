@@ -136,26 +136,28 @@ function telemetryPoll(store, engagementId, request = {}) {
 
 export async function handleApi(ctx, store, request = {}) {
   const op = typeof request.op === 'string' ? request.op : ''
-  async function fetchUpdateMeta() {
-    const url = 'https://raw.githubusercontent.com/FGCGDroid/blue/3.0-dev/update.json'
-    let last = null
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      try {
-        const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
-        if (res.ok) return await res.json()
-        last = new Error('update source ' + res.status)
-      } catch (e) { last = e }
-    }
-    throw last || new Error('update source unreachable')
+  let updateCache = { at: 0, tag: '' }
+  async function fetchLatestTag() {
+    const now = Date.now()
+    if (updateCache.tag !== '' && now - updateCache.at < 60000) return updateCache.tag
+    const res = await fetch('https://api.github.com/repos/FGCGDroid/blue/releases/latest', {
+      headers: { 'user-agent': 'dsh-blue-team-mode', accept: 'application/vnd.github+json' },
+      signal: AbortSignal.timeout(6000),
+    })
+    if (!res.ok) throw new Error('update api ' + res.status)
+    const info = await res.json()
+    const tag = String(info.tag_name || '').replace(/^v/, '')
+    if (!/^\d+\.\d+\.\d+$/.test(tag)) throw new Error('bad latest tag')
+    updateCache = { at: now, tag }
+    return tag
   }
 
   if (op === 'updateInstall') {
     const mode = ctx.get?.('blueTeamModeV3') ?? null
     const current = String(mode?.version || '')
     try {
-      const info = await fetchUpdateMeta()
-      const asset = String(info.asset || '')
-      if (!/^https:\/\/(github\.com\/FGCGDroid\/blue\/releases\/download\/|cdn\.jsdelivr\.net\/gh\/FGCGDroid\/blue@)/.test(asset)) return { ok: false, error: 'asset url missing' }
+      const latest = await fetchLatestTag()
+      const asset = 'https://cdn.jsdelivr.net/gh/FGCGDroid/blue@v' + latest + '/releases/dsh-blue-team-mode-' + latest + '.tgz'
       let dl = null
       let lastErr = null
       for (let attempt = 0; attempt < 2; attempt += 1) {
@@ -167,7 +169,7 @@ export async function handleApi(ctx, store, request = {}) {
       }
       if (!dl || !dl.ok) throw lastErr || new Error('download failed')
       const buf = Buffer.from(await dl.arrayBuffer())
-      const file = join(tmpdir(), 'dsh-blue-team-mode-' + String(info.version || 'latest') + '.tgz')
+      const file = join(tmpdir(), 'dsh-blue-team-mode-' + latest + '.tgz')
       writeFileSync(file, buf)
       const result = await new Promise((resolve) => {
         const child = spawn('dsh.cmd', ['plugin', '--profile', 'desktop', 'add', file], { cwd: homedir(), shell: true })
@@ -178,7 +180,7 @@ export async function handleApi(ctx, store, request = {}) {
         child.on('close', (code) => { clearTimeout(timer); resolve({ ok: code === 0, code, output: output.slice(-800), file }) })
         child.on('error', (e) => { clearTimeout(timer); resolve({ ok: false, error: String(e.message || e), output }) })
       })
-      return { ...result, current, latest: String(info.version || '') }
+      return { ...result, current, latest }
     } catch (e) {
       const msg = String(e && e.message ? e.message : e)
       return { ok: false, error: /timeout|abort/i.test(msg) ? '更新源连接超时，请稍后重试' : msg }
@@ -188,8 +190,8 @@ export async function handleApi(ctx, store, request = {}) {
     const mode = ctx.get?.('blueTeamModeV3') ?? null
     const current = String(mode?.version || '')
     try {
-      const info = await fetchUpdateMeta()
-      return { ok: true, current, latest: String(info.version || ''), url: String(info.url || ''), notes: String(info.notes || ''), updateAvailable: String(info.version || '') !== current }
+      const latest = await fetchLatestTag()
+      return { ok: true, current, latest, url: 'https://github.com/FGCGDroid/blue/releases/tag/v' + latest, updateAvailable: latest !== current }
     } catch (e) {
       const msg = String(e && e.message ? e.message : e)
       return { ok: false, error: /timeout|abort/i.test(msg) ? '更新源连接超时，请稍后重试' : msg, current }
