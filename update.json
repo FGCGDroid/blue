@@ -1,6 +1,6 @@
 {
-  "version": "3.0.2",
-  "url": "https://github.com/FGCGDroid/blue/releases/tag/v3.0.2",
-  "asset": "https://github.com/FGCGDroid/blue/releases/download/v3.0.2/dsh-blue-team-mode-3.0.2.tgz",
-  "notes": "一键下载并安装更新"
+  "version": "3.0.3",
+  "url": "https://github.com/FGCGDroid/blue/releases/tag/v3.0.3",
+  "asset": "https://github.com/FGCGDroid/blue/releases/download/v3.0.3/dsh-blue-team-mode-3.0.3.tgz",
+  "notes": "更新按钮加中文标注"
 }
