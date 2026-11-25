@@ -1,0 +1,5 @@
+{
+  "version": "3.0.1",
+  "url": "https://github.com/FGCGDroid/blue/releases",
+  "notes": "新增检查更新按钮；修复采集游标越界"
+}

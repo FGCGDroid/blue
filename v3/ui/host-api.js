@@ -134,6 +134,18 @@ function telemetryPoll(store, engagementId, request = {}) {
 
 export async function handleApi(ctx, store, request = {}) {
   const op = typeof request.op === 'string' ? request.op : ''
+  if (op === 'checkUpdate') {
+    const mode = ctx.get?.('blueTeamModeV3') ?? null
+    const current = String(mode?.version || '')
+    try {
+      const res = await fetch('https://raw.githubusercontent.com/FGCGDroid/blue/3.0-dev/update.json', { signal: AbortSignal.timeout(4000) })
+      if (!res.ok) return { ok: false, error: 'update source ' + res.status, current }
+      const info = await res.json()
+      return { ok: true, current, latest: String(info.version || ''), url: String(info.url || ''), notes: String(info.notes || ''), updateAvailable: String(info.version || '') !== current }
+    } catch (e) {
+      return { ok: false, error: String(e.message || e), current }
+    }
+  }
   if (op === 'overview') return toLegacySnapshot(store, ctx, request)
   if (op === 'clientGraph') {
     const service = ctx.get?.('clientModules')
