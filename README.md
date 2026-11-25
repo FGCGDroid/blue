@@ -21,11 +21,47 @@
 
 ## 安装
 
+> **不再发布到 npm**：作者的 npm 账号被封，无法登录也无法发布会话，因此改为 GitHub Release + jsDelivr 分发。请不要再执行 `npm install dsh-blue-team-mode`，npm 上只有旧的 2.0.0。
+
+推荐用 GitHub Release 附件（国内走 jsDelivr 镜像，比 GitHub 下载域名稳定）：
+
 ```sh
-dsh plugin --profile desktop add dsh-blue-team-mode
+dsh plugin --profile desktop add \
+  https://cdn.jsdelivr.net/gh/FGCGDroid/blue@v3.0.7/releases/dsh-blue-team-mode-3.0.7.tgz
+```
+
+或从 [Releases](https://github.com/FGCGDroid/blue/releases) 下载 tgz 后本地安装：
+
+```sh
+dsh plugin --profile desktop add ./dsh-blue-team-mode-3.0.7.tgz
 ```
 
 装完**重启一次 `dsh web`**，在助手栏选择预设 **蓝队防御模式**。
+
+### 从 2.0 升级
+
+2.0 没有「检查更新」按钮，需要手动升级一次：
+
+```sh
+# 1. 停掉 dsh web，备份数据
+cp -r "$DSH_HOME/blue" "$DSH_HOME/blue.backup.$(date +%s)"
+
+# 2. 安装 3.x
+dsh plugin --profile desktop add \
+  https://cdn.jsdelivr.net/gh/FGCGDroid/blue@v3.0.7/releases/dsh-blue-team-mode-3.0.7.tgz
+
+# 3. 启动 dsh web
+```
+
+首次启动会自动把 2.0 的 `blue.db` 迁移到 3.x 结构，迁移前备份在 `$DSH_HOME/blue/backups/`。
+
+回滚：
+
+```sh
+node node_modules/dsh-blue-team-mode/scripts/rollback-v3.mjs
+```
+
+升级后 3.x 自带「检查更新」按钮，以后发版点按钮即可，不需要再敲命令。
 
 第一条消息必须是：
 
@@ -52,7 +88,7 @@ dsh plugin --profile desktop add dsh-blue-team-mode
 
 ```sh
 dsh plugin --profile desktop add \
-  https://github.com/FGCGDroid/blue/releases/download/v1.5.2/dsh-blue-team-mode-1.5.2.tgz
+  https://cdn.jsdelivr.net/gh/FGCGDroid/blue@v3.0.7/releases/dsh-blue-team-mode-3.0.7.tgz
 # 装完重启一次 dsh web
 ```
 
@@ -234,6 +270,8 @@ $DSH_HOME/blue/
 
 ## 更新与支持
 
+- **npm 已停止发布**：作者 npm 账号被封（无法登录/发布），npm 上停留在旧的 2.0.0；3.x 请从 GitHub Release 或 jsDelivr 安装。
+- 3.x 面板右上角「检查更新」可一键下载安装最新版（更新走 GitHub API + jsDelivr，避开被墙的 Release 下载域名）。
 - 更新记录：[CHANGELOG](CHANGELOG.md)
 - 版本发布：[GitHub Releases](https://github.com/FGCGDroid/blue/releases)
 - 安全问题：[SECURITY](SECURITY.md)

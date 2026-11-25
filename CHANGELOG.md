@@ -1,5 +1,16 @@
 # Changelog
 
+## 3.0.7 — 2026-11-25（更新检查加速）
+
+### Added
+
+- 控制台「检查更新」按钮：GitHub API 取最新 Release，1 分钟缓存，一键下载安装。
+- README 增加「从 2.0 升级」与 npm 停止发布说明。
+
+### Changed
+
+- 更新包改由 jsDelivr 分发，避开 `objects.githubusercontent.com` 在部分网络不可达的问题。
+
 ## 3.0.0 — 2026-11-25（正式版）
 
 ### Added
