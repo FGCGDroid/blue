@@ -25,7 +25,9 @@ export function createCollector(store, options = {}) {
     for (const source of sources) {
       try {
         const loaded = store.readJsonl(source.path, { maxEvents: 20000 })
-        const start = Math.min(source.cursor, loaded.events.length)
+        const len = loaded.events.length
+        // 游标到达读取上限或超过文件长度时，回退扫描最近 500 条，避免永久卡死
+        const start = source.cursor >= len || source.cursor >= 20000 ? Math.max(0, len - 500) : source.cursor
         const raw = loaded.events.slice(start)
         if (raw.length === 0) continue
         let suppress = []
