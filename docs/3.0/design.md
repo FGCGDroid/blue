@@ -1,6 +1,6 @@
 # 3.0 详细设计
 
-> 状态：立项后设计稿，未开工  
+> 状态：M1 骨架已建立，未实现业务
 > 基线：2.0.0（`646a8ea`）  
 > 适用：3.0.0（内核）与 3.1.0（控制台）  
 > 本文是实现依据；与 `docs/3.0/README.md`、`backlog.md`、`decisions.md` 一起读。
@@ -733,6 +733,7 @@ normalizeRequestPath(rawUrl, policy) -> {
 4. 以 * 开头：拒绝 ASTERISK_FORM
 5. 不含 / 开头：拒绝 NOT_ORIGIN_FORM
 6. 按第一个 ? 切分 path 与 query
+6.1 path 含 # → 拒绝 FRAGMENT
 7. path 中不允许控制字符（0x00-0x1f、0x7f）
 8. path 中不允许反斜杠
 8.1 原始 path 含 %2f 或 %5c（大小写不敏感）→ 拒绝 ENCODED_SEPARATOR
@@ -1353,6 +1354,8 @@ node scripts/validate.mjs
 
 ### M0 契约基线（2 周）
 
+状态：已完成（2026-11-17，`docs/3.0-contract.md`）。
+
 ```text
 docs/3.0-contract.md
 test/vectors/state.json
@@ -1372,6 +1375,8 @@ scripts/parity.mjs
 
 ### M1 骨架（2 周）
 
+状态：已完成（2026-11-17，`v3/`，102 个 JS；23 个工具组、73 个工具名已登记）。
+
 ```text
 v3/ 目录
 依赖检查脚本
@@ -1387,6 +1392,8 @@ v3/index.js 能挂载
 ```
 
 ### M2 数据层（3–4 周）
+
+状态：已完成（2026-11-17；8 个 repo、2.0 迁移、备份与回滚）。
 
 ```text
 sqlite db + migrations
@@ -1407,6 +1414,8 @@ verifyTimeline 通过
 
 ### M3 路径阻断 + 策略（8 周）
 
+状态：已完成（2026-11-17；40 条向量、独立网关、canary、metrics、热加载）。
+
 ```text
 normalize
 policy engine：validate / test / diff / reload
@@ -1426,6 +1435,8 @@ K4 指标可抓取，策略摘要可见
 ```
 
 ### M3.5 跨越能力（4 周）
+
+状态：已完成（2026-11-17；manual/mock 执行器、dry-run/apply/rollback、file/https 外锚）。
 
 ```text
 response_execute：dry-run / apply / rollback

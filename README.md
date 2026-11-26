@@ -15,17 +15,53 @@
 > ✅ 当前稳定版是 `2.0.0`，已发布到 npm。
 > 从 `1.5.4` 升级前先备份 `$DSH_HOME/blue/blue.db`；回滚见 `docs/release-2.0.md`。
 > DSH 兼容：最低 `0.2.1-rc.1`，当前验证 `0.2.2-rc.3`；详见 `docs/compatibility.md`。
-> 🧭 3.0 已立项，尚未开工；目标是 2.0 的能力超集，范围见 `docs/3.0/README.md`，详细设计见 `docs/3.0/design.md`。
+> 🧭 3.0 已开工：M0–M3.5、M4 全量 80/80 工具（含“保护我的服务器”向导、ctf_lab 适配器、打法知识库、只读复核、远程日志采集、证据 artifact、SSH/云审批）、M5 Host API 已完成；下一步影子双跑/3.0.0。目标是 2.0 的能力超集，范围见 `docs/3.0/README.md`，详细设计见 `docs/3.0/design.md`。
 
 ---
 
 ## 安装
 
+> **不再发布到 npm**：作者的 npm 账号被封，无法登录也无法发布会话，因此改为 GitHub Release + jsDelivr 分发。请不要再执行 `npm install dsh-blue-team-mode`，npm 上只有旧的 2.0.0。
+
+推荐用 GitHub Release 附件（国内走 jsDelivr 镜像，比 GitHub 下载域名稳定）：
+
 ```sh
-dsh plugin --profile desktop add dsh-blue-team-mode
+dsh plugin --profile desktop add \
+  https://cdn.jsdelivr.net/gh/FGCGDroid/blue@v3.0.7/releases/dsh-blue-team-mode-3.0.7.tgz
+```
+
+或从 [Releases](https://github.com/FGCGDroid/blue/releases) 下载 tgz 后本地安装：
+
+```sh
+dsh plugin --profile desktop add ./dsh-blue-team-mode-3.0.7.tgz
 ```
 
 装完**重启一次 `dsh web`**，在助手栏选择预设 **蓝队防御模式**。
+
+### 从 2.0 升级
+
+2.0 没有「检查更新」按钮，需要手动升级一次：
+
+```sh
+# 1. 停掉 dsh web，备份数据
+cp -r "$DSH_HOME/blue" "$DSH_HOME/blue.backup.$(date +%s)"
+
+# 2. 安装 3.x
+dsh plugin --profile desktop add \
+  https://cdn.jsdelivr.net/gh/FGCGDroid/blue@v3.0.7/releases/dsh-blue-team-mode-3.0.7.tgz
+
+# 3. 启动 dsh web
+```
+
+首次启动会自动把 2.0 的 `blue.db` 迁移到 3.x 结构，迁移前备份在 `$DSH_HOME/blue/backups/`。
+
+回滚：
+
+```sh
+node node_modules/dsh-blue-team-mode/scripts/rollback-v3.mjs
+```
+
+升级后 3.x 自带「检查更新」按钮，以后发版点按钮即可，不需要再敲命令。
 
 第一条消息必须是：
 
@@ -52,7 +88,7 @@ dsh plugin --profile desktop add dsh-blue-team-mode
 
 ```sh
 dsh plugin --profile desktop add \
-  https://github.com/FGCGDroid/blue/releases/download/v1.5.2/dsh-blue-team-mode-1.5.2.tgz
+  https://cdn.jsdelivr.net/gh/FGCGDroid/blue@v3.0.7/releases/dsh-blue-team-mode-3.0.7.tgz
 # 装完重启一次 dsh web
 ```
 
@@ -100,7 +136,7 @@ dsh plugin --profile desktop add .
 
 ## 功能
 
-- **一套角色分工**：主会话只做指挥（计划、派活、核对落库、汇报），动手的活交给监控值守 / 情报分析 / 威胁狩猎 / 应急响应 / 取证分析 / 加固修复六个执行角色，默认 3 个并发（可配置）。
+- **一套角色分工**：主会话只做指挥（计划、派活、核对落库、汇报），动手的活交给监控值守 / 情报分析 / 威胁狩猎 / 应急响应 / 取证分析 / 加固修复六个执行角色，默认 4 个并发（可配置）。
 - **开工前预检**：`blue_preflight` 检查本机工具链和 key，缺什么、能降级到什么方案，一次说清；不假装工具可用。
 - **风险闸**：高风险动作（隔离、封禁、删除、改防火墙、杀进程、重置凭据）进入 `pending_approval`，必须人工批准后才能派发；不会自动执行。
 - **自主派发**：`blue_autopilot` 生成候选任务、按并发名额领取、派给对应角色；子智能体回报后查库核对，再回收闭环。带轮次上限和冷却。
@@ -234,6 +270,8 @@ $DSH_HOME/blue/
 
 ## 更新与支持
 
+- **npm 已停止发布**：作者 npm 账号被封（无法登录/发布），npm 上停留在旧的 2.0.0；3.x 请从 GitHub Release 或 jsDelivr 安装。
+- 3.x 面板右上角「检查更新」可一键下载安装最新版（更新走 GitHub API + jsDelivr，避开被墙的 Release 下载域名）。
 - 更新记录：[CHANGELOG](CHANGELOG.md)
 - 版本发布：[GitHub Releases](https://github.com/FGCGDroid/blue/releases)
 - 安全问题：[SECURITY](SECURITY.md)

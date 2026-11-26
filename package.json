@@ -1,6 +1,6 @@
 {
   "name": "dsh-blue-team-mode",
-  "version": "2.0.0",
+  "version": "3.0.7",
   "description": "CTF 网络攻防蓝队防御模式：资产盘点、告警研判、威胁狩猎、应急响应、取证分析与加固修复，内置 SQLite 事实库、独立右侧栏控制台与自主任务派发队列。",
   "license": "MIT",
   "author": "FGCGDroid",
@@ -45,6 +45,28 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "validate": "node scripts/validate.mjs",
+    "check:v3": "node scripts/check-v3-layers.mjs",
+    "test:v3": "node scripts/test-v3-skeleton.mjs && node scripts/check-dsh-retired-rows.mjs && node scripts/test-v3-tools.mjs && node scripts/test-v3-db.mjs && node scripts/test-v3-hardening.mjs && node scripts/test-v3-facts.mjs && node scripts/test-v3-repos.mjs && node scripts/test-v3-rollback.mjs && node scripts/test-v3-path.mjs && node scripts/test-v3-gateway.mjs && node scripts/test-v3-attack-methods.mjs && node scripts/test-unattended-agent.mjs && node scripts/test-v3-response.mjs && node scripts/test-v3-anchor.mjs && node scripts/test-v3-ui.mjs",
+    "test:v3:tools": "node scripts/test-v3-tools.mjs",
+    "test:v3:db": "node scripts/test-v3-db.mjs",
+    "check:dsh": "node scripts/check-dsh-retired-rows.mjs",
+    "test:v3:hardening": "node scripts/test-v3-hardening.mjs",
+    "test:v3:facts": "node scripts/test-v3-facts.mjs",
+    "test:v3:repos": "node scripts/test-v3-repos.mjs",
+    "test:v3:rollback": "node scripts/test-v3-rollback.mjs",
+    "test:v3:response": "node scripts/test-v3-response.mjs",
+    "test:v3:anchor": "node scripts/test-v3-anchor.mjs",
+    "rollback:v3": "node scripts/rollback-v3.mjs",
+    "lab": "node lab/start.mjs",
+    "test:lab": "node lab/scenarios/acceptance.mjs && node lab/scenarios/vectors.mjs",
+    "test:lab:vectors": "node lab/scenarios/vectors.mjs",
+    "soak:lab": "node lab/scenarios/soak.mjs --duration 60 --concurrency 4 --rate 40",
+    "soak:lab:24h": "node lab/scenarios/soak.mjs --duration 86400 --concurrency 8 --rate 40",
+    "test:v3:path": "node scripts/test-v3-path.mjs",
+    "test:v3:gateway": "node scripts/test-v3-gateway.mjs",
+    "test:v3:attack": "node scripts/test-v3-attack-methods.mjs",
+    "vectors": "node scripts/generate-vectors.mjs",
+    "parity": "node scripts/parity.mjs --engine=2.0",
     "check": "node scripts/check-compliance.mjs --selftest",
     "hooks": "node scripts/install-hooks.mjs",
     "maintenance": "node scripts/maintenance-check.mjs --full",
@@ -56,7 +78,8 @@
     "test:compat": "node scripts/test-compat.mjs",
     "test:e2e": "node scripts/test-ui-e2e.mjs",
     "test": "node scripts/test-tools.mjs && node scripts/test-ui.mjs && node scripts/test-hunter.mjs && node scripts/test-inline-gateway.mjs && node scripts/test-decoy-server.mjs && node scripts/test-migration.mjs && node scripts/test-compat.mjs && node scripts/test-otlp.mjs",
-    "prepack": "node scripts/build.mjs"
+    "prepack": "node scripts/build.mjs",
+    "test:v3:ui": "node scripts/test-v3-ui.mjs"
   },
   "bin": {
     "dsh-blue-decoy": "scripts/decoy-server.mjs"

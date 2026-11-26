@@ -2,5 +2,8 @@ node_modules/
 .tmp/
 .ref/
 dist/
+lab/.run/
 .npmrc
 *.log
+shadow-test-result.txt
+compare-2.0-3.0-result.txt

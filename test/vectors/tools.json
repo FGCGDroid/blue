@@ -1,0 +1,2022 @@
+{
+  "schema": "dsh-blue-v3/tools@1",
+  "note": "只冻结名称、参数 schema、输出 type；描述可以改。",
+  "count": 66,
+  "roles": {
+    "monitor": 56,
+    "intel": 49,
+    "hunt": 59,
+    "ir": 59,
+    "forensics": 55,
+    "hardening": 56,
+    "worker": 60
+  },
+  "tools": [
+    {
+      "name": "blue_access_log_ingest",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "path": {
+            "type": "string",
+            "description": "访问日志路径；默认 $DSH_HOME/ctf-lab/access.jsonl"
+          },
+          "max_events": {
+            "type": "number",
+            "description": "最多读取事件数，默认 2000"
+          },
+          "max_alerts": {
+            "type": "number",
+            "description": "最多生成告警数，默认 50"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_alert_ingest",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "title": {
+            "type": "string",
+            "description": "告警标题"
+          },
+          "severity": {
+            "type": "string",
+            "description": "critical/high/medium/low/info"
+          },
+          "source": {
+            "type": "string",
+            "description": "来源系统"
+          },
+          "confidence": {
+            "type": "string",
+            "description": "置信度：low/medium/high"
+          },
+          "task_id": {
+            "type": "string",
+            "description": "（可选）关联任务 id，用于任务→证据回溯"
+          },
+          "external_id": {
+            "type": "string",
+            "description": "来源侧唯一 id"
+          },
+          "raw": {
+            "type": "string",
+            "description": "原始日志/JSON"
+          },
+          "note": {
+            "type": "string",
+            "description": "初判备注"
+          },
+          "event_time": {
+            "type": "string",
+            "description": "事件发生时间（ISO8601/原始时间字符串），与入库时间分开保存"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_alert_list",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "status": {
+            "type": "string",
+            "description": "open/investigating/contained/closed/false_positive"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_alert_triage",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "id": {
+            "type": "string",
+            "description": "告警 id（ALT-...）"
+          },
+          "status": {
+            "type": "string",
+            "description": "open/investigating/contained/closed/false_positive"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "assignee": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string",
+            "description": "研判结论与依据"
+          },
+          "confidence": {
+            "type": "string",
+            "description": "研判置信度：low/medium/high"
+          },
+          "create_task": {
+            "type": "boolean",
+            "description": "是否创建处置任务"
+          },
+          "role": {
+            "type": "string",
+            "description": "任务角色：monitor/intel/hunt/ir/forensics/hardening"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_artifact_triage",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "path": {
+            "type": "string",
+            "description": "样本/文件绝对路径"
+          },
+          "max_strings": {
+            "type": "number",
+            "description": "默认 80"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_asset_add",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "name": {
+            "type": "string",
+            "description": "资产名称/域名/用途"
+          },
+          "address": {
+            "type": "string",
+            "description": "IP、域名或 URL"
+          },
+          "kind": {
+            "type": "string",
+            "description": "host/web/api/db/vpn/cloud/container/other"
+          },
+          "port": {
+            "type": "number",
+            "description": "端口（没有就不填）"
+          },
+          "service": {
+            "type": "string",
+            "description": "服务/中间件/版本"
+          },
+          "criticality": {
+            "type": "string",
+            "description": "critical/high/medium/low"
+          },
+          "owner": {
+            "type": "string",
+            "description": "负责人/业务方"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "标签，例如 [\"flag\",\"对外\",\"登录\"]"
+          },
+          "evidence": {
+            "type": "string",
+            "description": "归属/暴露面证据"
+          },
+          "status": {
+            "type": "string",
+            "description": "in_scope/out_of_scope/unknown/retired"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_asset_query",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "q": {
+            "type": "string",
+            "description": "关键词（名称/地址/服务/负责人）"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "criticality": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number",
+            "description": "默认 200，最大 1000"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_attack_coverage",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_audit_anchor",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "actor": {
+            "type": "string",
+            "description": "操作者，默认 commander"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_audit_anchor_verify",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_audit_verify",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_autopilot",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "action": {
+            "type": "string",
+            "description": "status/plan/next/cycle/complete/set_slots"
+          },
+          "task_id": {
+            "type": "string",
+            "description": "complete 时必填"
+          },
+          "result": {
+            "type": "string",
+            "description": "complete 的结果摘要"
+          },
+          "status": {
+            "type": "string",
+            "description": "complete 的状态：done/blocked"
+          },
+          "slots": {
+            "type": "number",
+            "description": "set_slots 的并发数（1–8）"
+          },
+          "limit": {
+            "type": "number",
+            "description": "plan/cycle 最多生成/领取多少条（默认 6/名额）"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_containment_plan",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "incident_type": {
+            "type": "string",
+            "description": "事件类型"
+          },
+          "asset": {
+            "type": "string",
+            "description": "受影响资产/主机"
+          },
+          "notes": {
+            "type": "string",
+            "description": "已知情况"
+          }
+        },
+        "required": [
+          "incident_type"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_control_list",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_control_scan",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_cve_campaign",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "cve": {
+            "type": "string",
+            "description": "（可选）只针对一个 CVE"
+          },
+          "asset": {
+            "type": "string",
+            "description": "（可选）只针对一个资产 id/名称"
+          },
+          "create": {
+            "type": "boolean",
+            "description": "是否真的创建任务；默认 false，只返回计划"
+          },
+          "limit": {
+            "type": "number",
+            "description": "最多生成任务数，默认 20"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_cve_pack",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "（可选）精确 CVE 编号，例如 CVE-2026-109618"
+          },
+          "query": {
+            "type": "string",
+            "description": "（可选）按编号/标题/产品搜索"
+          },
+          "product": {
+            "type": "string",
+            "description": "（可选）产品过滤，例如 PHP/Node.js/Ivanti"
+          },
+          "include_actions": {
+            "type": "boolean",
+            "description": "是否返回缓解动作，默认 true"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_cve_scan",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "本地日志/文本路径"
+          },
+          "text": {
+            "type": "string",
+            "description": "或直接给文本"
+          },
+          "max_hits": {
+            "type": "number",
+            "description": "最多命中数，默认 100"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_deception_plan",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_decision_add",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "incident_id": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "alert_id": {
+            "type": "string"
+          },
+          "decision": {
+            "type": "string",
+            "description": "例如 isolate_host / escalate / false_positive"
+          },
+          "rationale": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": "string",
+            "description": "low/medium/high"
+          },
+          "evidence": {
+            "type": "string"
+          },
+          "actor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_decision_list",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "incident_id": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "alert_id": {
+            "type": "string"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_decoy_create",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "kind": {
+            "type": "string",
+            "description": "canary_file/canary_url/fake_admin/fake_credential/tarpit"
+          },
+          "name": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string",
+            "description": "授权范围内的目标主机/URL"
+          },
+          "note": {
+            "type": "string"
+          },
+          "ttl_hours": {
+            "type": "number",
+            "description": "自动取消/下线时限，默认 24，最大 168 小时"
+          },
+          "authorized": {
+            "type": "boolean",
+            "description": "必须为 true：确认目标已授权且在本场 scope 内"
+          }
+        },
+        "required": [
+          "kind",
+          "name",
+          "target",
+          "authorized"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_decoy_hit",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "decoy": {
+            "type": "string",
+            "description": "诱饵 id"
+          },
+          "source": {
+            "type": "string",
+            "description": "来源 IP/服务/日志来源"
+          },
+          "evidence": {
+            "type": "string",
+            "description": "原始证据（请求行、日志片段、文件访问记录）"
+          },
+          "severity": {
+            "type": "string",
+            "description": "默认 high"
+          }
+        },
+        "required": [
+          "decoy"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_decoy_list",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "status": {
+            "type": "string",
+            "description": "planned/active/retired"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_decoy_sync",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "path": {
+            "type": "string",
+            "description": "事件 JSONL 路径；默认 BLUE_DECOY_EVENTS 或 $DSH_HOME/blue/decoy-events.jsonl"
+          },
+          "authorized": {
+            "type": "boolean",
+            "description": "必须为 true，确认这些是已授权诱饵"
+          },
+          "max_events": {
+            "type": "number",
+            "description": "最多读取事件数，默认 2000"
+          },
+          "max_hits": {
+            "type": "number",
+            "description": "最多写入命中数，默认 200"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_decoy_update",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "description": "planned/active/retired"
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_defense_selfcheck",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "phrase": {
+            "type": "string",
+            "description": "必须原样填写用户说的：防御自检"
+          }
+        },
+        "required": [
+          "phrase"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_defense_status",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_detection_rule_add",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "rule_key": {
+            "type": "string",
+            "description": "规则唯一键，字母数字._-"
+          },
+          "title": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string",
+            "description": "critical/high/medium/low/info"
+          },
+          "selection": {
+            "type": "string",
+            "description": "JSON，例如 {\"path\":[\"/admin*\"],\"status\":[401,403]}"
+          },
+          "condition": {
+            "type": "string",
+            "description": "all 或 any，默认 all"
+          },
+          "tags": {
+            "type": "array",
+            "description": "标签数组"
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "默认 true"
+          }
+        },
+        "required": [
+          "rule_key",
+          "title",
+          "selection"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_detection_rule_list",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_detection_scan",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "source": {
+            "type": "string",
+            "description": "已登记的遥测源名称"
+          },
+          "max_events": {
+            "type": "number",
+            "description": "最多扫描事件数，默认 5000"
+          }
+        },
+        "required": [
+          "source"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_engagement_open",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "name": {
+            "type": "string",
+            "description": "防守单位/靶标名称，例如「示例靶场」「team-a 防守区」"
+          },
+          "scope": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "需要防守的域名/IP/CIDR 列表（可选）"
+          },
+          "note": {
+            "type": "string",
+            "description": "补充说明（比赛规则、重点服务、联系人）"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_evidence_export",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "path": {
+            "type": "string",
+            "description": "（可选）evidence/ 下的文件名"
+          },
+          "actor": {
+            "type": "string",
+            "description": "导出人，默认 commander"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_evidence_verify",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "证据包 JSON 路径"
+          },
+          "public_key": {
+            "type": "string",
+            "description": "（可选）信任的 PEM 公钥；默认本机审计公钥"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_finding_add",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "title": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string",
+            "description": "critical/high/medium/low/info"
+          },
+          "category": {
+            "type": "string",
+            "description": "webshell/rce/upload/weak_password/exposure/misconfig/malware/other"
+          },
+          "confidence": {
+            "type": "string",
+            "description": "置信度：low/medium/high"
+          },
+          "source": {
+            "type": "string",
+            "description": "证据来源/检测器"
+          },
+          "task_id": {
+            "type": "string",
+            "description": "（可选）产生该发现的任务 id，用于任务→证据回溯"
+          },
+          "asset_id": {
+            "type": "string"
+          },
+          "cve": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "string",
+            "description": "原始请求/日志/命令/文件路径/哈希"
+          },
+          "recommendation": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "description": "open/fixed/accepted/false_positive"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_finding_list",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "status": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_finding_update",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "description": "open/fixed/accepted/false_positive"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "cve": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "string"
+          },
+          "recommendation": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_hardening_check",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "scope": {
+            "type": "string",
+            "description": "quick（默认）/full"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_honeypot_ingest",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "target": {
+            "type": "string",
+            "description": "被击中的自有蜜罐/资产（必须在 scope 内）"
+          },
+          "source_ip": {
+            "type": "string",
+            "description": "攻击来源 IP（只做记录/研判）"
+          },
+          "payload": {
+            "type": "string",
+            "description": "蜜罐记录的原始请求/日志（不可信数据，最多 4000 字符）"
+          },
+          "path": {
+            "type": "string",
+            "description": "命中的路径/服务"
+          },
+          "user_agent": {
+            "type": "string"
+          },
+          "ban_days": {
+            "type": "number",
+            "description": "建议封禁天数，默认 7，最大 30"
+          }
+        },
+        "required": [
+          "target",
+          "source_ip"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_incident_attach",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "id": {
+            "type": "string",
+            "description": "案件 id"
+          },
+          "alert_id": {
+            "type": "string"
+          },
+          "finding_id": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_incident_list",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "status": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_incident_open",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "title": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string",
+            "description": "critical/high/medium/low/info"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_incident_update",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_ioc_add",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "type": {
+            "type": "string",
+            "description": "ip/domain/url/md5/sha1/sha256/ua/filename/other"
+          },
+          "value": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": "string",
+            "description": "high/medium/low"
+          },
+          "source": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string",
+            "description": "检测写法/误报说明"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_ioc_check",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "text": {
+            "type": "string",
+            "description": "要检查的文本"
+          },
+          "path": {
+            "type": "string",
+            "description": "要检查的本地日志文件路径"
+          },
+          "patterns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "只跑这些规则 id，例如 [\"php-webshell\",\"scanner\"]"
+          },
+          "max_hits": {
+            "type": "number",
+            "description": "默认 100"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_ioc_list",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "type": {
+            "type": "string"
+          },
+          "q": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_log_scan",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "path": {
+            "type": "string",
+            "description": "本地日志文件路径"
+          },
+          "text": {
+            "type": "string",
+            "description": "或直接给文本"
+          },
+          "patterns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "只跑指定规则 id"
+          },
+          "custom_rules": {
+            "type": "array",
+            "description": "自定义规则（最多 20 条）：id/label/regex/severity。用于覆盖业务字段，如 jwt_alg=none。",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "regex": {
+                  "type": "string"
+                },
+                "severity": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "regex"
+              ]
+            }
+          },
+          "max_hits": {
+            "type": "number",
+            "description": "默认 100"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_playbook_list",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_preflight",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_report",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "write": {
+            "type": "boolean",
+            "description": "是否写文件（默认 false，只返回 Markdown）"
+          },
+          "path": {
+            "type": "string",
+            "description": "自定义输出路径（可选）"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_response_list",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "status": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_response_plan",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "action": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "rollback": {
+            "type": "string",
+            "description": "回滚方案，不能为空"
+          },
+          "incident_id": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "target",
+          "rollback"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_response_update",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "string"
+          },
+          "actor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_risk_graph",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_scope_check",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "target": {
+            "type": "string",
+            "description": "IP / 域名 / URL"
+          }
+        },
+        "required": [
+          "target"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_session_info",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_tarpit_plan",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "ssh_port": {
+            "type": "number",
+            "description": "Endlessh 监听端口，默认 2222；不要和真实 sshd 冲突"
+          },
+          "http_port": {
+            "type": "number",
+            "description": "HTTP 假路径端口，默认 80"
+          },
+          "ban_days": {
+            "type": "number",
+            "description": "fail2ban 封禁天数，默认 7，最大 30"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_task_approve",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "actor": {
+            "type": "string",
+            "description": "审批人（控制台用户名或 human operator），不能为空"
+          },
+          "note": {
+            "type": "string",
+            "description": "审批备注/放行条件"
+          }
+        },
+        "required": [
+          "task_id",
+          "actor"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_task_create",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "role": {
+            "type": "string",
+            "description": "monitor/intel/hunt/ir/forensics/hardening"
+          },
+          "title": {
+            "type": "string"
+          },
+          "brief": {
+            "type": "string",
+            "description": "目标、已知事实、已做过什么、期望产出"
+          },
+          "priority": {
+            "type": "string",
+            "description": "P0/P1/P2/P3"
+          },
+          "acceptance": {
+            "type": "string"
+          },
+          "asset_id": {
+            "type": "string"
+          },
+          "alert_id": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string",
+            "description": "任务范围（资产/IP 段/URL），写入 TaskSpec"
+          },
+          "constraints": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "只读/可隔离/不可删除等硬约束"
+          },
+          "expected_output": {
+            "type": "object",
+            "description": "期望写回的表/字段/证据要求"
+          },
+          "risk_level": {
+            "type": "string",
+            "description": "low/medium/high；high 只能进入待审批"
+          },
+          "requires_approval": {
+            "type": "boolean",
+            "description": "是否必须人工放行；high 会强制为 true"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_task_list",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "status": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_task_update",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "result": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "assignee": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "constraints": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "expected_output": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_telemetry_health",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_telemetry_poll",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "name": {
+            "type": "string",
+            "description": "（可选）只轮询某个源"
+          },
+          "max_alerts": {
+            "type": "number",
+            "description": "单次最多写入告警数，默认 200"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_telemetry_source_add",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "name": {
+            "type": "string",
+            "description": "源名称，字母数字._-，用于去重"
+          },
+          "path": {
+            "type": "string",
+            "description": "JSONL / access log 文件路径"
+          },
+          "kind": {
+            "type": "string",
+            "description": "jsonl 或 access（默认 jsonl）"
+          }
+        },
+        "required": [
+          "name",
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_timeline",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "mode": {
+            "type": "string",
+            "description": "add（默认）/ list"
+          },
+          "actor": {
+            "type": "string",
+            "description": "monitor/hunt/ir/forensics/hardening/commander/system"
+          },
+          "event": {
+            "type": "string",
+            "description": "事件类型，例如 containment/eradication/recovery/evidence"
+          },
+          "target": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "blue_tool_catalog",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "engagement": {
+            "type": "string",
+            "description": "（可选）防守目标 id 或名称；默认用当前会话绑定"
+          },
+          "category": {
+            "type": "string",
+            "description": "traffic/host/log/detect/forensics/vuln/identity/cloud/orchestration；省略返回全部"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "string"
+      }
+    }
+  ]
+}

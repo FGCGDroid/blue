@@ -1,0 +1,275 @@
+{
+  "schema": "dsh-blue-v3/state@1",
+  "note": "同状态迁移返回 true，是 2.0 的既有语义；不是新允许的边。",
+  "statuses": [
+    "queued",
+    "pending_approval",
+    "dispatched",
+    "running",
+    "done",
+    "blocked",
+    "cancelled"
+  ],
+  "terminal": [
+    "done",
+    "blocked",
+    "cancelled"
+  ],
+  "open": [
+    "queued",
+    "pending_approval",
+    "dispatched",
+    "running"
+  ],
+  "active": [
+    "dispatched",
+    "running"
+  ],
+  "transitions": [
+    {
+      "from": "queued",
+      "to": "queued",
+      "allowed": true
+    },
+    {
+      "from": "queued",
+      "to": "pending_approval",
+      "allowed": false
+    },
+    {
+      "from": "queued",
+      "to": "dispatched",
+      "allowed": true
+    },
+    {
+      "from": "queued",
+      "to": "running",
+      "allowed": false
+    },
+    {
+      "from": "queued",
+      "to": "done",
+      "allowed": false
+    },
+    {
+      "from": "queued",
+      "to": "blocked",
+      "allowed": false
+    },
+    {
+      "from": "queued",
+      "to": "cancelled",
+      "allowed": true
+    },
+    {
+      "from": "pending_approval",
+      "to": "queued",
+      "allowed": true
+    },
+    {
+      "from": "pending_approval",
+      "to": "pending_approval",
+      "allowed": true
+    },
+    {
+      "from": "pending_approval",
+      "to": "dispatched",
+      "allowed": false
+    },
+    {
+      "from": "pending_approval",
+      "to": "running",
+      "allowed": false
+    },
+    {
+      "from": "pending_approval",
+      "to": "done",
+      "allowed": false
+    },
+    {
+      "from": "pending_approval",
+      "to": "blocked",
+      "allowed": false
+    },
+    {
+      "from": "pending_approval",
+      "to": "cancelled",
+      "allowed": true
+    },
+    {
+      "from": "dispatched",
+      "to": "queued",
+      "allowed": false
+    },
+    {
+      "from": "dispatched",
+      "to": "pending_approval",
+      "allowed": false
+    },
+    {
+      "from": "dispatched",
+      "to": "dispatched",
+      "allowed": true
+    },
+    {
+      "from": "dispatched",
+      "to": "running",
+      "allowed": true
+    },
+    {
+      "from": "dispatched",
+      "to": "done",
+      "allowed": true
+    },
+    {
+      "from": "dispatched",
+      "to": "blocked",
+      "allowed": true
+    },
+    {
+      "from": "dispatched",
+      "to": "cancelled",
+      "allowed": true
+    },
+    {
+      "from": "running",
+      "to": "queued",
+      "allowed": false
+    },
+    {
+      "from": "running",
+      "to": "pending_approval",
+      "allowed": false
+    },
+    {
+      "from": "running",
+      "to": "dispatched",
+      "allowed": false
+    },
+    {
+      "from": "running",
+      "to": "running",
+      "allowed": true
+    },
+    {
+      "from": "running",
+      "to": "done",
+      "allowed": true
+    },
+    {
+      "from": "running",
+      "to": "blocked",
+      "allowed": true
+    },
+    {
+      "from": "running",
+      "to": "cancelled",
+      "allowed": true
+    },
+    {
+      "from": "done",
+      "to": "queued",
+      "allowed": false
+    },
+    {
+      "from": "done",
+      "to": "pending_approval",
+      "allowed": false
+    },
+    {
+      "from": "done",
+      "to": "dispatched",
+      "allowed": false
+    },
+    {
+      "from": "done",
+      "to": "running",
+      "allowed": false
+    },
+    {
+      "from": "done",
+      "to": "done",
+      "allowed": true
+    },
+    {
+      "from": "done",
+      "to": "blocked",
+      "allowed": false
+    },
+    {
+      "from": "done",
+      "to": "cancelled",
+      "allowed": false
+    },
+    {
+      "from": "blocked",
+      "to": "queued",
+      "allowed": false
+    },
+    {
+      "from": "blocked",
+      "to": "pending_approval",
+      "allowed": false
+    },
+    {
+      "from": "blocked",
+      "to": "dispatched",
+      "allowed": false
+    },
+    {
+      "from": "blocked",
+      "to": "running",
+      "allowed": false
+    },
+    {
+      "from": "blocked",
+      "to": "done",
+      "allowed": false
+    },
+    {
+      "from": "blocked",
+      "to": "blocked",
+      "allowed": true
+    },
+    {
+      "from": "blocked",
+      "to": "cancelled",
+      "allowed": false
+    },
+    {
+      "from": "cancelled",
+      "to": "queued",
+      "allowed": false
+    },
+    {
+      "from": "cancelled",
+      "to": "pending_approval",
+      "allowed": false
+    },
+    {
+      "from": "cancelled",
+      "to": "dispatched",
+      "allowed": false
+    },
+    {
+      "from": "cancelled",
+      "to": "running",
+      "allowed": false
+    },
+    {
+      "from": "cancelled",
+      "to": "done",
+      "allowed": false
+    },
+    {
+      "from": "cancelled",
+      "to": "blocked",
+      "allowed": false
+    },
+    {
+      "from": "cancelled",
+      "to": "cancelled",
+      "allowed": true
+    }
+  ]
+}

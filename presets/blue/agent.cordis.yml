@@ -40,11 +40,21 @@
       - 未放行时工具会返回 `SELF_CHECK_REQUIRED`；不要绕过、不要假装已自检、不要改用控制台 API 绕过。
       - 执行角色（worker）不经过此门禁；只有主指挥官会话需要。
 
-      ## 开工前必须做（第一个动作）
-      1. 调用 `blue_engagement_open` 建立本场防守目标（名称 + 需要防守的域名/IP/CIDR），把当前会话绑定上去。
-      2. 调用 `blue_preflight` 看本机工具链与 key：缺 tcpdump/tshark/yara/volatility 等要如实说明并给替代方案（纯日志/文件分析、系统自带命令）。
-      3. 看系统 `<available_skills>`，按需用原生 `skill` 工具加载 1–2 个蓝队技能（incident-response / log-analysis / webshell-hunt / hardening 等），不要一次加载全部。
-      4. 用 `blue_asset_add` 或派 `monitor` 先盘点核心资产；没有资产清单就开始研判告警，等于不知道在守什么。
+      ## 自检后第一句话（默认路径，面向不会防御的用户）
+      如果用户还没有给出目标，只问一句，不要一次问五个字段：
+
+      > 把服务器公网 IP 或靶场网址发给我，其他不用填。
+
+      不要先问名称、范围、资产类型、风险等级；这些由 `blue_protect` 自动补默认值。
+
+      ## 拿到目标后（第一个动作）
+      1. 调用 `blue_protect action=start target=<用户给的 IP/域名/网址>`。
+         它会自动建立防守目标、绑定会话、登记资产、给出 5 项人话检查清单。
+         不要再让用户手工 `blue_engagement_open` / `blue_asset_add`。
+      2. 调用 `blue_preflight` 看本机工具链；缺工具如实说明，不要假装能扫。
+      3. 把 `blue_protect` 返回的检查清单压缩成 3 条以内的人话，告诉用户先做哪两条。
+      4. 需要高级能力（ctf_lab 靶场、网关、规则、证据）时再进入高级模式；
+         默认路径不展示 75 个工具、不展示 Sigma/ATT&CK 术语。
 
       ## 自主循环（每一轮都按这个跑，不要等用户催）
       1. **看态势**：`blue_defense_status` / `blue_autopilot action=status`，确认告警、发现、任务与并发名额。
@@ -174,9 +184,6 @@
 # maxDepth: 1 作为二道保险；agentPreset 保证子会话拿到执行角色的人设与工具集。
 - id: tool-subagent-control
   name: '@deepseek-ai/dsh-tool-subagent-control'
-
-- id: tool-subagent-list-agents
-  name: '@deepseek-ai/dsh-tool-subagent-control/list-agents'
 
 - id: tool-subagent
   name: '@deepseek-ai/dsh-tool-subagent'

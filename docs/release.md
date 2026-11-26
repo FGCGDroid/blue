@@ -1,203 +1,96 @@
-# 发布流程
+# 发布流程（3.0）
+
+> 最后更新：2026-11-26，对应 3.0.7
+> **npm 已停用**：作者 npm 账号被封，无法登录和发布；3.x 只走 GitHub Release + jsDelivr。
 
 ## 当前发布状态
 
 ```text
-稳定版：2.0.0
-npm latest：2.0.0
-GitHub Release：v2.0.0
-beta：2.0.0-beta.32
-市场 catalog：可能仍显示 1.5.4，等待重建
+稳定版：3.0.7
+npm latest：2.0.0（冻结，不再更新）
+GitHub Release：v3.0.7
+更新分发：cdn.jsdelivr.net/gh/FGCGDroid/blue@vX.Y.Z/releases/*.tgz
+分支：3.0-dev
 ```
 
-## 分支
+## 分发方式
 
 ```text
-main                默认分支，2.0.x 稳定线
-release/1.5.4       1.5.4 历史稳定提交
-2.0-dev             2.0 beta 历史分支
-automation/maintenance  巡检脚本
+1. GitHub Release 附件（留档、给人手动下载）
+2. 仓库 releases/ 目录（同样的 tgz，供 jsDelivr 直接读）
 ```
 
-1.5.x 和 2.0 不要强行合并。  
-它们的数据模型和工具数不同。
+`objects.githubusercontent.com` 在部分网络不可达，所以**更新按钮不走 Release 下载域名**，只走 jsDelivr。
 
-## 版本号
-
-```text
-稳定：2.0.x
-测试：2.0.0-beta.x（历史）
-```
-
-规则：
-
-```text
-文档/元数据：patch
-兼容性修复：patch
-新功能：minor（稳定线）
-破坏性变更：major（2.0）
-```
-
-## 发布前
+## 发版步骤
 
 ```bash
-npm test
-node scripts/build.mjs
-node scripts/validate.mjs
-node scripts/check-compliance.mjs --selftest
-npm pack --dry-run
+# 1. 改版本号（package.json）与 update.json
+node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json','utf8'));p.version='3.0.8';fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n')"
+
+# 2. 构建
+BLUE_VERSION=3.0.8 node scripts/build-v3-beta.mjs
+
+# 3. 放进仓库（jsDelivr 从这里读）
+mkdir -p releases
+cp dist/dsh-blue-team-mode-3.0.8.tgz releases/
+
+# 4. 改 update.json（version / url / asset，asset 指向新 tag）
+# 5. 提交、打 tag、推送
+git add -A && git commit -m "release: 3.0.8"
+git tag v3.0.8
+git push && git push origin v3.0.8
+
+# 6. GitHub Release（可选但建议留档）
+gh release create v3.0.8 --title "v3.0.8" --notes "..." "dist/dsh-blue-team-mode-3.0.8.tgz"
 ```
 
-稳定线还要：
+## 更新按钮的工作方式
+
+```text
+检查：GET api.github.com/repos/FGCGDroid/blue/releases/latest（60 秒缓存）
+比较：tag 与当前版本
+下载：cdn.jsdelivr.net/gh/FGCGDroid/blue@v<tag>/releases/dsh-blue-team-mode-<tag>.tgz
+安装：dsh plugin --profile desktop add <下载文件>
+重启：由用户手动重启 DSH（不做自动重启，避免 Windows 文件占用导致崩溃）
+```
+
+## 发布前检查
 
 ```bash
 node scripts/test-tools.mjs
 node scripts/test-ui.mjs
+node scripts/validate.mjs
+node scripts/build.mjs
 ```
 
-## 稳定版发布
-
-```bash
-# 在稳定 worktree
-npm pack --pack-destination dist
-npm publish dist/dsh-blue-team-mode-<version>.tgz --tag latest --access public
-```
-
-然后：
+## 版本号规则
 
 ```text
-git tag v<version>
-GitHub Release（非 prerelease）
-上传 tarball
-```
-
-## beta 发布
-
-```bash
-npm publish dist/dsh-blue-team-mode-<beta>.tgz --tag beta --access public
-```
-
-要求：
-
-```text
-latest 不动
-GitHub Release 标记 prerelease
-说明里写清实验性
-```
-
-## GitHub Release
-
-```text
-tag: v2.0.0
-name: v2.0.0 — 蓝队防御模式稳定版
-asset: dsh-blue-team-mode-2.0.0.tgz
-prerelease: false
-```
-
-beta：
-
-```text
-tag: v2.0.0-beta.32
-prerelease: true
-```
-
-## 市场 catalog
-
-市场版本不是 `main` 的 YAML 直接给的。
-
-链路：
-
-```text
-data/plugins/*.yml（描述）
-→ npm 探测
-→ data/npm-map.json
-→ docs/index.json
-→ dsh-plugin-catalog
-→ 市场
-```
-
-所以：
-
-```text
-改 YAML ≠ 改版本
-发 npm ≠ 市场立刻更新
-```
-
-更新需要：
-
-```text
-awesome-dsh-plugin 的 Build site from README
-probe_all=true
-skip_probes=false
-```
-
-没有 admin 权限时：
-
-```text
-等每日/每周 catalog 构建
+文档/元数据：patch
+兼容性修复：patch
+新功能：minor
+破坏性变更：major
 ```
 
 ## 回滚
 
-### npm
-
-```text
-npm dist-tag add dsh-blue-team-mode@1.5.3 latest
+```bash
+# 安装上一个 tag 的 tgz
+dsh plugin --profile desktop add \
+  https://cdn.jsdelivr.net/gh/FGCGDroid/blue@v3.0.6/releases/dsh-blue-team-mode-3.0.6.tgz
 ```
 
-### GitHub
+数据回滚（2.0 → 3.0 迁移）：
 
-```text
-删除/标记 Release
-回退 tag 指针
-发布修复版
+```bash
+node node_modules/dsh-blue-team-mode/scripts/rollback-v3.mjs
 ```
 
-### 数据
-
-发布前备份：
+## 不要做的事
 
 ```text
-$DSH_HOME/blue/blue.db
-$DSH_HOME/blue/soak-*.json
+不要 npm publish（账号不可用）
+不要把 tgz 传到 GitHub Release 后只给 Release 链接（国内下载域名超时）
+不要跳过 update.json 与 tag（更新按钮按 tag 拼地址）
 ```
-
-迁移只加不删。  
-回滚时恢复备份并重新打开旧版本。
-
-## 凭据
-
-需要：
-
-```text
-GitHub: maintain/admin
-npm: qiuhe 的 maintainer 或 automation token
-市场 catalog: awesome-dsh-plugin admin
-```
-
-不需要：
-
-```text
-把 token 写进仓库
-把 token 写进 issue
-把 token 写进聊天
-```
-
-## 发布检查表
-
-```text
-[ ] 版本号正确
-[ ] CHANGELOG 有对应条目
-[ ] README 链接指向新版本
-[ ] npm test 全绿
-[ ] build/validate 全绿
-[ ] tarball 能安装
-[ ] latest/beta tag 正确
-[ ] GitHub Release 资产上传
-[ ] 市场 catalog 已重建或已知滞后
-[ ] 回滚版本可用
-```
-
-## 一句话
-
-> 发布不是“推上去”，是“能装、能回滚、市场知道、用户不误解”。

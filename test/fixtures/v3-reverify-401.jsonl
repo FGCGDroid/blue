@@ -1,0 +1,2 @@
+{"event":{"severity":"high"},"http":{"status":401},"path":"/admin/login","remote":"127.0.0.1","method":"POST","at":"2026-11-19T00:00:00Z"}
+{"event":{"severity":"high"},"http":{"status":200},"path":"/admin/login","remote":"127.0.0.1","method":"GET","at":"2026-11-19T00:00:01Z"}

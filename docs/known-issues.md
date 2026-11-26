@@ -1,200 +1,99 @@
-# 已知问题与欠债
+# 已知问题与结构债
 
-> 最后更新：2026-11-17
+> 最后更新：2026-11-26（3.0.7）
 > 这些不是“以后再说”，是维护者必须先知道的坑。
 
-## 1. 市场 catalog 滞后
+## 1. npm 已不可用
 
 ```text
-npm latest：2.0.0
-catalog：可能仍显示 1.5.4
+作者 npm 账号被封，无法登录/发布
+npm 上只有 2.0.0，且不再更新
 ```
 
-原因：
+处理：3.x 只走 GitHub Release + jsDelivr；不要尝试 `npm publish`，也不要在文档里写 npm 安装。
+
+## 2. GitHub Release 下载域名在部分网络不可达
 
 ```text
-catalog 由 awesome-dsh-plugin 的 probe 生成
-不是 npm 发布后立刻更新
+github.com/.../releases/download → objects.githubusercontent.com
+国内经常超时
 ```
 
-解决：
+处理：更新按钮下载走 `cdn.jsdelivr.net`，GitHub Release 只做留档。
+
+## 3. jsDelivr 分支缓存会读到旧 update.json
 
 ```text
-有 admin 权限的人触发 Build site from README
-或等自动构建
+@3.0-dev 分支缓存约 12 小时
 ```
 
-注意：
+处理：update.json 只从 `raw.githubusercontent.com` 读，jsDelivr 只用于下载按 tag 固定的 tgz。
+
+## 4. 隧道会断，agent 会卡
+
+现象：
 
 ```text
-改 main 的 YAML 只改描述，不改 versions
+服务器 /var/log/blue-agent.log 刷 post_failed: fetch failed
+告警停止增长
 ```
 
-## 2. soak 是“实际采样时间”，不是连续墙钟
-
-2.0.0 的结果：
+原因与处理：
 
 ```text
-elapsed_sec：86400（24h 实际采样）
-samples：1442
-integrity：ok
-timeline：true
-alerts：0
+1. DSH 重启换端口 → 本机 ssh -R 还指向旧端口
+   杀掉 ssh -R 进程，watcher 会用新端口重建
+2. 隧道恢复后 agent 仍不post → 重启 blue-agent
+3. 采集游标卡在 20000 上限 → 3.0 起自动回退最近 500 条，
+   仍卡住时手动把 telemetry_sources.cursor 回退
 ```
 
-限制：
+## 5. CrowdSec 与站点端口冲突
 
 ```text
-墙钟跨度约 53h
-中间有 3 段暂停（约 10h / 25h / 6.7h）
-关机、休眠、退出都不计入进度
+CrowdSec 默认 LAPI 监听 8080
+站点 Node 应用也监听 8080
 ```
 
-这是 `docs/stabilization.md` 的既定口径，不是失败；
-但不要把“24h soak”理解成连续 24 小时墙钟。
+处理：本机已停用 CrowdSec；如再启用，先把 LAPI 改到 8081 并同步 bouncer 配置。
 
-## 3. CVE 数据未核验
+## 6. Windows 下不能安全自更新
 
-CVE 防御包来自用户提供的描述。
+正在运行的插件替换自身 `node_modules` 会 EBUSY/EPERM，可能把 DSH 弄挂。
+
+处理：更新按钮做“下载 + 安装 + 提示重启”，不做自动重启。
+
+## 7. 主机层不可见
 
 ```text
-没有联网核验受影响版本
-没有版本区间
-没有厂商公告绑定
+只接 nginx 访问日志
+没有 auditd / secure / 进程日志
+提权、持久化、横向移动不可见
 ```
 
-所以：
+这是当前最大的检测缺口，不是 bug，是未接入数据源。
+
+## 8. 单机无异地备份
 
 ```text
-扫描命中只是候选
-不能直接判“已确认漏洞”
+blue.db 和站点数据只在本机/本服务器
+磁盘损坏即丢失
 ```
 
-## 4. 审计锚定偏本地
+用户当前选择不做 OSS 备份；需要时再补。
+
+## 9. 诱饵/焦油坑依赖安全组
 
 ```text
-Ed25519 签名
-公钥本地固定
-没有外部时间戳/远端只追加
+2222/2223/2224 需要阿里云安全组放行
+不放行时只在本地监听，不起作用
 ```
 
-能证明“包没被改”，不能证明“采集时没被操控”。
-
-## 5. 没有 RBAC / 静态加密
+## 10. 打法库“other”占比高
 
 ```text
-单用户
-SQLite 明文
-没有角色分离
-没有 SSO
+老签名只有路径+状态码，没有 payload 特征
+分类只能落到 other
 ```
 
-适合个人/CTF，不适合直接做企业多用户。
-
-## 6. OTLP 是接收器，不是 Collector
-
-支持：
-
-```text
-OTLP/HTTP JSON
-logs
-```
-
-不支持：
-
-```text
-protobuf
-traces
-metrics
-gzip
-持久队列
-mTLS
-```
-
-DSH 重启期间推送会丢。
-生产应让 Collector 缓冲。
-
-## 7. 诱饵状态需要人工确认
-
-已修：
-
-```text
-有命中自动 planned → active
-列表自动校准
-控制台可标记运行
-```
-
-但：
-
-```text
-真实部署但无命中、无事件
-平台无法自动知道
-```
-
-必须人工 `blue_decoy_update status=active`。
-
-## 8. 工具/前端文件过大
-
-```text
-lib/tools.js   约 2748 行
-lib/client.js  约 1848 行
-lib/store.js   约 1484 行
-```
-
-不要继续往单文件堆。
-新功能优先拆模块。
-新增工具前先看 `docs/tool-map.md` 的拆分规则。
-
-## 9. 告警/发现状态机没有强制迁移
-
-任务、案件、诱饵、响应有集中状态机；告警/发现目前只是语义状态：
-
-```text
-alert:   open / investigating / contained / closed / false_positive
-finding: open / fixed / accepted / false_positive
-```
-
-`store.updateAlert()` / `store.updateFinding()` 目前：
-
-```text
-不校验状态枚举
-不校验迁移
-```
-
-所以：
-
-```text
-UI 和工具必须自己传合法值
-不要依赖 store 拦住非法状态
-要收紧，先看 docs/state-machines.md 的“告警与发现”
-```
-
-## 10. 没有正式浏览器 E2E
-
-有 `test-ui.mjs`，但主要是 Host/客户端注册冒烟。
-没有完整浏览器交互回归。
-
-## 11. Windows 路径/任务依赖本机
-
-```text
-soak 计划任务
-维护计划任务
-```
-
-依赖：
-
-```text
-C:\Users\86186\Desktop\蓝队防御插件
-```
-
-换机器/换用户名要重配。
-
-## 12. 安全边界仍靠人
-
-```text
-网关必须挂在必经路径
-诱饵必须人工部署
-封禁/隔离必须审批
-```
-
-插件不是 WAF，不是 EDR，不是自动处置平台。
+新条目会按标题/攻击描述分得更细；历史条目需要增量回填。

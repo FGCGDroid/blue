@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "default_action": "allow",
+  "case_insensitive": true,
+  "max_path_length": 4096,
+  "reject_semicolon": true,
+  "protected": [
+    {
+      "id": "admin",
+      "prefix": "/admin",
+      "action": "block",
+      "allow": [
+        "/admin/login"
+      ]
+    }
+  ],
+  "deny": []
+}
