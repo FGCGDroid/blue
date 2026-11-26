@@ -26,11 +26,13 @@ docs/3.0/decisions.md     架构决策记录
 docs/3.0/README.md        历史立项文档（3.0 已发布）
 ```
 
-## 4.0（未立项）
+## 4.0（未立项，仅概念稿）
+
+> 3.0 已收尾，作者进入休息期；4.0 不立项、不排期，以下文档只作构思保留。
 
 ```text
 docs/4.0/README.md        4.0 评估（未立项）
-docs/4.0/concept.md       多主机协同防御概念
+docs/4.0/concept.md       多主机协同防御概念稿
 docs/4.0/sequencing.md    3.0/4.0 发布与测试顺序
 ```
 
