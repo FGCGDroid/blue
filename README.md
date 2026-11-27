@@ -207,6 +207,47 @@ Host 侧通过 `POST /blue/api` 提供同源 JSON 桥接，浏览器不直接碰
 
 ---
 
+## 独立远程防控（remote/）
+
+`remote/` 是不依赖 DSH 的独立程序：一台中心机通过 SSH 监控其它服务器，带自动封禁和网页诱饵。
+
+```text
+hub.mjs        采集、检测、告警、安全大屏
+collect.mjs    SSH 只读采集
+defend.mjs     nft / fail2ban / 自动封禁
+webdefend.mjs  nginx 诱饵、假登录页、限速
+setup.mjs      Windows 向导
+启动.bat       Windows 双击启动
+install.sh     Linux 一键安装
+profiles/qinglan/  现成配置模板
+```
+
+能做的：
+
+```text
+监控    站点、负载、磁盘、5xx、SSH 失败、封禁数
+告警    钉钉，同类 10 分钟冷却
+封禁    nft blue_remote 表 + fail2ban，自动封高频 IP
+网页    /.env、/.git、备份文件 404，/adminlog 假登录页
+展示    深色安全大屏，30 秒刷新
+```
+
+不需要 DSH，也不需要被控机装 agent；被控机只要有 SSH 和一个能读日志的账号。
+
+部署：
+
+```bash
+# Linux
+cd remote && bash install.sh
+
+# Windows
+双击 启动.bat
+```
+
+详细说明见 `remote/README.md`，配置样例见 `remote/config.example.json` 和 `remote/profiles/qinglan/`。
+
+---
+
 ## 六个执行角色
 
 | 角色 | 定位 |
