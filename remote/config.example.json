@@ -32,7 +32,9 @@
       "user": "root",
       "siteUrl": "https://example.com/",
       "hostHeader": "example.com",
-      "nginxConf": "/etc/nginx/sites-available/example.conf"
+      "nginxConf": "/etc/nginx/sites-available/example.conf",
+      "agentUrl": "http://10.0.0.11:8099",
+      "agentToken": "change-agent-token"
     }
   ],
   "defense": {
@@ -46,7 +48,8 @@
     "web": {
       "enabled": false
     },
-    "autoInstall": false
+    "autoInstall": false,
+    "dryRun": true
   },
   "retentionDays": 30,
   "integrations": {

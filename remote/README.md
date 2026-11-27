@@ -289,6 +289,66 @@ nginx       有没有 nginx
 
 ## 十一、自动防御流程
 
+### 决策层
+
+```text
+检测   被控机本地 fail2ban / CrowdSec
+决策   中心 decisions 表：去重、TTL、白名单、观察/生效
+执行   被控机 agent 或 SSH 兜底
+审计   audit 表 + decisions 状态
+```
+
+决策状态：
+
+```text
+observed  观察中（dry-run），不执行
+active    已下发并生效
+failed    下发失败
+expired   到期
+revoked   人工撤销
+```
+
+同一台机器同一个 IP 只会有一条 observed/active，重复触发不叠加。
+
+观察模式：
+
+```json
+"defense": { "dryRun": true }
+```
+
+第一次上线保持 true，跑一周看误伤，再改 false 真正执行。
+
+本地 agent（推荐）：
+
+```bash
+AGENT_TOKEN=xxx AGENT_PORT=8099 node agent.mjs
+```
+
+```ini
+[Unit]
+Description=Blue remote agent
+After=network.target
+
+[Service]
+Environment=AGENT_TOKEN=xxx
+Environment=AGENT_PORT=8099
+ExecStart=/usr/bin/node /opt/blue-agent/agent.mjs
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+中心配置：
+
+```json
+{ "agentUrl": "http://10.0.0.11:8099", "agentToken": "xxx" }
+```
+
+agent 自己执行 nft、fail2ban、CrowdSec，中心只推决定。没配 agentUrl 时退回 SSH 直接执行。
+
+### 执行细节
+
 安装时向导会探测每台被控机缺少什么，逐项问：
 
 ```text

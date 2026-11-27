@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS bans (id INTEGER PRIMARY KEY AUTOINCREMENT, host_id I
 CREATE TABLE IF NOT EXISTS audit (id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT, action TEXT, target TEXT, detail TEXT, result TEXT);
 CREATE TABLE IF NOT EXISTS events (id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT, source TEXT, host TEXT, severity TEXT, message TEXT);
 CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT);
+CREATE TABLE IF NOT EXISTS decisions (id INTEGER PRIMARY KEY AUTOINCREMENT, host_id INTEGER, ip TEXT, reason TEXT, source TEXT, evidence TEXT, state TEXT, created_at TEXT, expires_at TEXT, applied_at TEXT, apply_error TEXT);
 `)
 
 try { db.exec('ALTER TABLE hosts ADD COLUMN caps TEXT') } catch { /* already exists */ }
@@ -39,12 +40,52 @@ function nowIso() { return new Date().toISOString() }
 function audit(action, target, detail, result) {
   try { db.prepare('INSERT INTO audit (at, action, target, detail, result) VALUES (?,?,?,?,?)').run(nowIso(), action, target, detail, result) } catch { /* ignore */ }
 }
+function ttlMs(ttl) {
+  const m = /^(\d+)([smhd])$/.exec(String(ttl || '24h'))
+  if (!m) return 24 * 3600 * 1000
+  const n = Number(m[1])
+  return n * ({ s: 1000, m: 60000, h: 3600000, d: 86400000 }[m[2]])
+}
+
+async function pushDecision(hc, action, ip, ttl, reason) {
+  if (hc.agentUrl) {
+    try {
+      const res = await fetch(hc.agentUrl.replace(/\/$/, '') + '/decisions', {
+        method: 'POST',
+        headers: Object.assign({ 'content-type': 'application/json' }, hc.agentToken ? { authorization: 'Bearer ' + hc.agentToken } : {}),
+        body: JSON.stringify({ action, ip, ttl, reason }),
+        signal: AbortSignal.timeout(8000),
+      })
+      const j = await res.json().catch(() => ({}))
+      return { ok: res.ok && j.ok === true, error: j.error || '' }
+    } catch (e) { return { ok: false, error: String(e.message || e) } }
+  }
+  return action === 'unban' ? unbanIp(cfg, hc, ip) : banIp(cfg, hc, ip, ttl, reason)
+}
+
+async function decide(host, hc, ip, reason, evidence) {
+  const existing = db.prepare("SELECT * FROM decisions WHERE host_id = ? AND ip = ? AND state IN ('observed','active')").get(host.id, ip)
+  if (existing) return existing
+  const dry = defense.dryRun !== false
+  const state = dry ? 'observed' : 'active'
+  const created = nowIso()
+  const expires = new Date(Date.now() + ttlMs(defense.ttl)).toISOString()
+  const info = db.prepare('INSERT INTO decisions (host_id, ip, reason, source, evidence, state, created_at, expires_at) VALUES (?,?,?,?,?,?,?,?)')
+    .run(host.id, ip, reason, 'auto', evidence, state, created, expires)
+  if (dry) return { id: info.lastInsertRowid, state }
+  const r = await pushDecision(hc, 'ban', ip, defense.ttl, reason)
+  db.prepare('UPDATE decisions SET applied_at = ?, apply_error = ? WHERE id = ?').run(nowIso(), r.ok ? '' : r.error, info.lastInsertRowid)
+  if (!r.ok) db.prepare("UPDATE decisions SET state = 'failed' WHERE id = ?").run(info.lastInsertRowid)
+  return { id: info.lastInsertRowid, state: r.ok ? 'active' : 'failed', error: r.error }
+}
+
 function prune() {
   const days = cfg.retentionDays || 30
   const cutoff = new Date(Date.now() - days * 86400000).toISOString()
   db.prepare('DELETE FROM samples WHERE at < ?').run(cutoff)
   db.prepare('DELETE FROM alerts WHERE at < ?').run(cutoff)
   db.prepare('DELETE FROM bans WHERE active = 0 AND at < ?').run(cutoff)
+  db.prepare("UPDATE decisions SET state = 'expired' WHERE state = 'active' AND expires_at < ?").run(nowIso())
 }
 
 async function sendOne(ch, title, text) {
@@ -115,7 +156,7 @@ async function raise(host, kind, message) {
 }
 
 const thresholds = Object.assign({ load: 4, disk: 85, e5: 20, authDelta: 20, banDelta: 30 }, cfg.thresholds || {})
-const defense = Object.assign({ enabled: false, autoBan: false, maxPerCycle: 10, ttl: '24h', autoInstall: false }, cfg.defense || {})
+const defense = Object.assign({ enabled: false, autoBan: false, maxPerCycle: 10, ttl: '24h', autoInstall: false, dryRun: true }, cfg.defense || {})
 const SETUP_DONE = new Set()
 
 async function checkHost(host) {
@@ -170,11 +211,13 @@ async function checkHost(host) {
       const offenders = (await listOffenders(cfg, hc, 30)).filter((o) => !ignoreIp(cfg, o.ip)).slice(0, defense.maxPerCycle)
       let done = 0
       for (const o of offenders) {
-        const b = await banIp(cfg, hc, o.ip, defense.ttl, `hits=${o.hits}`)
-        if (b.ok) {
+        const d = await decide(host, hc, o.ip, `hits=${o.hits}`, `403/401=${o.hits}`)
+        if (d.state === 'active') {
           db.prepare('INSERT INTO bans (host_id, ip, reason, at, ttl, active) VALUES (?,?,?,?,?,1)').run(host.id, o.ip, `hits=${o.hits}`, nowIso(), defense.ttl)
           audit('autoban', host.name, `${o.ip} hits=${o.hits} ttl=${defense.ttl}`, 'ok')
           done += 1
+        } else if (d.state === 'observed') {
+          audit('observe', host.name, `${o.ip} hits=${o.hits}`, 'dry-run')
         }
       }
       if (done) await raise(host, 'autoban', `自动封禁 ${done} 个 IP（TTL ${defense.ttl}）`)
@@ -217,7 +260,9 @@ function state() {
     const alerts = db.prepare('SELECT * FROM alerts WHERE host_id = ? ORDER BY id DESC LIMIT 5').all(h.id)
     const bans = db.prepare('SELECT ip, reason, at, ttl FROM bans WHERE host_id = ? AND active = 1 ORDER BY id DESC LIMIT 10').all(h.id)
     const banCount = db.prepare('SELECT COUNT(*) AS c FROM bans WHERE host_id = ? AND active = 1').get(h.id).c
-    hosts.push({ host: h, sample: s || null, history, alerts, bans, banCount })
+    const decisions = db.prepare("SELECT ip, state, reason, expires_at FROM decisions WHERE host_id = ? AND state IN ('observed','active','failed') ORDER BY id DESC LIMIT 10").all(h.id)
+    const observed = decisions.filter((x) => x.state === 'observed').length
+    hosts.push({ host: h, sample: s || null, history, alerts, bans, banCount, decisions, observed })
   }
   const recent = db.prepare('SELECT a.*, h.name FROM alerts a JOIN hosts h ON h.id = a.host_id ORDER BY a.id DESC LIMIT 20').all()
   const audits = db.prepare('SELECT * FROM audit ORDER BY id DESC LIMIT 15').all()
@@ -277,11 +322,11 @@ function page(scope = 'full') {
 </div>`
   }).join('')
   const rows = d.recent.map((a) => `<tr><td>${a.at.slice(11, 19)}</td><td>${a.name}</td><td>${a.kind}</td><td>${a.message}${a.ai ? '<br><span style="color:#7dd3fc">AI：' + a.ai + '</span>' : ''}</td></tr>`).join('')
-  const banRows = d.hosts.flatMap((x) => (x.bans || []).map((b) => ({ ...b, host: x.host.name }))).slice(0, 15)
-  const banCell = (b) => (scope === 'full'
+  const banRows = d.hosts.flatMap((x) => (x.decisions || []).map((b) => ({ ...b, host: x.host.name }))).slice(0, 15)
+  const banCell = (b) => (scope === 'full' && (b.state === 'active' || b.state === 'observed')
     ? `<td><form method="post" action="/unban" style="margin:0"><input type="hidden" name="token" value="${cfg.hub?.token || ''}"><input type="hidden" name="host" value="${b.host}"><input type="hidden" name="ip" value="${b.ip}"><button class="unban" type="submit">解封</button></form></td>`
     : '<td>-</td>')
-  const banTable = banRows.map((b) => `<tr><td>${b.ip}</td><td>${b.host}</td><td>${b.reason || '-'}</td><td>${b.at.slice(11, 19)}</td><td>${b.ttl}</td>${banCell(b)}</tr>`).join('')
+  const banTable = banRows.map((b) => `<tr><td>${b.ip}</td><td>${b.host}</td><td>${b.state}${b.state === 'observed' ? '（观察）' : ''}</td><td>${b.reason || '-'}</td><td>${String(b.expires_at || '').slice(5, 16)}</td>${banCell(b)}</tr>`).join('')
   return `<!doctype html><html lang="zh"><meta charset="utf-8"><meta http-equiv="refresh" content="30"><title>安全大屏</title>
 <style>
 :root{--bg:#0b1220;--panel:#111c2e;--line:#1e2b44;--sub:#7486a3;--txt:#dbe4f0;--ok:#34d399;--bad:#f87171}
@@ -329,7 +374,7 @@ td:nth-child(3){color:#fbbf24}
 </div>
 <div class="grid">${cards || '<div class="host">还没有被控机，去 config.json 里加 hosts</div>'}</div>
 ${integrationsPanel(d)}<div class="panels"><div class="panel"><h2>最近告警</h2><table><thead><tr><th>时间</th><th>主机</th><th>类型</th><th>内容</th></tr></thead><tbody>${rows || '<tr><td colspan="4" style="color:var(--sub)">暂无</td></tr>'}</tbody></table></div>
-<div class="panel"><h2>当前封禁</h2><table><thead><tr><th>IP</th><th>主机</th><th>原因</th><th>时间</th><th>TTL</th><th>操作</th></tr></thead><tbody>${banTable || '<tr><td colspan="5" style="color:var(--sub)">暂无</td></tr>'}</tbody></table></div><div class="panel" style="margin-top:14px"><h2>最近操作</h2><table><thead><tr><th>时间</th><th>动作</th><th>目标</th><th>详情</th><th>结果</th></tr></thead><tbody>${(d.audits || []).map((a) => `<tr><td>${a.at.slice(11, 19)}</td><td>${a.action}</td><td>${a.target}</td><td>${a.detail}</td><td>${a.result}</td></tr>`).join('') || '<tr><td colspan="5" style="color:var(--sub)">暂无</td></tr>'}</tbody></table></div></div>
+<div class="panel"><h2>当前封禁</h2><table><thead><tr><th>IP</th><th>主机</th><th>状态</th><th>原因</th><th>到期</th><th>操作</th></tr></thead><tbody>${banTable || '<tr><td colspan="5" style="color:var(--sub)">暂无</td></tr>'}</tbody></table></div><div class="panel" style="margin-top:14px"><h2>最近操作</h2><table><thead><tr><th>时间</th><th>动作</th><th>目标</th><th>详情</th><th>结果</th></tr></thead><tbody>${(d.audits || []).map((a) => `<tr><td>${a.at.slice(11, 19)}</td><td>${a.action}</td><td>${a.target}</td><td>${a.detail}</td><td>${a.result}</td></tr>`).join('') || '<tr><td colspan="5" style="color:var(--sub)">暂无</td></tr>'}</tbody></table></div></div>
 </html>`
 }
 
@@ -365,8 +410,9 @@ const server = createServer(async (req, res) => {
     const raw = HOST_CFG.get(h.name) || { host: h.address, port: h.port, user: h.user }
     const hc = Object.assign({}, raw)
     if (!hc.password && cfg.ssh.password) hc.password = cfg.ssh.password
-    const r = await unbanIp(cfg, hc, ip)
+    const r = await pushDecision(hc, 'unban', ip, '0s', 'manual')
     db.prepare('UPDATE bans SET active = 0 WHERE host_id = ? AND ip = ? AND active = 1').run(h.id, ip)
+    db.prepare("UPDATE decisions SET state = 'revoked' WHERE host_id = ? AND ip = ? AND state IN ('observed','active')").run(h.id, ip)
     audit('unban', hostName, ip, r.ok ? 'ok' : (r.error || 'fail'))
     if (url.pathname === '/api/unban') {
       res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
