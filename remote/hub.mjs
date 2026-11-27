@@ -15,13 +15,16 @@ const cfg = loadConfig()
 const db = new DatabaseSync(cfg.db || 'hub.db')
 db.exec(`
 CREATE TABLE IF NOT EXISTS hosts (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, address TEXT NOT NULL, port INTEGER DEFAULT 22, user TEXT, site_url TEXT, caps TEXT, created_at TEXT);
-CREATE TABLE IF NOT EXISTS samples (id INTEGER PRIMARY KEY AUTOINCREMENT, host_id INTEGER, at TEXT, ok INTEGER, load REAL, disk INTEGER, uptime INTEGER, req INTEGER, e5 INTEGER, authfail INTEGER, bans INTEGER, site TEXT, ms INTEGER, error TEXT);
+CREATE TABLE IF NOT EXISTS samples (id INTEGER PRIMARY KEY AUTOINCREMENT, host_id INTEGER, at TEXT, ok INTEGER, load REAL, disk INTEGER, uptime INTEGER, req INTEGER, e5 INTEGER, authfail INTEGER, bans INTEGER, site TEXT, ms INTEGER, error TEXT, cs INTEGER DEFAULT 0);
 CREATE TABLE IF NOT EXISTS alerts (id INTEGER PRIMARY KEY AUTOINCREMENT, host_id INTEGER, at TEXT, kind TEXT, message TEXT, notified INTEGER DEFAULT 0);
 CREATE TABLE IF NOT EXISTS bans (id INTEGER PRIMARY KEY AUTOINCREMENT, host_id INTEGER, ip TEXT, reason TEXT, at TEXT, ttl TEXT, active INTEGER DEFAULT 1);
 CREATE TABLE IF NOT EXISTS audit (id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT, action TEXT, target TEXT, detail TEXT, result TEXT);
+CREATE TABLE IF NOT EXISTS events (id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT, source TEXT, host TEXT, severity TEXT, message TEXT);
+CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT);
 `)
 
 try { db.exec('ALTER TABLE hosts ADD COLUMN caps TEXT') } catch { /* already exists */ }
+try { db.exec('ALTER TABLE samples ADD COLUMN cs INTEGER DEFAULT 0') } catch { /* already exists */ }
 for (const h of cfg.hosts || []) {
   const row = db.prepare('SELECT id FROM hosts WHERE name = ?').get(h.name)
   if (!row) db.prepare('INSERT INTO hosts (name, address, port, user, site_url, created_at) VALUES (?,?,?,?,?,?)').run(h.name, h.host, h.port || 22, h.user || cfg.ssh.user || 'root', h.siteUrl || '', new Date().toISOString())
@@ -77,8 +80,8 @@ async function checkHost(host) {
   if (!hc.password && cfg.ssh.password) hc.password = cfg.ssh.password
   const r = await collectHost(cfg, hc)
   if (r.ok && r.caps) db.prepare('UPDATE hosts SET caps = ? WHERE id = ?').run(r.caps, host.id)
-  db.prepare('INSERT INTO samples (host_id, at, ok, load, disk, uptime, req, e5, authfail, bans, site, ms, error) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)')
-    .run(host.id, nowIso(), r.ok ? 1 : 0, r.load || 0, r.disk || 0, r.uptime || 0, r.req || 0, r.e5 || 0, r.authfail || 0, r.bans || 0, r.site || '000', r.ms || 0, r.error || '')
+  db.prepare('INSERT INTO samples (host_id, at, ok, load, disk, uptime, req, e5, authfail, bans, site, ms, error, cs) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+    .run(host.id, nowIso(), r.ok ? 1 : 0, r.load || 0, r.disk || 0, r.uptime || 0, r.req || 0, r.e5 || 0, r.authfail || 0, r.bans || 0, r.site || '000', r.ms || 0, r.error || '', r.cs || 0)
 
   if (!r.ok) { await raise(host, 'down', `不可达：${r.error || 'ssh 失败'}`); return }
 
@@ -115,6 +118,7 @@ async function checkHost(host) {
   if (r.e5 > thresholds.e5) await raise(host, '5xx', `5xx ${r.e5} 条`)
   if (prev && r.authfail - prev.authfail > thresholds.authDelta) await raise(host, 'auth', `SSH 失败 +${r.authfail - prev.authfail}`)
   if (prev && r.bans - prev.bans > thresholds.banDelta) await raise(host, 'ban', `封禁 +${r.bans - prev.bans}`)
+  if (prev && r.cs - prev.cs > 20) await raise(host, 'crowdsec', `CrowdSec 决策 +${r.cs - prev.cs}`)
 
   if (defense.enabled && defense.autoBan) {
     const trigger = (r.e5 > thresholds.e5) || (prev && r.authfail - prev.authfail > thresholds.authDelta)
@@ -136,6 +140,20 @@ async function checkHost(host) {
 }
 
 let running = false
+async function pollKuma() {
+  const k = cfg.integrations?.uptimeKuma
+  if (!k || !k.baseUrl) return
+  try {
+    const base = k.baseUrl.replace(/\/$/, '')
+    const res = await fetch(base + '/api/status-page/heartbeat/' + encodeURIComponent(k.slug || 'default'), { signal: AbortSignal.timeout(8000) })
+    const j = await res.json()
+    const list = Object.values(j.heartbeatList || {})
+    const down = list.filter((x) => x && x.status === 0).length
+    db.prepare("INSERT OR REPLACE INTO meta (k, v) VALUES ('kuma', ?)").run(JSON.stringify({ at: nowIso(), down, total: list.length }))
+    if (down > 0) await notify(`[Uptime Kuma] ${down} 个监控异常`)
+  } catch { /* ignore */ }
+}
+
 async function cycle() {
   if (running) return
   running = true
@@ -143,6 +161,7 @@ async function cycle() {
     try { await checkHost(host) } catch (e) { console.error(host.name, e.message) }
   }
   prune()
+  await pollKuma()
   running = false
 }
 
@@ -158,7 +177,10 @@ function state() {
   }
   const recent = db.prepare('SELECT a.*, h.name FROM alerts a JOIN hosts h ON h.id = a.host_id ORDER BY a.id DESC LIMIT 20').all()
   const audits = db.prepare('SELECT * FROM audit ORDER BY id DESC LIMIT 15').all()
-  return { generatedAt: new Date().toISOString(), hosts, recent, audits }
+  const events = db.prepare('SELECT * FROM events ORDER BY id DESC LIMIT 10').all()
+  let kuma = null
+  try { kuma = JSON.parse(db.prepare("SELECT v FROM meta WHERE k = 'kuma'").get().v) } catch { kuma = null }
+  return { generatedAt: new Date().toISOString(), hosts, recent, audits, events, kuma }
 }
 
 function spark(values) {
@@ -168,6 +190,17 @@ function spark(values) {
   const max = Math.max(...values, 1)
   const pts = values.map((v, i) => `${((i / Math.max(values.length - 1, 1)) * w).toFixed(1)},${(h - (v / max) * (h - 6) - 3).toFixed(1)}`).join(' ')
   return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="#38bdf8" stroke-width="1.6"/></svg>`
+}
+
+function integrationsPanel(d) {
+  var kuma = d.kuma ? (d.kuma.down ? d.kuma.down + ' 个异常 / ' + d.kuma.total : d.kuma.total + ' 个正常') : '未接入'
+  var ev = (d.events || []).map(function (e) { return '<tr><td>' + e.at.slice(11, 19) + '</td><td>' + e.source + '</td><td>' + e.host + '</td><td>' + e.severity + '</td><td>' + e.message + '</td></tr>' }).join('')
+  return '<div class="panels" style="grid-template-columns:1fr 1fr">' +
+    '<div class="panel"><h2>外部接入</h2><table><thead><tr><th>项</th><th>值</th></tr></thead><tbody>' +
+    '<tr><td>Uptime Kuma</td><td>' + kuma + '</td></tr>' +
+    '<tr><td>Webhook 事件</td><td>' + (d.events || []).length + '</td></tr>' +
+    '</tbody></table></div>' +
+    '<div class="panel"><h2>最近事件</h2><table><thead><tr><th>时间</th><th>来源</th><th>主机</th><th>级别</th><th>内容</th></tr></thead><tbody>' + (ev || '<tr><td colspan="5" style="color:var(--sub)">暂无</td></tr>') + '</tbody></table></div></div>'
 }
 
 function page(scope = 'full') {
@@ -191,6 +224,7 @@ function page(scope = 'full') {
 <div><i>磁盘</i><b>${s.disk ?? '-'}%</b></div>
 <div><i>5xx</i><b>${s.e5 ?? '-'}</b></div>
 <div><i>SSH失败</i><b>${s.authfail ?? '-'}</b></div>
+<div><i>CS决策</i><b>${s.cs ?? '-'}</b></div>
 <div><i>封禁</i><b>${banCount}</b></div>
 </div>
 <div class="spark">${spark(loads)}</div>
@@ -250,7 +284,7 @@ td:nth-child(3){color:#fbbf24}
 <div class="kpi"><b>${bans}</b><span>封禁中 · 平均负载 ${avgLoad}</span></div>
 </div>
 <div class="grid">${cards || '<div class="host">还没有被控机，去 config.json 里加 hosts</div>'}</div>
-<div class="panels"><div class="panel"><h2>最近告警</h2><table><thead><tr><th>时间</th><th>主机</th><th>类型</th><th>内容</th></tr></thead><tbody>${rows || '<tr><td colspan="4" style="color:var(--sub)">暂无</td></tr>'}</tbody></table></div>
+${integrationsPanel(d)}<div class="panels"><div class="panel"><h2>最近告警</h2><table><thead><tr><th>时间</th><th>主机</th><th>类型</th><th>内容</th></tr></thead><tbody>${rows || '<tr><td colspan="4" style="color:var(--sub)">暂无</td></tr>'}</tbody></table></div>
 <div class="panel"><h2>当前封禁</h2><table><thead><tr><th>IP</th><th>主机</th><th>原因</th><th>时间</th><th>TTL</th><th>操作</th></tr></thead><tbody>${banTable || '<tr><td colspan="5" style="color:var(--sub)">暂无</td></tr>'}</tbody></table></div><div class="panel" style="margin-top:14px"><h2>最近操作</h2><table><thead><tr><th>时间</th><th>动作</th><th>目标</th><th>详情</th><th>结果</th></tr></thead><tbody>${(d.audits || []).map((a) => `<tr><td>${a.at.slice(11, 19)}</td><td>${a.action}</td><td>${a.target}</td><td>${a.detail}</td><td>${a.result}</td></tr>`).join('') || '<tr><td colspan="5" style="color:var(--sub)">暂无</td></tr>'}</tbody></table></div></div>
 </html>`
 }
@@ -295,6 +329,16 @@ const server = createServer(async (req, res) => {
       res.end(JSON.stringify(r)); return
     }
     res.writeHead(302, { location: '/?token=' + encodeURIComponent(token) }); res.end(); return
+  }
+  if (url.pathname === '/ingest') {
+    const src = String(params.source || 'webhook').slice(0, 40)
+    const host = String(params.host || '').slice(0, 80)
+    const sev = String(params.severity || 'info').slice(0, 20)
+    const msg = String(params.message || JSON.stringify(params)).slice(0, 300)
+    db.prepare('INSERT INTO events (at, source, host, severity, message) VALUES (?,?,?,?,?)').run(nowIso(), src, host, sev, msg)
+    if (sev === 'high' || sev === 'critical') await notify(`[${src}] ${host} ${msg}`)
+    audit('ingest', src, host + ' ' + sev, 'ok')
+    res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ ok: true })); return
   }
   if (url.pathname === '/api/state') {
     res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })

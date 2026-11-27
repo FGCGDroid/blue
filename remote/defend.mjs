@@ -128,6 +128,9 @@ fi
 if command -v fail2ban-client >/dev/null 2>&1; then
   fail2ban-client set sshd banip ${ip} >/dev/null 2>&1 || true
 fi
+if command -v cscli >/dev/null 2>&1; then
+  cscli decisions add --ip ${ip} --duration ${ttl} >/dev/null 2>&1 || true
+fi
 `
   const r = await sshExec(cfg, host, script, 12000)
   if (!r.ok) return r
@@ -139,6 +142,9 @@ export async function unbanIp(cfg, host, ip) {
   const script = `
 nft delete element inet ${TABLE} blocked '{ ${ip} }' 2>/dev/null || true
 fail2ban-client set sshd unbanip ${ip} >/dev/null 2>&1 || true
+if command -v cscli >/dev/null 2>&1; then
+  cscli decisions delete --ip ${ip} >/dev/null 2>&1 || true
+fi
 echo DONE
 `
   return sshExec(cfg, host, script, 10000)

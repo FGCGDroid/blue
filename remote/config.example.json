@@ -48,5 +48,11 @@
     },
     "autoInstall": false
   },
-  "retentionDays": 30
+  "retentionDays": 30,
+  "integrations": {
+    "uptimeKuma": {
+      "baseUrl": "",
+      "slug": "default"
+    }
+  }
 }

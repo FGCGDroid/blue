@@ -378,7 +378,44 @@ bans 表标记 active=0
 
 每轮清理超过 30 天的 samples、alerts，以及已失效的 bans。
 
-## 十四、安全大屏
+## 十四、外部接入
+
+### CrowdSec
+
+被控机装了 CrowdSec（有 cscli）会自动识别：
+
+```text
+采集   当前决策数量，大屏显示「CS决策」
+告警   决策数突增 20 条以上
+封禁   自动封禁同时写 cscli decisions add
+解封   同时 cscli decisions delete
+```
+
+### Uptime Kuma
+
+配置：
+
+```json
+"integrations": { "uptimeKuma": { "baseUrl": "http://1.2.3.4:3001", "slug": "default" } }
+```
+
+每轮拉心跳，有异常推钉钉，大屏「外部接入」显示正常/异常数量。
+
+### 通用 Webhook（Wazuh 等）
+
+```bash
+curl -X POST 'http://127.0.0.1:8090/ingest?token=你的token' \
+  -H 'content-type: application/json' \
+  -d '{"source":"wazuh","host":"web-1","severity":"high","message":"ssh brute force"}'
+```
+
+```text
+写 events 表，大屏「最近事件」显示
+severity 为 high / critical 时直接推钉钉
+Wazuh、Grafana、自建脚本都能往这里发
+```
+
+## 十五、安全大屏
 
 打开：
 
@@ -415,7 +452,7 @@ ssh -L 8090:127.0.0.1:8090 root@中心机
 
 ---
 
-## 十六、systemd
+## 十七、systemd
 
 ```ini
 [Unit]
@@ -440,7 +477,7 @@ journalctl -u blue-remote -f
 
 ---
 
-## 十七、配置模板
+## 十八、配置模板
 
 `profiles/qinglan/` 是青岚社区在用的参数：
 
@@ -454,7 +491,7 @@ README.md                     套用步骤
 
 ---
 
-## 十八、常见问题
+## 十九、常见问题
 
 **向导卡住或乱序**
 
@@ -502,7 +539,7 @@ SSH 串行，100 台会明显慢
 
 ---
 
-## 十九、安全边界
+## 二十、安全边界
 
 ```text
 只读采集，不执行用户命令
@@ -515,7 +552,7 @@ config.json 含密码时权限 600
 
 ---
 
-## 二十、限制
+## 二十一、限制
 
 ```text
 SSH 串行，机器多时慢
@@ -527,7 +564,7 @@ WAF 未自动化
 
 ---
 
-## 二十一、后续计划
+## 二十二、后续计划
 
 ```text
 并发采集

@@ -27,6 +27,12 @@ command -v fail2ban-client >/dev/null 2>&1 && CAPS="$CAPS,fail2ban"
 [ -r /var/log/auth.log ] && CAPS="$CAPS,authlog"
 command -v journalctl >/dev/null 2>&1 && CAPS="$CAPS,journald"
 command -v nginx >/dev/null 2>&1 && CAPS="$CAPS,nginx"
+command -v cscli >/dev/null 2>&1 && CAPS="$CAPS,crowdsec"
+if command -v cscli >/dev/null 2>&1; then
+  echo "cs=$(cscli decisions list -o json 2>/dev/null | grep -o '"id"' | wc -l)"
+else
+  echo "cs=0"
+fi
 echo "caps=$CAPS"
 if command -v fail2ban-client >/dev/null 2>&1; then
   echo "bans=$(fail2ban-client banned 2>/dev/null | tr -d "'" | wc -w)"
@@ -93,6 +99,7 @@ export function collectHost(cfg, host) {
         bans: Number(out.bans || 0),
         site: String(out.site || '000'),
         caps: String(out.caps || '').replace(/^,/, ''),
+        cs: Number(out.cs || 0),
       })
     })
     child.stdin.end(script)
