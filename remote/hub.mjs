@@ -117,28 +117,104 @@ async function cycle() {
 }
 
 function state() {
-  const out = []
+  const hosts = []
   for (const h of HOSTS) {
     const s = db.prepare('SELECT * FROM samples WHERE host_id = ? ORDER BY id DESC LIMIT 1').get(h.id)
-    const a = db.prepare('SELECT * FROM alerts WHERE host_id = ? ORDER BY id DESC LIMIT 5').all(h.id)
+    const history = db.prepare('SELECT load, e5, site, at FROM samples WHERE host_id = ? ORDER BY id DESC LIMIT 40').all(h.id).reverse()
+    const alerts = db.prepare('SELECT * FROM alerts WHERE host_id = ? ORDER BY id DESC LIMIT 5').all(h.id)
     const bans = db.prepare('SELECT ip, reason, at, ttl FROM bans WHERE host_id = ? AND active = 1 ORDER BY id DESC LIMIT 10').all(h.id)
-    out.push({ host: h, sample: s || null, alerts: a, bans })
+    const banCount = db.prepare('SELECT COUNT(*) AS c FROM bans WHERE host_id = ? AND active = 1').get(h.id).c
+    hosts.push({ host: h, sample: s || null, history, alerts, bans, banCount })
   }
-  return out
+  const recent = db.prepare('SELECT a.*, h.name FROM alerts a JOIN hosts h ON h.id = a.host_id ORDER BY a.id DESC LIMIT 20').all()
+  return { generatedAt: new Date().toISOString(), hosts, recent }
+}
+
+function spark(values) {
+  if (!values.length) return '<svg viewBox="0 0 160 36"></svg>'
+  const w = 160
+  const h = 36
+  const max = Math.max(...values, 1)
+  const pts = values.map((v, i) => `${((i / Math.max(values.length - 1, 1)) * w).toFixed(1)},${(h - (v / max) * (h - 6) - 3).toFixed(1)}`).join(' ')
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="#38bdf8" stroke-width="1.6"/></svg>`
 }
 
 function page() {
-  const rows = state().map(({ host, sample, alerts, bans }) => {
+  const d = state()
+  const up = d.hosts.filter((x) => x.sample && x.sample.ok).length
+  const down = d.hosts.length - up
+  const dayAgo = Date.now() - 86400000
+  const alerts24 = d.recent.filter((a) => Date.parse(a.at) > dayAgo).length
+  const bans = d.hosts.reduce((n, x) => n + x.banCount, 0)
+  const avgLoad = d.hosts.length ? (d.hosts.reduce((n, x) => n + (x.sample?.load || 0), 0) / d.hosts.length).toFixed(2) : '0.00'
+  const cards = d.hosts.map(({ host, sample, history, banCount }) => {
     const s = sample || {}
-    const cls = s.ok ? (s.site === '200' || !host.site_url ? 'ok' : 'warn') : 'bad'
-    return `<tr class="${cls}"><td>${host.name}</td><td>${host.address}</td><td>${s.ok ? 'up' : 'down'}</td><td>${s.load ?? '-'}</td><td>${s.disk ?? '-'}%</td><td>${s.site ?? '-'}</td><td>${s.e5 ?? '-'}</td><td>${s.authfail ?? '-'}</td><td>${s.bans ?? '-'}</td><td>${s.at ? s.at.slice(11, 19) : '-'}</td><td>${(bans || []).length}</td><td>${alerts.map((a) => a.message).join('<br>') || '-'}</td></tr>`
+    const ok = s.ok && (s.site === '200' || !host.site_url)
+    const cls = ok ? 'ok' : 'bad'
+    const loads = history.map((x) => Number(x.load) || 0)
+    return `<div class="host ${cls}">
+<div class="host-h"><span class="dot"></span><b>${host.name}</b><span class="addr">${host.address}:${host.port}</span></div>
+<div class="host-kpis">
+<div><i>站点</i><b>${s.site ?? '-'}</b></div>
+<div><i>负载</i><b>${s.load ?? '-'}</b></div>
+<div><i>磁盘</i><b>${s.disk ?? '-'}%</b></div>
+<div><i>5xx</i><b>${s.e5 ?? '-'}</b></div>
+<div><i>SSH失败</i><b>${s.authfail ?? '-'}</b></div>
+<div><i>封禁</i><b>${banCount}</b></div>
+</div>
+<div class="spark">${spark(loads)}</div>
+<div class="host-f">${s.at ? s.at.slice(11, 19) : '-'}</div>
+</div>`
   }).join('')
-  return `<!doctype html><html lang="zh"><meta charset="utf-8"><title>远程防控</title>
-<style>body{font:14px/1.6 system-ui;margin:24px;color:#0f172a;background:#f8fafc}h1{font-size:18px}table{border-collapse:collapse;width:100%;background:#fff}th,td{border:1px solid #e2e8f0;padding:6px 8px;text-align:left;font-size:13px}th{background:#f1f5f9}tr.bad td{background:#fef2f2}tr.warn td{background:#fffbeb}</style>
-<h1>远程防控 · ${new Date().toLocaleString('zh-CN')}</h1>
-<p>每 ${cfg.intervalSec || 120} 秒采集一次 · 共 ${HOSTS.length} 台</p>
-<table><thead><tr><th>名称</th><th>地址</th><th>状态</th><th>负载</th><th>磁盘</th><th>站点</th><th>5xx</th><th>SSH失败</th><th>封禁</th><th>时间</th><th>封禁</th><th>最近告警</th></tr></thead><tbody>${rows}</tbody></table>
-<p><a href="/api/state?token=${encodeURIComponent(cfg.hub?.token || '')}">JSON</a></p></html>`
+  const rows = d.recent.map((a) => `<tr><td>${a.at.slice(11, 19)}</td><td>${a.name}</td><td>${a.kind}</td><td>${a.message}</td></tr>`).join('')
+  const banRows = d.hosts.flatMap((x) => (x.bans || []).map((b) => ({ ...b, host: x.host.name }))).slice(0, 15)
+  const banTable = banRows.map((b) => `<tr><td>${b.ip}</td><td>${b.host}</td><td>${b.reason || '-'}</td><td>${b.at.slice(11, 19)}</td><td>${b.ttl}</td></tr>`).join('')
+  return `<!doctype html><html lang="zh"><meta charset="utf-8"><meta http-equiv="refresh" content="30"><title>安全大屏</title>
+<style>
+:root{--bg:#0b1220;--panel:#111c2e;--line:#1e2b44;--sub:#7486a3;--txt:#dbe4f0;--ok:#34d399;--bad:#f87171}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(1200px 600px at 20% -10%,#14233d,#0b1220 60%);color:var(--txt);font:14px/1.55 system-ui,"PingFang SC","Microsoft YaHei",sans-serif}
+header{display:flex;align-items:baseline;justify-content:space-between;padding:22px 28px 6px}
+h1{font-size:22px;margin:0;letter-spacing:.02em}
+.upd{color:var(--sub);font-size:12px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding:12px 28px}
+.kpi{background:linear-gradient(160deg,rgba(56,189,248,.12),rgba(17,28,46,.9));border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.kpi b{display:block;font-size:28px;line-height:1.2}
+.kpi span{color:var(--sub);font-size:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:14px;padding:6px 28px}
+.host{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.host.bad{border-color:rgba(248,113,113,.5);box-shadow:0 0 0 1px rgba(248,113,113,.15) inset}
+.host-h{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok)}
+.host.bad .dot{background:var(--bad);box-shadow:0 0 8px var(--bad)}
+.addr{margin-left:auto;color:var(--sub);font-size:12px}
+.host-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.host-kpis div{background:#0b1626;border:1px solid #1a2740;border-radius:8px;padding:6px 8px}
+.host-kpis i{display:block;font-style:normal;color:var(--sub);font-size:11px}
+.host-kpis b{font-size:15px}
+.spark{margin-top:10px;height:36px}
+.spark svg{width:100%;height:36px;display:block}
+.host-f{color:var(--sub);font-size:11px;text-align:right;margin-top:4px}
+.panels{display:grid;grid-template-columns:1.5fr 1fr;gap:14px;margin:18px 28px 30px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.panel h2{font-size:15px;margin:0 0 10px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{color:var(--sub);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);font-weight:500}
+td{padding:6px 8px;border-bottom:1px solid #16223a}
+td:nth-child(3){color:#fbbf24}
+@media(max-width:900px){.panels{grid-template-columns:1fr}}
+@media(max-width:760px){.kpis{grid-template-columns:repeat(2,1fr)}header,.kpis,.grid{padding-left:16px;padding-right:16px}}
+</style>
+<header><h1>安全大屏</h1><span class="upd">更新于 ${d.generatedAt.slice(11, 19)} · 每 ${cfg.intervalSec || 120}s 采集 · 30s 刷新</span></header>
+<div class="kpis">
+<div class="kpi"><b>${up}<span style="font-size:14px;color:var(--sub)">/${d.hosts.length}</span></b><span>主机在线</span></div>
+<div class="kpi"><b style="color:${down ? 'var(--bad)' : 'inherit'}">${down}</b><span>离线主机</span></div>
+<div class="kpi"><b>${alerts24}</b><span>24h 告警</span></div>
+<div class="kpi"><b>${bans}</b><span>封禁中 · 平均负载 ${avgLoad}</span></div>
+</div>
+<div class="grid">${cards || '<div class="host">还没有被控机，去 config.json 里加 hosts</div>'}</div>
+<div class="panels"><div class="panel"><h2>最近告警</h2><table><thead><tr><th>时间</th><th>主机</th><th>类型</th><th>内容</th></tr></thead><tbody>${rows || '<tr><td colspan="4" style="color:var(--sub)">暂无</td></tr>'}</tbody></table></div>
+<div class="panel"><h2>当前封禁</h2><table><thead><tr><th>IP</th><th>主机</th><th>原因</th><th>时间</th><th>TTL</th></tr></thead><tbody>${banTable || '<tr><td colspan="5" style="color:var(--sub)">暂无</td></tr>'}</tbody></table></div></div>
+</html>`
 }
 
 const server = createServer((req, res) => {
