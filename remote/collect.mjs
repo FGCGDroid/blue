@@ -16,9 +16,18 @@ else
 fi
 if [ -r /var/log/auth.log ]; then
   echo "authfail=$(grep -c 'Failed password\\|Invalid user' /var/log/auth.log 2>/dev/null)"
+elif command -v journalctl >/dev/null 2>&1; then
+  echo "authfail=$(journalctl -u ssh --since '-60 min' --no-pager 2>/dev/null | grep -c 'Failed password\\|Invalid user')"
 else
   echo "authfail=0"
 fi
+CAPS=""
+command -v nft >/dev/null 2>&1 && CAPS="$CAPS,nft"
+command -v fail2ban-client >/dev/null 2>&1 && CAPS="$CAPS,fail2ban"
+[ -r /var/log/auth.log ] && CAPS="$CAPS,authlog"
+command -v journalctl >/dev/null 2>&1 && CAPS="$CAPS,journald"
+command -v nginx >/dev/null 2>&1 && CAPS="$CAPS,nginx"
+echo "caps=$CAPS"
 if command -v fail2ban-client >/dev/null 2>&1; then
   echo "bans=$(fail2ban-client banned 2>/dev/null | tr -d "'" | wc -w)"
 else
@@ -83,6 +92,7 @@ export function collectHost(cfg, host) {
         authfail: Number(out.authfail || 0),
         bans: Number(out.bans || 0),
         site: String(out.site || '000'),
+        caps: String(out.caps || '').replace(/^,/, ''),
       })
     })
     child.stdin.end(script)

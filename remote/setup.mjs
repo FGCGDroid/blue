@@ -24,6 +24,7 @@ say('')
 
 const port = Number(await ask('网页端口', '8090')) || 8090
 const token = await ask('访问 token（留空自动生成）', Math.random().toString(36).slice(2, 10))
+const readonly = await ask('只读 token（可空，只能看不能解封）', '')
 const webhook = await ask('钉钉 webhook（可留空）', '')
 const keyword = await ask('钉钉关键词', '蓝队汇报')
 say('')
@@ -61,7 +62,7 @@ const autoDef = (await ask('自动封禁 + nft/fail2ban（y/n）', 'y')).toLower
 const webDef = (await ask('网页诱饵（需要填了 nginx 配置路径）（y/n）', 'n')).toLowerCase().startsWith('y')
 
 const cfg = {
-  hub: { port, bind: '127.0.0.1', token },
+  hub: { port, bind: '127.0.0.1', token, readonlyToken: readonly },
   db: './hub.db',
   intervalSec: 120,
   cooldownSec: 600,

@@ -2,7 +2,8 @@
   "hub": {
     "port": 8090,
     "bind": "127.0.0.1",
-    "token": "change-me"
+    "token": "change-me",
+    "readonlyToken": ""
   },
   "db": "/opt/blue-remote/hub.db",
   "intervalSec": 120,

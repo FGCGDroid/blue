@@ -140,9 +140,10 @@ bash install.sh
 ### hub
 
 ```text
-port        网页端口，默认 8090
-bind        监听地址，默认 127.0.0.1（别改成 0.0.0.0）
-token       访问口令，页面和 API 都要带
+port           网页端口，默认 8090
+bind           监听地址，默认 127.0.0.1（别改成 0.0.0.0）
+token          完整口令，能看能解封
+readonlyToken  只读口令，只能看，不能解封（可空）
 ```
 
 ### db
@@ -244,6 +245,26 @@ site        curl 本机站点返回码
 ```
 
 被控机没有 nginx、auth.log、fail2ban 时对应项为 0，不报错。
+
+### 能力探测
+
+每轮采集会同时探测并缓存：
+
+```text
+nft         有没有 nftables
+fail2ban    有没有 fail2ban-client
+authlog     有没有 /var/log/auth.log
+journald    有没有 journalctl（auth.log 缺失时用它数失败）
+nginx       有没有 nginx
+```
+
+大屏主机卡底部会显示这些能力。自动防御按能力降级：
+
+```text
+没有 nft       跳过 nft 初始化
+没有 fail2ban  跳过 jail 写入
+两个都没有     直接跳过，只监控不封禁
+```
 
 ---
 
@@ -478,6 +499,7 @@ SSH 串行，100 台会明显慢
 改 nginx 前备份 .bak.blue，nginx -t 失败回滚
 config.json 含密码时权限 600
 页面默认只听 127.0.0.1，必须带 token
+只读 token 无法调用解封接口（403）
 ```
 
 ---

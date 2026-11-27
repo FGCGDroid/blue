@@ -37,29 +37,35 @@ function hasSshpass() {
 
 const TABLE = 'blue_remote'
 
-export const SETUP_SCRIPT = `
-set -e
-command -v nft >/dev/null 2>&1 || { echo "NO_NFT"; exit 0; }
+const NFT_PART = `
 if ! nft list table inet ${TABLE} >/dev/null 2>&1; then
   nft add table inet ${TABLE}
   nft add set inet ${TABLE} blocked '{ type ipv4_addr; flags timeout; }'
   nft add chain inet ${TABLE} input '{ type filter hook input priority -10; policy accept; }'
   nft add rule inet ${TABLE} input ip saddr @blocked drop
 fi
+`
+
+const F2B_PART = `
 if [ -d /etc/fail2ban ]; then
   if [ ! -f /etc/fail2ban/jail.d/blue-remote.local ]; then
     printf '[sshd]\\nenabled = true\\nmaxretry = 3\\nfindtime = 3600\\nbantime = 86400\\n' > /etc/fail2ban/jail.d/blue-remote.local
     fail2ban-client reload >/dev/null 2>&1 || true
   fi
 fi
-echo OK
 `
 
+export const SETUP_SCRIPT = 'set -e\n' + NFT_PART + F2B_PART + 'echo OK\n'
+
 export async function setupHost(cfg, host) {
-  const r = await sshExec(cfg, host, SETUP_SCRIPT, 20000)
+  const caps = String(host.caps || '')
+  const hasNft = !caps || caps.split(',').includes('nft')
+  const hasF2b = !caps || caps.split(',').includes('fail2ban')
+  if (!hasNft && !hasF2b) return { ok: true, skipped: '被控机没有 nft 和 fail2ban' }
+  const script = 'set -e\n' + (hasNft ? NFT_PART : '') + (hasF2b ? F2B_PART : '') + 'echo OK\n'
+  const r = await sshExec(cfg, host, script, 20000)
   if (!r.ok) return r
-  if (r.out.includes('NO_NFT')) return { ok: false, error: '被控机没有 nft' }
-  return { ok: r.out.includes('OK'), error: r.out.includes('OK') ? '' : 'setup 未完成' }
+  return { ok: r.out.includes('OK'), error: r.out.includes('OK') ? '' : 'setup 未完成', skipped: hasNft ? '' : 'nft 不可用' }
 }
 
 export async function listOffenders(cfg, host, minutes = 30) {

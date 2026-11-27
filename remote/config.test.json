@@ -1,11 +1,30 @@
 {
-  "hub": { "port": 8091, "bind": "127.0.0.1", "token": "test" },
+  "hub": {
+    "port": 8091,
+    "bind": "127.0.0.1",
+    "token": "test",
+    "readonlyToken": "ro"
+  },
   "db": "C:/Users/86186/Desktop/蓝队防御插件/remote/test.db",
   "intervalSec": 120,
   "cooldownSec": 600,
-  "ssh": { "user": "root", "key": "C:/Users/86186/.ssh/id_ed25519_blue", "timeout": 15000 },
-  "dingtalk": { "webhook": "", "keyword": "蓝队汇报" },
+  "ssh": {
+    "user": "root",
+    "key": "C:/Users/86186/.ssh/id_ed25519_blue",
+    "timeout": 15000
+  },
+  "dingtalk": {
+    "webhook": "",
+    "keyword": "蓝队汇报"
+  },
   "hosts": [
-    { "name": "qinglan", "host": "59.110.104.110", "port": 22, "user": "root", "siteUrl": "https://59-110-104-110.sslip.io/", "hostHeader": "59-110-104-110.sslip.io" }
+    {
+      "name": "qinglan",
+      "host": "59.110.104.110",
+      "port": 22,
+      "user": "root",
+      "siteUrl": "https://59-110-104-110.sslip.io/",
+      "hostHeader": "59-110-104-110.sslip.io"
+    }
   ]
 }
