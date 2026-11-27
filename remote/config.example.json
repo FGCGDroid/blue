@@ -1,14 +1,28 @@
 {
-  "hub": { "port": 8090, "bind": "127.0.0.1", "token": "change-me" },
+  "hub": {
+    "port": 8090,
+    "bind": "127.0.0.1",
+    "token": "change-me"
+  },
   "db": "/opt/blue-remote/hub.db",
   "intervalSec": 120,
   "cooldownSec": 600,
-  "ssh": { "user": "root", "key": "/root/.ssh/id_ed25519_hub", "timeout": 8000 },
+  "ssh": {
+    "user": "root",
+    "key": "/root/.ssh/id_ed25519_hub",
+    "timeout": 8000
+  },
   "dingtalk": {
     "webhook": "https://oapi.dingtalk.com/robot/send?access_token=REPLACE",
     "keyword": "蓝队汇报"
   },
-  "thresholds": { "load": 4, "disk": 85, "e5": 20, "authDelta": 20, "banDelta": 30 },
+  "thresholds": {
+    "load": 4,
+    "disk": 85,
+    "e5": 20,
+    "authDelta": 20,
+    "banDelta": 30
+  },
   "hosts": [
     {
       "name": "web-1",
@@ -18,5 +32,14 @@
       "siteUrl": "https://example.com/",
       "hostHeader": "example.com"
     }
-  ]
+  ],
+  "defense": {
+    "enabled": true,
+    "autoBan": true,
+    "maxPerCycle": 10,
+    "ttl": "24h",
+    "ignore": [
+      "1.2.3.4"
+    ]
+  }
 }

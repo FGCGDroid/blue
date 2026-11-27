@@ -102,6 +102,34 @@ http://127.0.0.1:8090/?token=change-me
 ssh -L 8090:127.0.0.1:8090 root@中心机
 ```
 
+## 自动防御
+
+配置里打开：
+
+```json
+"defense": { "enabled": true, "autoBan": true, "maxPerCycle": 10, "ttl": "24h", "ignore": ["你的IP"] }
+```
+
+中心首次采集时会在被控机做一次初始化：
+
+```
+创建 nft 表 blue_remote + blocked 集合
+入站流量命中集合直接 drop
+写入 fail2ban sshd 规则（3 次/小时封 24 小时）
+```
+
+之后每个周期：
+
+```
+5xx 超阈值 或 SSH 失败突增
+  → 从被控机 nginx 日志取 403/401/444 最多的 IP
+  → 排除内网和 ignore 列表
+  → 远端 nft 封禁 TTL
+  → 记录到 bans 表 + 钉钉告警
+```
+
+只封 IPv4，只动 blue_remote 表，不碰已有防火墙规则。
+
 ## 检测项
 
 ```text

@@ -2,6 +2,7 @@ import { readFileSync, existsSync } from 'node:fs'
 import { DatabaseSync } from 'node:sqlite'
 import { createServer } from 'node:http'
 import { collectHost } from './collect.mjs'
+import { setupHost, listOffenders, banIp, ignoreIp } from './defend.mjs'
 
 const CONFIG_PATH = process.env.HUB_CONFIG || new URL('./config.json', import.meta.url).pathname
 function loadConfig() {
@@ -15,6 +16,7 @@ db.exec(`
 CREATE TABLE IF NOT EXISTS hosts (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, address TEXT NOT NULL, port INTEGER DEFAULT 22, user TEXT, site_url TEXT, created_at TEXT);
 CREATE TABLE IF NOT EXISTS samples (id INTEGER PRIMARY KEY AUTOINCREMENT, host_id INTEGER, at TEXT, ok INTEGER, load REAL, disk INTEGER, uptime INTEGER, req INTEGER, e5 INTEGER, authfail INTEGER, bans INTEGER, site TEXT, ms INTEGER, error TEXT);
 CREATE TABLE IF NOT EXISTS alerts (id INTEGER PRIMARY KEY AUTOINCREMENT, host_id INTEGER, at TEXT, kind TEXT, message TEXT, notified INTEGER DEFAULT 0);
+CREATE TABLE IF NOT EXISTS bans (id INTEGER PRIMARY KEY AUTOINCREMENT, host_id INTEGER, ip TEXT, reason TEXT, at TEXT, ttl TEXT, active INTEGER DEFAULT 1);
 `)
 
 for (const h of cfg.hosts || []) {
@@ -53,6 +55,8 @@ async function raise(host, kind, message) {
 }
 
 const thresholds = Object.assign({ load: 4, disk: 85, e5: 20, authDelta: 20, banDelta: 30 }, cfg.thresholds || {})
+const defense = Object.assign({ enabled: false, autoBan: false, maxPerCycle: 10, ttl: '24h' }, cfg.defense || {})
+const SETUP_DONE = new Set()
 
 async function checkHost(host) {
   const base = HOST_CFG.get(host.name) || { host: host.address, port: host.port, user: host.user, siteUrl: host.site_url }
@@ -64,6 +68,13 @@ async function checkHost(host) {
 
   if (!r.ok) { await raise(host, 'down', `不可达：${r.error || 'ssh 失败'}`); return }
 
+  if (defense.enabled && !SETUP_DONE.has(host.id)) {
+    const s = await setupHost(cfg, hc)
+    SETUP_DONE.add(host.id)
+    if (!s.ok) console.log(nowIso(), host.name, 'defense setup failed:', s.error)
+    else console.log(nowIso(), host.name, 'defense ready')
+  }
+
   const prev = db.prepare('SELECT authfail, bans FROM samples WHERE host_id = ? AND ok = 1 ORDER BY id DESC LIMIT 1 OFFSET 1').get(host.id)
   if (r.site && r.site !== '200' && hc.siteUrl) await raise(host, 'site', `站点返回 ${r.site}`)
   if (r.load > thresholds.load) await raise(host, 'load', `负载 ${r.load}`)
@@ -71,6 +82,22 @@ async function checkHost(host) {
   if (r.e5 > thresholds.e5) await raise(host, '5xx', `5xx ${r.e5} 条`)
   if (prev && r.authfail - prev.authfail > thresholds.authDelta) await raise(host, 'auth', `SSH 失败 +${r.authfail - prev.authfail}`)
   if (prev && r.bans - prev.bans > thresholds.banDelta) await raise(host, 'ban', `封禁 +${r.bans - prev.bans}`)
+
+  if (defense.enabled && defense.autoBan) {
+    const trigger = (r.e5 > thresholds.e5) || (prev && r.authfail - prev.authfail > thresholds.authDelta)
+    if (trigger) {
+      const offenders = (await listOffenders(cfg, hc, 30)).filter((o) => !ignoreIp(cfg, o.ip)).slice(0, defense.maxPerCycle)
+      let done = 0
+      for (const o of offenders) {
+        const b = await banIp(cfg, hc, o.ip, defense.ttl, `hits=${o.hits}`)
+        if (b.ok) {
+          db.prepare('INSERT INTO bans (host_id, ip, reason, at, ttl, active) VALUES (?,?,?,?,?,1)').run(host.id, o.ip, `hits=${o.hits}`, nowIso(), defense.ttl)
+          done += 1
+        }
+      }
+      if (done) await raise(host, 'autoban', `自动封禁 ${done} 个 IP（TTL ${defense.ttl}）`)
+    }
+  }
   console.log(nowIso(), host.name, 'ok', `${r.ms}ms`, `load=${r.load}`, `site=${r.site}`)
 }
 
@@ -89,22 +116,23 @@ function state() {
   for (const h of HOSTS) {
     const s = db.prepare('SELECT * FROM samples WHERE host_id = ? ORDER BY id DESC LIMIT 1').get(h.id)
     const a = db.prepare('SELECT * FROM alerts WHERE host_id = ? ORDER BY id DESC LIMIT 5').all(h.id)
-    out.push({ host: h, sample: s || null, alerts: a })
+    const bans = db.prepare('SELECT ip, reason, at, ttl FROM bans WHERE host_id = ? AND active = 1 ORDER BY id DESC LIMIT 10').all(h.id)
+    out.push({ host: h, sample: s || null, alerts: a, bans })
   }
   return out
 }
 
 function page() {
-  const rows = state().map(({ host, sample, alerts }) => {
+  const rows = state().map(({ host, sample, alerts, bans }) => {
     const s = sample || {}
     const cls = s.ok ? (s.site === '200' || !host.site_url ? 'ok' : 'warn') : 'bad'
-    return `<tr class="${cls}"><td>${host.name}</td><td>${host.address}</td><td>${s.ok ? 'up' : 'down'}</td><td>${s.load ?? '-'}</td><td>${s.disk ?? '-'}%</td><td>${s.site ?? '-'}</td><td>${s.e5 ?? '-'}</td><td>${s.authfail ?? '-'}</td><td>${s.bans ?? '-'}</td><td>${s.at ? s.at.slice(11, 19) : '-'}</td><td>${alerts.map((a) => a.message).join('<br>') || '-'}</td></tr>`
+    return `<tr class="${cls}"><td>${host.name}</td><td>${host.address}</td><td>${s.ok ? 'up' : 'down'}</td><td>${s.load ?? '-'}</td><td>${s.disk ?? '-'}%</td><td>${s.site ?? '-'}</td><td>${s.e5 ?? '-'}</td><td>${s.authfail ?? '-'}</td><td>${s.bans ?? '-'}</td><td>${s.at ? s.at.slice(11, 19) : '-'}</td><td>${(bans || []).length}</td><td>${alerts.map((a) => a.message).join('<br>') || '-'}</td></tr>`
   }).join('')
   return `<!doctype html><html lang="zh"><meta charset="utf-8"><title>远程防控</title>
 <style>body{font:14px/1.6 system-ui;margin:24px;color:#0f172a;background:#f8fafc}h1{font-size:18px}table{border-collapse:collapse;width:100%;background:#fff}th,td{border:1px solid #e2e8f0;padding:6px 8px;text-align:left;font-size:13px}th{background:#f1f5f9}tr.bad td{background:#fef2f2}tr.warn td{background:#fffbeb}</style>
 <h1>远程防控 · ${new Date().toLocaleString('zh-CN')}</h1>
 <p>每 ${cfg.intervalSec || 120} 秒采集一次 · 共 ${HOSTS.length} 台</p>
-<table><thead><tr><th>名称</th><th>地址</th><th>状态</th><th>负载</th><th>磁盘</th><th>站点</th><th>5xx</th><th>SSH失败</th><th>封禁</th><th>时间</th><th>最近告警</th></tr></thead><tbody>${rows}</tbody></table>
+<table><thead><tr><th>名称</th><th>地址</th><th>状态</th><th>负载</th><th>磁盘</th><th>站点</th><th>5xx</th><th>SSH失败</th><th>封禁</th><th>时间</th><th>封禁</th><th>最近告警</th></tr></thead><tbody>${rows}</tbody></table>
 <p><a href="/api/state?token=${encodeURIComponent(cfg.hub?.token || '')}">JSON</a></p></html>`
 }
 
