@@ -45,11 +45,13 @@ if [ ! -f "$DIR/config.json" ]; then
     UPASS=""
     if [ "$AUTH" = "password" ]; then UPASS=$(ask "SSH 密码" ""); fi
     SITE=$(ask "站点地址（可空，如 https://example.com/）" "")
-    HOSTS_JSON=$(HOSTS_JSON="$HOSTS_JSON" NAME="$NAME" HOST="$HOST" HPORT="$HPORT" HUSER="$HUSER" UPASS="$UPASS" SITE="$SITE" node -e '
+    NCONF=$(ask "nginx 站点配置路径（可空，如 /etc/nginx/sites-available/site.conf）" "")
+    HOSTS_JSON=$(HOSTS_JSON="$HOSTS_JSON" NAME="$NAME" HOST="$HOST" HPORT="$HPORT" HUSER="$HUSER" UPASS="$UPASS" SITE="$SITE" NCONF="$NCONF" node -e '
       const h = JSON.parse(process.env.HOSTS_JSON)
       const o = { name: process.env.NAME, host: process.env.HOST, port: Number(process.env.HPORT), user: process.env.HUSER }
       if (process.env.UPASS) o.password = process.env.UPASS
       if (process.env.SITE) { o.siteUrl = process.env.SITE; o.hostHeader = new URL(process.env.SITE).hostname }
+      if (process.env.NCONF) o.nginxConf = process.env.NCONF
       h.push(o); console.log(JSON.stringify(h))')
   done
   KEYPATH=$(ask "SSH 私钥路径（密码模式可留空）" "/root/.ssh/id_ed25519")
@@ -62,6 +64,7 @@ if [ ! -f "$DIR/config.json" ]; then
       ssh: { user: "root", key: process.env.KEYPATH || "", timeout: 8000 },
       dingtalk: { webhook: process.env.WEBHOOK || "", keyword: process.env.KEYWORD },
       thresholds: { load: 4, disk: 85, e5: 20, authDelta: 20, banDelta: 30 },
+      defense: { enabled: true, autoBan: true, maxPerCycle: 10, ttl: "24h", ignore: [], web: { enabled: false } },
       hosts: JSON.parse(process.env.HOSTS_JSON),
     }
     fs.writeFileSync("/opt/blue-remote/config.json", JSON.stringify(cfg, null, 2))

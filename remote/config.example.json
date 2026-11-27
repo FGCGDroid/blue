@@ -30,7 +30,8 @@
       "port": 22,
       "user": "root",
       "siteUrl": "https://example.com/",
-      "hostHeader": "example.com"
+      "hostHeader": "example.com",
+      "nginxConf": "/etc/nginx/sites-available/example.conf"
     }
   ],
   "defense": {
@@ -40,6 +41,9 @@
     "ttl": "24h",
     "ignore": [
       "1.2.3.4"
-    ]
+    ],
+    "web": {
+      "enabled": false
+    }
   }
 }

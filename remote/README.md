@@ -130,6 +130,32 @@ ssh -L 8090:127.0.0.1:8090 root@中心机
 
 只封 IPv4，只动 blue_remote 表，不碰已有防火墙规则。
 
+## 网页层防御（可选）
+
+在 host 配置里加：
+
+```json
+{ "nginxConf": "/etc/nginx/sites-available/site.conf" }
+```
+
+并把 `defense.web.enabled` 设为 true，首次采集会：
+
+```
+写 /etc/nginx/conf.d/blue-zones.conf（限速 zone）
+写 /etc/nginx/blue-remote/locations.conf
+  /.env、/.git/、*.sql/*.bak/*.zip 等 → 404
+  /wp-login.php、/xmlrpc.php → 404
+  /adminlog、/adminlog/login → 假登录页（记 blue-honeypot.log）
+在站点配置 server_name 后插入 include
+nginx -t 失败自动回滚
+```
+
+默认关闭，因为要改被控机 nginx 配置；开启前会留 `.bak.blue` 备份。
+
+## WAF
+
+ModSecurity 需要装 libmodsecurity3 + nginx 连接器，包和版本因发行版而异，自动装容易把 nginx 弄坏，这一项没做自动化，建议手工装好后再让中心只做监控和封禁。
+
 ## 检测项
 
 ```text

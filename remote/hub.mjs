@@ -3,6 +3,7 @@ import { DatabaseSync } from 'node:sqlite'
 import { createServer } from 'node:http'
 import { collectHost } from './collect.mjs'
 import { setupHost, listOffenders, banIp, ignoreIp } from './defend.mjs'
+import { deployWeb } from './webdefend.mjs'
 
 const CONFIG_PATH = process.env.HUB_CONFIG || new URL('./config.json', import.meta.url).pathname
 function loadConfig() {
@@ -69,6 +70,10 @@ async function checkHost(host) {
   if (!r.ok) { await raise(host, 'down', `不可达：${r.error || 'ssh 失败'}`); return }
 
   if (defense.enabled && !SETUP_DONE.has(host.id)) {
+    if (defense.web?.enabled && hc.nginxConf) {
+      const w = await deployWeb(cfg, hc)
+      console.log(nowIso(), host.name, w.ok ? 'web defense ready' : 'web defense failed: ' + w.error)
+    }
     const s = await setupHost(cfg, hc)
     SETUP_DONE.add(host.id)
     if (!s.ok) console.log(nowIso(), host.name, 'defense setup failed:', s.error)
