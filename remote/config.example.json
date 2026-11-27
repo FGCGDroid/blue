@@ -56,5 +56,12 @@
     }
   },
   "notify": [],
-  "notifyTitle": "安全告警"
+  "notifyTitle": "安全告警",
+  "ai": {
+    "enabled": false,
+    "baseUrl": "",
+    "model": "",
+    "apiKey": "",
+    "timeoutMs": 8000
+  }
 }

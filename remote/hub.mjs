@@ -4,6 +4,7 @@ import { createServer } from 'node:http'
 import { collectHost } from './collect.mjs'
 import { setupHost, listOffenders, banIp, unbanIp, ignoreIp, installPackages } from './defend.mjs'
 import { deployWeb } from './webdefend.mjs'
+import { triage } from './ai.mjs'
 
 const CONFIG_PATH = process.env.HUB_CONFIG || new URL('./config.json', import.meta.url).pathname
 function loadConfig() {
@@ -16,7 +17,7 @@ const db = new DatabaseSync(cfg.db || 'hub.db')
 db.exec(`
 CREATE TABLE IF NOT EXISTS hosts (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, address TEXT NOT NULL, port INTEGER DEFAULT 22, user TEXT, site_url TEXT, caps TEXT, created_at TEXT);
 CREATE TABLE IF NOT EXISTS samples (id INTEGER PRIMARY KEY AUTOINCREMENT, host_id INTEGER, at TEXT, ok INTEGER, load REAL, disk INTEGER, uptime INTEGER, req INTEGER, e5 INTEGER, authfail INTEGER, bans INTEGER, site TEXT, ms INTEGER, error TEXT, cs INTEGER DEFAULT 0);
-CREATE TABLE IF NOT EXISTS alerts (id INTEGER PRIMARY KEY AUTOINCREMENT, host_id INTEGER, at TEXT, kind TEXT, message TEXT, notified INTEGER DEFAULT 0);
+CREATE TABLE IF NOT EXISTS alerts (id INTEGER PRIMARY KEY AUTOINCREMENT, host_id INTEGER, at TEXT, kind TEXT, message TEXT, ai TEXT, notified INTEGER DEFAULT 0);
 CREATE TABLE IF NOT EXISTS bans (id INTEGER PRIMARY KEY AUTOINCREMENT, host_id INTEGER, ip TEXT, reason TEXT, at TEXT, ttl TEXT, active INTEGER DEFAULT 1);
 CREATE TABLE IF NOT EXISTS audit (id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT, action TEXT, target TEXT, detail TEXT, result TEXT);
 CREATE TABLE IF NOT EXISTS events (id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT, source TEXT, host TEXT, severity TEXT, message TEXT);
@@ -25,6 +26,7 @@ CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT);
 
 try { db.exec('ALTER TABLE hosts ADD COLUMN caps TEXT') } catch { /* already exists */ }
 try { db.exec('ALTER TABLE samples ADD COLUMN cs INTEGER DEFAULT 0') } catch { /* already exists */ }
+try { db.exec('ALTER TABLE alerts ADD COLUMN ai TEXT') } catch { /* already exists */ }
 for (const h of cfg.hosts || []) {
   const row = db.prepare('SELECT id FROM hosts WHERE name = ?').get(h.name)
   if (!row) db.prepare('INSERT INTO hosts (name, address, port, user, site_url, created_at) VALUES (?,?,?,?,?,?)').run(h.name, h.host, h.port || 22, h.user || cfg.ssh.user || 'root', h.siteUrl || '', new Date().toISOString())
@@ -104,9 +106,12 @@ async function raise(host, kind, message) {
   const cooldown = (cfg.cooldownSec || 600) * 1000
   if (Date.now() - lastAlert(host.id, kind) < cooldown) return
   const at = nowIso()
-  const sent = await notify(`[${host.name}] ${message}`)
-  db.prepare('INSERT INTO alerts (host_id, at, kind, message, notified) VALUES (?,?,?,?,?)').run(host.id, at, kind, message, sent ? 1 : 0)
-  console.log(at, host.name, kind, message, sent ? 'sent' : 'stored')
+  const sample = db.prepare('SELECT load, disk, site, e5, authfail, bans, cs FROM samples WHERE host_id = ? ORDER BY id DESC LIMIT 1').get(host.id) || {}
+  const ai = await triage(cfg, { host: host.name, kind, message, sample })
+  const text = `[${host.name}] ${message}` + (ai ? `\nAI 研判：${ai}` : '')
+  const sent = await notify(text)
+  db.prepare('INSERT INTO alerts (host_id, at, kind, message, ai, notified) VALUES (?,?,?,?,?,?)').run(host.id, at, kind, message, ai || '', sent ? 1 : 0)
+  console.log(at, host.name, kind, message, ai ? 'ai+' : '', sent ? 'sent' : 'stored')
 }
 
 const thresholds = Object.assign({ load: 4, disk: 85, e5: 20, authDelta: 20, banDelta: 30 }, cfg.thresholds || {})
@@ -271,7 +276,7 @@ function page(scope = 'full') {
 <div class="host-f">${s.at ? s.at.slice(11, 19) : '-'}</div>
 </div>`
   }).join('')
-  const rows = d.recent.map((a) => `<tr><td>${a.at.slice(11, 19)}</td><td>${a.name}</td><td>${a.kind}</td><td>${a.message}</td></tr>`).join('')
+  const rows = d.recent.map((a) => `<tr><td>${a.at.slice(11, 19)}</td><td>${a.name}</td><td>${a.kind}</td><td>${a.message}${a.ai ? '<br><span style="color:#7dd3fc">AI：' + a.ai + '</span>' : ''}</td></tr>`).join('')
   const banRows = d.hosts.flatMap((x) => (x.bans || []).map((b) => ({ ...b, host: x.host.name }))).slice(0, 15)
   const banCell = (b) => (scope === 'full'
     ? `<td><form method="post" action="/unban" style="margin:0"><input type="hidden" name="token" value="${cfg.hub?.token || ''}"><input type="hidden" name="host" value="${b.host}"><input type="hidden" name="ip" value="${b.ip}"><button class="unban" type="submit">解封</button></form></td>`
@@ -378,6 +383,17 @@ const server = createServer(async (req, res) => {
     if (sev === 'high' || sev === 'critical') await notify(`[${src}] ${host} ${msg}`)
     audit('ingest', src, host + ' ' + sev, 'ok')
     res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ ok: true })); return
+  }
+  if (url.pathname === '/api/ai/context') {
+    const data = state()
+    const compact = {
+      generatedAt: data.generatedAt,
+      hosts: data.hosts.map((x) => ({ name: x.host.name, address: x.host.address, caps: x.host.caps, sample: x.sample, bans: x.banCount })),
+      alerts: data.recent,
+      kuma: data.kuma,
+    }
+    res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
+    res.end(JSON.stringify(compact)); return
   }
   if (url.pathname === '/api/state') {
     res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })

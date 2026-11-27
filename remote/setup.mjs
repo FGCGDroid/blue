@@ -28,6 +28,8 @@ const token = await ask('访问 token（留空自动生成）', Math.random().to
 const readonly = await ask('只读 token（可空，只能看不能解封）', '')
 const webhook = await ask('钉钉 webhook（可留空）', '')
 const keyword = await ask('钉钉关键词', '蓝队汇报')
+const aiUrl = await ask('AI 接口地址（可空，OpenAI 兼容，如 http://127.0.0.1:11434/v1）', '')
+const aiModel = aiUrl ? await ask('AI 模型名', 'qwen2.5:7b') : ''
 const kumaUrl = await ask('Uptime Kuma 地址（可空，如 http://1.2.3.4:3001）', '')
 const kumaSlug = kumaUrl ? await ask('Kuma 状态页 slug', 'default') : ''
 say('')
@@ -72,6 +74,7 @@ const cfg = {
   retentionDays: 30,
   ssh: { user: 'root', key: keyPath, timeout: 8000 },
   dingtalk: { webhook, keyword },
+  ai: { enabled: Boolean(aiUrl), baseUrl: aiUrl, model: aiModel, apiKey: '', timeoutMs: 8000 },
   integrations: { uptimeKuma: { baseUrl: kumaUrl, slug: kumaSlug } },
   thresholds: { load: 4, disk: 85, e5: 20, authDelta: 20, banDelta: 30 },
   defense: { enabled: autoDef, autoBan: autoDef, maxPerCycle: 10, ttl: '24h', ignore: [], web: { enabled: webDef } },
