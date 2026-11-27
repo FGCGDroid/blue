@@ -13,7 +13,17 @@ config.json   配置
 hub.db        SQLite（自动创建）
 ```
 
-## 一键安装
+## Windows 双击启动
+
+```
+双击 启动.bat
+  第一次：自动进入配置向导（端口、token、钉钉、被控机）
+  之后：直接启动
+```
+
+需要 Node.js 22+，向导会检查版本。
+
+## Linux / macOS 一键安装
 
 ```bash
 cd remote
@@ -151,6 +161,20 @@ nginx -t 失败自动回滚
 ```
 
 默认关闭，因为要改被控机 nginx 配置；开启前会留 `.bak.blue` 备份。
+
+## 现成配置模板
+
+`profiles/qinglan/` 是青岚社区这套的实际参数：
+
+```
+zones.conf                限速 zone
+locations.conf            404 诱饵 + /adminlog 假登录页
+fail2ban-blue.local       sshd / nginx-login / scanner-ua
+config.qinglan.example.json  中心配置示例
+README.md                 怎么套到别的站
+```
+
+改 IP 和 nginx 路径就能复用到别的服务器。
 
 ## WAF
 

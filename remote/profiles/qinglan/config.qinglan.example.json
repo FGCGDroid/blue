@@ -1,0 +1,28 @@
+{
+  "hub": { "port": 8090, "bind": "127.0.0.1", "token": "change-me" },
+  "db": "./hub.db",
+  "intervalSec": 120,
+  "cooldownSec": 600,
+  "ssh": { "user": "root", "key": "/root/.ssh/id_ed25519", "timeout": 8000 },
+  "dingtalk": { "webhook": "", "keyword": "蓝队汇报" },
+  "thresholds": { "load": 4, "disk": 85, "e5": 20, "authDelta": 20, "banDelta": 30 },
+  "defense": {
+    "enabled": true,
+    "autoBan": true,
+    "maxPerCycle": 10,
+    "ttl": "24h",
+    "ignore": [],
+    "web": { "enabled": true }
+  },
+  "hosts": [
+    {
+      "name": "qinglan",
+      "host": "59.110.104.110",
+      "port": 22,
+      "user": "root",
+      "siteUrl": "https://59-110-104-110.sslip.io/",
+      "hostHeader": "59-110-104-110.sslip.io",
+      "nginxConf": "/etc/nginx/sites-available/blue-lab"
+    }
+  ]
+}
