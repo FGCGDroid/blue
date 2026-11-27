@@ -7,3 +7,8 @@ lab/.run/
 *.log
 shadow-test-result.txt
 compare-2.0-3.0-result.txt
+
+remote/config.test.json
+remote/config.json
+remote/test.db
+remote/hub.db
