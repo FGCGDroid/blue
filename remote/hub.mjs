@@ -2,7 +2,7 @@ import { readFileSync, existsSync } from 'node:fs'
 import { DatabaseSync } from 'node:sqlite'
 import { createServer } from 'node:http'
 import { collectHost } from './collect.mjs'
-import { setupHost, listOffenders, banIp, unbanIp, ignoreIp } from './defend.mjs'
+import { setupHost, listOffenders, banIp, unbanIp, ignoreIp, installPackages } from './defend.mjs'
 import { deployWeb } from './webdefend.mjs'
 
 const CONFIG_PATH = process.env.HUB_CONFIG || new URL('./config.json', import.meta.url).pathname
@@ -68,7 +68,7 @@ async function raise(host, kind, message) {
 }
 
 const thresholds = Object.assign({ load: 4, disk: 85, e5: 20, authDelta: 20, banDelta: 30 }, cfg.thresholds || {})
-const defense = Object.assign({ enabled: false, autoBan: false, maxPerCycle: 10, ttl: '24h' }, cfg.defense || {})
+const defense = Object.assign({ enabled: false, autoBan: false, maxPerCycle: 10, ttl: '24h', autoInstall: false }, cfg.defense || {})
 const SETUP_DONE = new Set()
 
 async function checkHost(host) {
@@ -83,6 +83,21 @@ async function checkHost(host) {
   if (!r.ok) { await raise(host, 'down', `不可达：${r.error || 'ssh 失败'}`); return }
 
   if (defense.enabled && !SETUP_DONE.has(host.id)) {
+    const caps = String(host.caps || '')
+    const missing = []
+    if (!caps.includes('nft')) missing.push('nftables')
+    if (!caps.includes('fail2ban')) missing.push('fail2ban')
+    const wanted = []
+    for (const pkg of (hc.install || [])) {
+      if (missing.includes(pkg) && !wanted.includes(pkg)) wanted.push(pkg)
+    }
+    if (!host.caps) for (const pkg of missing) if (defense.autoInstall) wanted.push(pkg)
+    if (wanted.length) {
+      const ins = await installPackages(cfg, hc, wanted)
+      console.log(nowIso(), host.name, ins.ok ? 'installed ' + wanted.join(',') : 'install failed: ' + ins.error)
+      const again = await collectHost(cfg, hc)
+      if (again.ok && again.caps) { host.caps = again.caps; db.prepare('UPDATE hosts SET caps = ? WHERE id = ?').run(again.caps, host.id) }
+    }
     if (defense.web?.enabled && hc.nginxConf) {
       const w = await deployWeb(cfg, hc)
       console.log(nowIso(), host.name, w.ok ? 'web defense ready' : 'web defense failed: ' + w.error)

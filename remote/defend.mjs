@@ -68,6 +68,29 @@ export async function setupHost(cfg, host) {
   return { ok: r.out.includes('OK'), error: r.out.includes('OK') ? '' : 'setup 未完成', skipped: hasNft ? '' : 'nft 不可用' }
 }
 
+export async function installPackages(cfg, host, pkgs) {
+  const list = pkgs.join(' ')
+  const script = `
+set -e
+if command -v apt-get >/dev/null 2>&1; then
+  apt-get update -qq
+  DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ${list}
+elif command -v dnf >/dev/null 2>&1; then
+  dnf install -y ${list}
+elif command -v yum >/dev/null 2>&1; then
+  yum install -y ${list}
+else
+  echo NO_PKG_MANAGER
+  exit 1
+fi
+echo INSTALL_OK
+`
+  const r = await sshExec(cfg, host, script, 180000)
+  if (!r.ok) return r
+  if (r.out.includes('NO_PKG_MANAGER')) return { ok: false, error: '没有 apt/dnf/yum' }
+  return { ok: r.out.includes('INSTALL_OK'), error: r.out.includes('INSTALL_OK') ? '' : '安装未完成' }
+}
+
 export async function listOffenders(cfg, host, minutes = 30) {
   const script = `
 if [ -r /var/log/nginx/access.log ]; then

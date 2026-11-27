@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { stdin, stdout } from 'node:process'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
+import { collectHost } from './collect.mjs'
 
 const piped = !stdin.isTTY
 const lines = piped ? readFileSync(0, 'utf8').split(/\r?\n/) : []
@@ -72,6 +73,25 @@ const cfg = {
   thresholds: { load: 4, disk: 85, e5: 20, authDelta: 20, banDelta: 30 },
   defense: { enabled: autoDef, autoBan: autoDef, maxPerCycle: 10, ttl: '24h', ignore: [], web: { enabled: webDef } },
   hosts,
+}
+
+if (autoDef && hosts.length) {
+  say('')
+  say('--- 检测被控机能力 ---')
+  for (const h of hosts) {
+    const r = await collectHost(cfg, h)
+    if (!r.ok) { say(`${h.name}: 连不上（${r.error}），跳过检测`); continue }
+    const caps = String(r.caps || '')
+    const missing = []
+    if (!caps.includes('nft')) missing.push('nftables')
+    if (!caps.includes('fail2ban')) missing.push('fail2ban')
+    if (!missing.length) { say(`${h.name}: 已有 nft / fail2ban`); continue }
+    say(`${h.name}: 缺少 ${missing.join(' / ')}`)
+    for (const pkg of missing) {
+      const yn = (await ask(`  安装 ${pkg}？(y/n)`, 'n')).toLowerCase()
+      if (yn.startsWith('y')) { h.install = h.install || []; h.install.push(pkg); say(`  将安装 ${pkg}`) }
+    }
+  }
 }
 
 writeFileSync(new URL('./config.json', import.meta.url), JSON.stringify(cfg, null, 2))

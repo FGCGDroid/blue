@@ -193,8 +193,9 @@ banDelta    两次采集之间封禁增量
 ### defense
 
 ```text
-enabled     总开关
-autoBan     自动封禁
+enabled      总开关
+autoInstall  缺少 nftables/fail2ban 时自动安装（需在向导里确认）
+autoBan      自动封禁
 maxPerCycle 每轮最多封几个
 ttl         封禁时长，如 24h / 1h / 30m
 ignore      永不封的 IP 列表
@@ -285,6 +286,16 @@ nginx       有没有 nginx
 ---
 
 ## 十一、自动防御流程
+
+安装时向导会探测每台被控机缺少什么，逐项问：
+
+```text
+web-1: 缺少 nftables / fail2ban
+  安装 nftables？(y/n)
+  安装 fail2ban？(y/n)
+```
+
+选 y 会写进 host.install，中心首轮安装后再初始化防御。
 
 第一轮采集时：
 

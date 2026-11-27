@@ -45,7 +45,8 @@
     ],
     "web": {
       "enabled": false
-    }
+    },
+    "autoInstall": false
   },
   "retentionDays": 30
 }

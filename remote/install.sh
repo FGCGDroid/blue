@@ -54,8 +54,9 @@ if [ ! -f "$DIR/config.json" ]; then
       if (process.env.NCONF) o.nginxConf = process.env.NCONF
       h.push(o); console.log(JSON.stringify(h))')
   done
+  AUTOINST=$(ask "缺少 nftables/fail2ban 时自动安装？(y/n)" "n")
   KEYPATH=$(ask "SSH 私钥路径（密码模式可留空）" "/root/.ssh/id_ed25519")
-  HOSTS_JSON="$HOSTS_JSON" PORT="$PORT" TOKEN="$TOKEN" WEBHOOK="$WEBHOOK" KEYWORD="$KEYWORD" KEYPATH="$KEYPATH" node -e '
+  HOSTS_JSON="$HOSTS_JSON" PORT="$PORT" TOKEN="$TOKEN" WEBHOOK="$WEBHOOK" KEYWORD="$KEYWORD" KEYPATH="$KEYPATH" AUTOINST="$AUTOINST" node -e '
     const fs = require("fs")
     const cfg = {
       hub: { port: Number(process.env.PORT), bind: "127.0.0.1", token: process.env.TOKEN },
@@ -64,7 +65,7 @@ if [ ! -f "$DIR/config.json" ]; then
       ssh: { user: "root", key: process.env.KEYPATH || "", timeout: 8000 },
       dingtalk: { webhook: process.env.WEBHOOK || "", keyword: process.env.KEYWORD },
       thresholds: { load: 4, disk: 85, e5: 20, authDelta: 20, banDelta: 30 },
-      defense: { enabled: true, autoBan: true, maxPerCycle: 10, ttl: "24h", ignore: [], web: { enabled: false } },
+      defense: { enabled: true, autoBan: true, maxPerCycle: 10, ttl: "24h", autoInstall: /^y/i.test(process.env.AUTOINST || ""), ignore: [], web: { enabled: false } },
       hosts: JSON.parse(process.env.HOSTS_JSON),
     }
     fs.writeFileSync("/opt/blue-remote/config.json", JSON.stringify(cfg, null, 2))
