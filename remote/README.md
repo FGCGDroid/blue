@@ -11,10 +11,12 @@
 ```text
 采集      每台被控机的负载、磁盘、站点状态、5xx、SSH 失败、封禁数
 检测      站点挂了、负载高、磁盘满、5xx 多、SSH 被爆破、封禁突增
-告警      钉钉，带机器名和事件，同类 10 分钟只发一次
-封禁      nft 表 + fail2ban，自动封 403/401 高频 IP
+告警      钉钉 / 通用 webhook / Bark / Telegram / 飞书 / Server酱 / ntfy
+封禁      nft 表 + fail2ban + CrowdSec，自动封 403/401 高频 IP
+解封      页面一键解封，带审计
 网页层    404 诱饵、假登录页、登录限速（可选）
-展示      127.0.0.1 上的只读页面和 JSON 接口
+外部接入  Uptime Kuma 心跳、CrowdSec 决策、任何系统往 /ingest 推事件
+展示      深色安全大屏，30 秒刷新
 ```
 
 ## 二、它不能做什么
@@ -460,7 +462,7 @@ http://127.0.0.1:8090/?token=xxx
 底部两块：最近告警、当前封禁列表
 ```
 
-## 页面和接口
+## 十七、页面和接口
 
 ```text
 http://127.0.0.1:8090/?token=xxx          总览表格
@@ -547,9 +549,27 @@ nginx -t 失败会自动回滚
 **告警没收到**
 
 ```text
-webhook 是否为空
+dingtalk.webhook 和 notify 是不是都空着
 钉钉机器人关键词是否和 keyword 一致
-机器人是否在目标群
+webhook 接收端是否返回 2xx
+Telegram 的 token/chatId 是否正确
+飞书/Server酱 的 key 是否过期
+```
+
+**CrowdSec 没显示**
+
+```text
+被控机要先装 cscli
+大屏主机卡底部看能力里有没有 crowdsec
+没有就只显示 CS决策 0
+```
+
+**Kuma 显示未接入**
+
+```text
+integrations.uptimeKuma.baseUrl 为空
+或者 Kuma 不是公开状态页，接口拿不到心跳
+slug 填状态页地址最后一段
 ```
 
 **采集很慢**

@@ -229,6 +229,9 @@ profiles/qinglan/  现成配置模板
 告警    钉钉，同类 10 分钟冷却
 封禁    nft blue_remote 表 + fail2ban，自动封高频 IP
 网页    /.env、/.git、备份文件 404，/adminlog 假登录页
+通知    钉钉 / webhook / Bark / Telegram / 飞书 / Server酱 / ntfy
+接入    Uptime Kuma 心跳、CrowdSec 决策、/ingest 通用事件
+管理    一键解封、操作审计、数据保留
 展示    深色安全大屏，30 秒刷新
 ```
 
