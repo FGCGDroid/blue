@@ -378,7 +378,36 @@ bans 表标记 active=0
 
 每轮清理超过 30 天的 samples、alerts，以及已失效的 bans。
 
-## 十四、外部接入
+## 十四、通知渠道（不用钉钉也行）
+
+`dingtalk.webhook` 留空，改用 `notify` 数组：
+
+```json
+"notifyTitle": "安全告警",
+"notify": [
+  { "type": "webhook", "url": "https://example.com/hook" },
+  { "type": "bark", "url": "https://api.day.app/你的key" },
+  { "type": "telegram", "token": "bot_token", "chatId": "123456" },
+  { "type": "feishu", "url": "https://open.feishu.cn/open-apis/bot/v2/hook/xxx" },
+  { "type": "serverchan", "key": "SCTxxxx" },
+  { "type": "ntfy", "url": "https://ntfy.sh/your-topic" }
+]
+```
+
+各渠道说明：
+
+```text
+webhook      POST JSON {title, text}
+bark         GET /title/text
+telegram     bot API sendMessage
+feishu       飞书群机器人
+serverchan   Server 酱
+ntfy        自建或公共 ntfy
+```
+
+可以同时配多个，任意一个成功就算发送成功。
+
+## 十五、外部接入
 
 ### CrowdSec
 
@@ -415,7 +444,7 @@ severity 为 high / critical 时直接推钉钉
 Wazuh、Grafana、自建脚本都能往这里发
 ```
 
-## 十五、安全大屏
+## 十六、安全大屏
 
 打开：
 
@@ -452,7 +481,7 @@ ssh -L 8090:127.0.0.1:8090 root@中心机
 
 ---
 
-## 十七、systemd
+## 十八、systemd
 
 ```ini
 [Unit]
@@ -477,7 +506,7 @@ journalctl -u blue-remote -f
 
 ---
 
-## 十八、配置模板
+## 十九、配置模板
 
 `profiles/qinglan/` 是青岚社区在用的参数：
 
@@ -491,7 +520,7 @@ README.md                     套用步骤
 
 ---
 
-## 十九、常见问题
+## 二十、常见问题
 
 **向导卡住或乱序**
 
@@ -539,7 +568,7 @@ SSH 串行，100 台会明显慢
 
 ---
 
-## 二十、安全边界
+## 二十一、安全边界
 
 ```text
 只读采集，不执行用户命令
@@ -552,7 +581,7 @@ config.json 含密码时权限 600
 
 ---
 
-## 二十一、限制
+## 二十二、限制
 
 ```text
 SSH 串行，机器多时慢
@@ -564,7 +593,7 @@ WAF 未自动化
 
 ---
 
-## 二十二、后续计划
+## 二十三、后续计划
 
 ```text
 并发采集

@@ -54,5 +54,7 @@
       "baseUrl": "",
       "slug": "default"
     }
-  }
+  },
+  "notify": [],
+  "notifyTitle": "安全告警"
 }

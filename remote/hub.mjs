@@ -45,15 +45,54 @@ function prune() {
   db.prepare('DELETE FROM bans WHERE active = 0 AND at < ?').run(cutoff)
 }
 
-async function notify(text) {
-  const d = cfg.dingtalk
-  if (!d || !d.webhook) return false
-  const body = JSON.stringify({ msgtype: 'text', text: { content: `${d.keyword || '蓝队汇报'} ${text}` } })
+async function sendOne(ch, title, text) {
   try {
-    const res = await fetch(d.webhook, { method: 'POST', headers: { 'content-type': 'application/json' }, body })
-    const json = await res.json().catch(() => ({}))
-    return json.errcode === 0
+    if (ch.type === 'webhook') {
+      const r = await fetch(ch.url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title, text }), signal: AbortSignal.timeout(8000) })
+      return r.ok
+    }
+    if (ch.type === 'bark') {
+      const u = ch.url.replace(/\/$/, '') + '/' + encodeURIComponent(title) + '/' + encodeURIComponent(text)
+      return (await fetch(u, { signal: AbortSignal.timeout(8000) })).ok
+    }
+    if (ch.type === 'telegram') {
+      const u = 'https://api.telegram.org/bot' + ch.token + '/sendMessage'
+      const r = await fetch(u, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ chat_id: ch.chatId, text: title + '\n' + text }), signal: AbortSignal.timeout(8000) })
+      return (await r.json().catch(() => ({}))).ok === true
+    }
+    if (ch.type === 'feishu') {
+      const r = await fetch(ch.url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ msg_type: 'text', content: { text: title + '\n' + text } }), signal: AbortSignal.timeout(8000) })
+      return r.ok
+    }
+    if (ch.type === 'serverchan') {
+      const u = 'https://sctapi.ftqq.com/' + ch.key + '.send'
+      const body = new URLSearchParams({ title, desp: text })
+      return (await fetch(u, { method: 'POST', body, signal: AbortSignal.timeout(8000) })).ok
+    }
+    if (ch.type === 'ntfy') {
+      const r = await fetch(ch.url, { method: 'POST', body: title + '\n' + text, headers: { Title: title }, signal: AbortSignal.timeout(8000) })
+      return r.ok
+    }
   } catch { return false }
+  return false
+}
+
+async function notify(text) {
+  const title = cfg.notifyTitle || '安全告警'
+  let ok = false
+  const d = cfg.dingtalk
+  if (d && d.webhook) {
+    try {
+      const body = JSON.stringify({ msgtype: 'text', text: { content: `${d.keyword || '蓝队汇报'} ${text}` } })
+      const res = await fetch(d.webhook, { method: 'POST', headers: { 'content-type': 'application/json' }, body, signal: AbortSignal.timeout(8000) })
+      const json = await res.json().catch(() => ({}))
+      if (json.errcode === 0) ok = true
+    } catch { /* ignore */ }
+  }
+  for (const ch of cfg.notify || []) {
+    if (await sendOne(ch, title, text)) ok = true
+  }
+  return ok
 }
 
 function lastAlert(hostId, kind) {
