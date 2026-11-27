@@ -65,6 +65,7 @@ const cfg = {
   db: './hub.db',
   intervalSec: 120,
   cooldownSec: 600,
+  retentionDays: 30,
   ssh: { user: 'root', key: keyPath, timeout: 8000 },
   dingtalk: { webhook, keyword },
   thresholds: { load: 4, disk: 85, e5: 20, authDelta: 20, banDelta: 30 },

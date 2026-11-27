@@ -2,7 +2,7 @@ import { readFileSync, existsSync } from 'node:fs'
 import { DatabaseSync } from 'node:sqlite'
 import { createServer } from 'node:http'
 import { collectHost } from './collect.mjs'
-import { setupHost, listOffenders, banIp, ignoreIp } from './defend.mjs'
+import { setupHost, listOffenders, banIp, unbanIp, ignoreIp } from './defend.mjs'
 import { deployWeb } from './webdefend.mjs'
 
 const CONFIG_PATH = process.env.HUB_CONFIG || new URL('./config.json', import.meta.url).pathname
@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS hosts (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEX
 CREATE TABLE IF NOT EXISTS samples (id INTEGER PRIMARY KEY AUTOINCREMENT, host_id INTEGER, at TEXT, ok INTEGER, load REAL, disk INTEGER, uptime INTEGER, req INTEGER, e5 INTEGER, authfail INTEGER, bans INTEGER, site TEXT, ms INTEGER, error TEXT);
 CREATE TABLE IF NOT EXISTS alerts (id INTEGER PRIMARY KEY AUTOINCREMENT, host_id INTEGER, at TEXT, kind TEXT, message TEXT, notified INTEGER DEFAULT 0);
 CREATE TABLE IF NOT EXISTS bans (id INTEGER PRIMARY KEY AUTOINCREMENT, host_id INTEGER, ip TEXT, reason TEXT, at TEXT, ttl TEXT, active INTEGER DEFAULT 1);
+CREATE TABLE IF NOT EXISTS audit (id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT, action TEXT, target TEXT, detail TEXT, result TEXT);
 `)
 
 for (const h of cfg.hosts || []) {
@@ -29,6 +30,16 @@ const HOSTS = db.prepare('SELECT * FROM hosts').all()
 const HOST_CFG = new Map((cfg.hosts || []).map((h) => [h.name, h]))
 
 function nowIso() { return new Date().toISOString() }
+function audit(action, target, detail, result) {
+  try { db.prepare('INSERT INTO audit (at, action, target, detail, result) VALUES (?,?,?,?,?)').run(nowIso(), action, target, detail, result) } catch { /* ignore */ }
+}
+function prune() {
+  const days = cfg.retentionDays || 30
+  const cutoff = new Date(Date.now() - days * 86400000).toISOString()
+  db.prepare('DELETE FROM samples WHERE at < ?').run(cutoff)
+  db.prepare('DELETE FROM alerts WHERE at < ?').run(cutoff)
+  db.prepare('DELETE FROM bans WHERE active = 0 AND at < ?').run(cutoff)
+}
 
 async function notify(text) {
   const d = cfg.dingtalk
@@ -97,6 +108,7 @@ async function checkHost(host) {
         const b = await banIp(cfg, hc, o.ip, defense.ttl, `hits=${o.hits}`)
         if (b.ok) {
           db.prepare('INSERT INTO bans (host_id, ip, reason, at, ttl, active) VALUES (?,?,?,?,?,1)').run(host.id, o.ip, `hits=${o.hits}`, nowIso(), defense.ttl)
+          audit('autoban', host.name, `${o.ip} hits=${o.hits} ttl=${defense.ttl}`, 'ok')
           done += 1
         }
       }
@@ -113,6 +125,7 @@ async function cycle() {
   for (const host of HOSTS) {
     try { await checkHost(host) } catch (e) { console.error(host.name, e.message) }
   }
+  prune()
   running = false
 }
 
@@ -127,7 +140,8 @@ function state() {
     hosts.push({ host: h, sample: s || null, history, alerts, bans, banCount })
   }
   const recent = db.prepare('SELECT a.*, h.name FROM alerts a JOIN hosts h ON h.id = a.host_id ORDER BY a.id DESC LIMIT 20').all()
-  return { generatedAt: new Date().toISOString(), hosts, recent }
+  const audits = db.prepare('SELECT * FROM audit ORDER BY id DESC LIMIT 15').all()
+  return { generatedAt: new Date().toISOString(), hosts, recent, audits }
 }
 
 function spark(values) {
@@ -168,7 +182,7 @@ function page() {
   }).join('')
   const rows = d.recent.map((a) => `<tr><td>${a.at.slice(11, 19)}</td><td>${a.name}</td><td>${a.kind}</td><td>${a.message}</td></tr>`).join('')
   const banRows = d.hosts.flatMap((x) => (x.bans || []).map((b) => ({ ...b, host: x.host.name }))).slice(0, 15)
-  const banTable = banRows.map((b) => `<tr><td>${b.ip}</td><td>${b.host}</td><td>${b.reason || '-'}</td><td>${b.at.slice(11, 19)}</td><td>${b.ttl}</td></tr>`).join('')
+  const banTable = banRows.map((b) => `<tr><td>${b.ip}</td><td>${b.host}</td><td>${b.reason || '-'}</td><td>${b.at.slice(11, 19)}</td><td>${b.ttl}</td><td><form method="post" action="/unban" style="margin:0"><input type="hidden" name="token" value="${cfg.hub?.token || ''}"><input type="hidden" name="host" value="${b.host}"><input type="hidden" name="ip" value="${b.ip}"><button class="unban" type="submit">解封</button></form></td></tr>`).join('')
   return `<!doctype html><html lang="zh"><meta charset="utf-8"><meta http-equiv="refresh" content="30"><title>安全大屏</title>
 <style>
 :root{--bg:#0b1220;--panel:#111c2e;--line:#1e2b44;--sub:#7486a3;--txt:#dbe4f0;--ok:#34d399;--bad:#f87171}
@@ -197,6 +211,8 @@ h1{font-size:22px;margin:0;letter-spacing:.02em}
 .panels{display:grid;grid-template-columns:1.5fr 1fr;gap:14px;margin:18px 28px 30px}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
 .panel h2{font-size:15px;margin:0 0 10px}
+.unban{background:transparent;border:1px solid #2a3b57;color:#93c5fd;border-radius:6px;padding:2px 8px;cursor:pointer;font-size:12px}
+.unban:hover{background:#1e3a5f}
 table{width:100%;border-collapse:collapse;font-size:12.5px}
 th{color:var(--sub);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);font-weight:500}
 td{padding:6px 8px;border-bottom:1px solid #16223a}
@@ -213,16 +229,45 @@ td:nth-child(3){color:#fbbf24}
 </div>
 <div class="grid">${cards || '<div class="host">还没有被控机，去 config.json 里加 hosts</div>'}</div>
 <div class="panels"><div class="panel"><h2>最近告警</h2><table><thead><tr><th>时间</th><th>主机</th><th>类型</th><th>内容</th></tr></thead><tbody>${rows || '<tr><td colspan="4" style="color:var(--sub)">暂无</td></tr>'}</tbody></table></div>
-<div class="panel"><h2>当前封禁</h2><table><thead><tr><th>IP</th><th>主机</th><th>原因</th><th>时间</th><th>TTL</th></tr></thead><tbody>${banTable || '<tr><td colspan="5" style="color:var(--sub)">暂无</td></tr>'}</tbody></table></div></div>
+<div class="panel"><h2>当前封禁</h2><table><thead><tr><th>IP</th><th>主机</th><th>原因</th><th>时间</th><th>TTL</th><th>操作</th></tr></thead><tbody>${banTable || '<tr><td colspan="5" style="color:var(--sub)">暂无</td></tr>'}</tbody></table></div><div class="panel" style="margin-top:14px"><h2>最近操作</h2><table><thead><tr><th>时间</th><th>动作</th><th>目标</th><th>详情</th><th>结果</th></tr></thead><tbody>${(d.audits || []).map((a) => `<tr><td>${a.at.slice(11, 19)}</td><td>${a.action}</td><td>${a.target}</td><td>${a.detail}</td><td>${a.result}</td></tr>`).join('') || '<tr><td colspan="5" style="color:var(--sub)">暂无</td></tr>'}</tbody></table></div></div>
 </html>`
 }
 
-const server = createServer((req, res) => {
+function readBody(req) {
+  return new Promise((resolve) => {
+    let b = ''
+    req.on('data', (c) => { b += c; if (b.length > 65536) req.destroy() })
+    req.on('end', () => resolve(b))
+  })
+}
+
+const server = createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost')
   const token = cfg.hub?.token || ''
-  if (token) {
-    const given = url.searchParams.get('token') || (req.headers.authorization || '').replace(/^Bearer /, '')
-    if (given !== token) { res.writeHead(401); res.end('unauthorized'); return }
+  let body = ''
+  if (req.method === 'POST') body = await readBody(req)
+  let params = {}
+  if (body) {
+    try { params = body.trim().startsWith('{') ? JSON.parse(body) : Object.fromEntries(new URLSearchParams(body)) } catch { params = {} }
+  }
+  const given = url.searchParams.get('token') || params.token || (req.headers.authorization || '').replace(/^Bearer /, '')
+  if (token && given !== token) { res.writeHead(401); res.end('unauthorized'); return }
+  if (url.pathname === '/unban' || url.pathname === '/api/unban') {
+    const hostName = String(params.host || '')
+    const ip = String(params.ip || '')
+    const h = HOSTS.find((x) => x.name === hostName)
+    if (!h) { res.writeHead(404, { 'content-type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: 'no such host' })); return }
+    const raw = HOST_CFG.get(h.name) || { host: h.address, port: h.port, user: h.user }
+    const hc = Object.assign({}, raw)
+    if (!hc.password && cfg.ssh.password) hc.password = cfg.ssh.password
+    const r = await unbanIp(cfg, hc, ip)
+    db.prepare('UPDATE bans SET active = 0 WHERE host_id = ? AND ip = ? AND active = 1').run(h.id, ip)
+    audit('unban', hostName, ip, r.ok ? 'ok' : (r.error || 'fail'))
+    if (url.pathname === '/api/unban') {
+      res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
+      res.end(JSON.stringify(r)); return
+    }
+    res.writeHead(302, { location: '/?token=' + encodeURIComponent(token) }); res.end(); return
   }
   if (url.pathname === '/api/state') {
     res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
