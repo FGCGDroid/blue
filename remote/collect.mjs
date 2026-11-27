@@ -1,4 +1,8 @@
-import { execFile } from 'node:child_process'
+import { execFile, execFileSync } from 'node:child_process'
+
+const HAS_SSHPASS = (() => {
+  try { execFileSync('sshpass', ['-V'], { stdio: 'ignore' }); return true } catch { return false }
+})()
 
 const REMOTE_SCRIPT = `
 echo "load=$(cut -d' ' -f1 /proc/loadavg)"
@@ -27,11 +31,14 @@ else
 fi
 `
 
-function sshArgs(cfg, host) {
-  const args = ['-o', 'BatchMode=yes', '-o', `ConnectTimeout=${Math.ceil((cfg.ssh.timeout || 8000) / 1000)}`, '-p', String(host.port || 22)]
+function sshBase(cfg, host, usePassword) {
+  const args = [
+    ...(usePassword ? [] : ['-o', 'BatchMode=yes']),
+    '-o', `ConnectTimeout=${Math.ceil((cfg.ssh.timeout || 8000) / 1000)}`,
+    '-o', 'StrictHostKeyChecking=accept-new',
+    '-p', String(host.port || 22),
+  ]
   if (cfg.ssh.key) args.push('-i', cfg.ssh.key)
-  args.push(`${host.user || cfg.ssh.user}@${host.host}`)
-  args.push('bash -s')
   return args
 }
 
@@ -41,7 +48,21 @@ export function collectHost(cfg, host) {
     const hostHeader = host.hostHeader || host.host
     const script = REMOTE_SCRIPT.replace('%SITEURL%', siteUrl || 'https://127.0.0.1/').replace('%HOSTHEADER%', hostHeader)
     const started = Date.now()
-    const child = execFile('ssh', sshArgs(cfg, host), { timeout: cfg.ssh.timeout || 8000 }, (error, stdout, stderr) => {
+    const target = `${host.user || cfg.ssh.user}@${host.host}`
+    const password = host.password || ''
+    let file, args
+    if (password) {
+      if (!HAS_SSHPASS) {
+        resolve({ ok: false, error: '密码模式需要 sshpass（apt install sshpass）', ms: 0 })
+        return
+      }
+      file = 'sshpass'
+      args = ['-p', password, 'ssh', ...sshBase(cfg, host, true), target, 'bash -s']
+    } else {
+      file = 'ssh'
+      args = [...sshBase(cfg, host), target, 'bash -s']
+    }
+    const child = execFile(file, args, { timeout: cfg.ssh.timeout || 8000 }, (error, stdout, stderr) => {
       if (error) {
         resolve({ ok: false, error: String(stderr || error.message).split('\n')[0] || 'ssh failed', ms: Date.now() - started })
         return

@@ -13,6 +13,33 @@ config.json   配置
 hub.db        SQLite（自动创建）
 ```
 
+## 一键安装
+
+```bash
+cd remote
+bash install.sh
+```
+
+脚本会问端口、token、钉钉、被控机，自动装 sshpass（密码模式）、写配置、装 systemd、跑一次验证。
+
+本机也想监控的话，被控机填 `127.0.0.1`，认证方式选 password，填本机 root 密码即可。
+
+## 认证方式
+
+```text
+key       推荐，中心机生成密钥后 ssh-copy-id 到被控机
+password  适合不会配密钥的人，需要 sshpass
+          密码明文存在 config.json（600 权限）
+```
+
+密码模式的配置：
+
+```json
+"hosts": [
+  { "name": "web-1", "host": "10.0.0.11", "user": "root", "password": "***" }
+]
+```
+
 ## 部署
 
 ```bash
@@ -25,6 +52,7 @@ node --version   # 需要 22+
 node hub.mjs --once   # 先跑一次看结果
 node hub.mjs          # 常驻
 ```
+
 
 ## 被控机要求
 

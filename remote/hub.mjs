@@ -55,7 +55,9 @@ async function raise(host, kind, message) {
 const thresholds = Object.assign({ load: 4, disk: 85, e5: 20, authDelta: 20, banDelta: 30 }, cfg.thresholds || {})
 
 async function checkHost(host) {
-  const hc = HOST_CFG.get(host.name) || { host: host.address, port: host.port, user: host.user, siteUrl: host.site_url }
+  const base = HOST_CFG.get(host.name) || { host: host.address, port: host.port, user: host.user, siteUrl: host.site_url }
+  const hc = Object.assign({}, base)
+  if (!hc.password && cfg.ssh.password) hc.password = cfg.ssh.password
   const r = await collectHost(cfg, hc)
   db.prepare('INSERT INTO samples (host_id, at, ok, load, disk, uptime, req, e5, authfail, bans, site, ms, error) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)')
     .run(host.id, nowIso(), r.ok ? 1 : 0, r.load || 0, r.disk || 0, r.uptime || 0, r.req || 0, r.e5 || 0, r.authfail || 0, r.bans || 0, r.site || '000', r.ms || 0, r.error || '')
