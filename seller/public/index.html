@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>卡密后台</title>
+<style>
+:root{--bg:#0b1220;--panel:#111c2e;--line:#1e2b44;--sub:#7486a3;--txt:#dbe4f0;--blue:#2563eb}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(1200px 600px at 20% -10%,#14233d,#0b1220 60%);color:var(--txt);font:14px/1.6 system-ui,"Microsoft YaHei",sans-serif}
+header{display:flex;align-items:center;justify-content:space-between;padding:20px 26px 6px}
+h1{font-size:20px;margin:0}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:12px 26px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+.kpi b{display:block;font-size:24px}.kpi span{color:var(--sub);font-size:12px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;margin:12px 26px;padding:14px 16px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+input,select,button{padding:7px 10px;background:#0b1626;border:1px solid #2a3b57;color:var(--txt);border-radius:7px;font-size:13px}
+button{background:var(--blue);border-color:var(--blue);cursor:pointer}
+button.ghost{background:transparent;border-color:#2a3b57}
+table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:10px}
+th{color:var(--sub);text-align:left;font-weight:500;padding:6px;border-bottom:1px solid var(--line)}
+td{padding:6px;border-bottom:1px solid #16223a}
+code{color:#7dd3fc;font-size:11px;word-break:break-all}
+.badge{padding:1px 8px;border-radius:999px;font-size:11px;border:1px solid #2a3b57}
+.badge.unsold{color:#93c5fd}.badge.sold{color:#fbbf24}.badge.activated{color:#34d399}
+.msg{color:#34d399;margin-left:8px}.msg.err{color:#f87171}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 26px}
+.panel.inline{margin:0}
+@media(max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}.cols{grid-template-columns:1fr}}
+</style>
+<header><h1>卡密后台</h1><span class="row"><span id="upd" style="color:#7486a3;font-size:12px"></span><button class="ghost" id="refresh">刷新</button></span></header>
+<div class="kpis" id="kpis"></div>
+<div class="panel"><div class="row">
+<b>生成卡密</b>
+<label>数量 <input id="n" type="number" value="10" min="1" max="1000" style="width:80px"></label>
+<label>天数 <input id="days" type="number" value="365" style="width:80px"></label>
+<label>单价 <input id="price" type="number" value="99" style="width:80px"></label>
+<label>产品 <input id="product" value="pro" style="width:80px"></label>
+<button id="gen">生成</button>
+<a id="export" href="/api/export"><button class="ghost" type="button">导出未售</button></a>
+<span class="msg" id="genMsg"></span>
+</div></div>
+<div class="panel"><div class="row">
+<b>卡密</b>
+<input id="q" placeholder="搜索卡密或客户" style="width:220px">
+<select id="status"><option value="">全部状态</option><option value="unsold">未售</option><option value="sold">已售</option><option value="activated">已激活</option></select>
+<button id="search">查询</button>
+</div><div id="cards"></div></div>
+<div class="cols"><div class="panel inline"><b>订单</b><div id="orders"></div></div>
+<div class="panel inline"><b>说明</b><p style="color:#7486a3">卡密 = Ed25519 签名串，绑定客户端填写服务器 IP。导出后导入发卡平台即可。</p></div></div>
+<script src="/assets/app.js"></script>
+</html>

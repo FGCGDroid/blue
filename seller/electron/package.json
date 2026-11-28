@@ -1,0 +1,6 @@
+{
+  "name": "blue-seller",
+  "version": "1.0.0",
+  "main": "main.cjs",
+  "private": true
+}
