@@ -39,6 +39,24 @@ if (cmd === 'issue') {
   process.exit(0)
 }
 
+if (cmd === 'issue-batch') {
+  const n = Math.min(Number(args[0] || 1), 1000)
+  const days = Number(args[1] || 365)
+  const out = args[2] || 'cards.txt'
+  const privateKey = readFileSync('license-private.pem', 'utf8')
+  const lines = []
+  for (let i = 0; i < n; i++) {
+    const sub = 'cust_' + Date.now().toString(36) + '_' + i
+    const payload = { sub, ips: [], plan: 'pro', exp: Math.floor(Date.now() / 1000) + days * 86400, iat: Math.floor(Date.now() / 1000) }
+    const b = b64url(JSON.stringify(payload))
+    lines.push(b + '.' + b64url(sign(null, Buffer.from(b), privateKey)))
+  }
+  writeFileSync(out, lines.join('\n') + '\n')
+  console.log('生成', n, '张，写入', out)
+  process.exit(0)
+}
+
 console.log('用法:')
 console.log('  node license-issue.mjs keygen')
 console.log('  node license-issue.mjs issue <客户ID> <IP1,IP2> [天数]')
+console.log('  node license-issue.mjs issue-batch <数量> <天数> [输出文件]')
