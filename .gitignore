@@ -12,3 +12,11 @@ remote/config.test.json
 remote/config.json
 remote/test.db
 remote/hub.db
+
+desktop/*.exe
+desktop/*.pem
+desktop/node_modules
+remote/*.pem
+remote/config.lic.json
+remote/lic-test.db
+remote/whitelist-test.json

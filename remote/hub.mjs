@@ -5,6 +5,7 @@ import { collectHost } from './collect.mjs'
 import { setupHost, listOffenders, banIp, unbanIp, ignoreIp, installPackages } from './defend.mjs'
 import { deployWeb } from './webdefend.mjs'
 import { triage } from './ai.mjs'
+import { verifyCard, loadWhitelist, addWhitelist } from './license.mjs'
 
 const CONFIG_PATH = process.env.HUB_CONFIG || new URL('./config.json', import.meta.url).pathname
 function loadConfig() {
@@ -156,6 +157,18 @@ async function raise(host, kind, message) {
 }
 
 const thresholds = Object.assign({ load: 4, disk: 85, e5: 20, authDelta: 20, banDelta: 30 }, cfg.thresholds || {})
+const LIC = (() => {
+  const l = cfg.license
+  if (!l || !l.publicKey || !l.card) return null
+  const payload = verifyCard(l.card, l.publicKey)
+  if (!payload) { console.error('license invalid or expired'); process.exit(1) }
+  if (l.selfIp && payload.ips && payload.ips.length && !payload.ips.includes(l.selfIp)) {
+    console.error('license IP mismatch: card for', payload.ips.join(','), 'self', l.selfIp)
+    process.exit(1)
+  }
+  return payload
+})()
+
 const defense = Object.assign({ enabled: false, autoBan: false, maxPerCycle: 10, ttl: '24h', autoInstall: false, dryRun: true }, cfg.defense || {})
 const SETUP_DONE = new Set()
 
@@ -378,6 +391,11 @@ ${integrationsPanel(d)}<div class="panels"><div class="panel"><h2>最近告警</
 </html>`
 }
 
+function fullish(req, params, url) {
+  const token = cfg.hub?.token || ''
+  return Boolean(token) && (params.token === token || (url && url.searchParams.get('token') === token) || (req.headers.authorization || '').replace(/^Bearer /, '') === token)
+}
+
 function readBody(req) {
   return new Promise((resolve) => {
     let b = ''
@@ -394,6 +412,20 @@ const server = createServer(async (req, res) => {
   let params = {}
   if (body) {
     try { params = body.trim().startsWith('{') ? JSON.parse(body) : Object.fromEntries(new URLSearchParams(body)) } catch { params = {} }
+  }
+  if (LIC) {
+    const ip = String(req.headers['x-real-ip'] || req.socket.remoteAddress || '').replace(/^::ffff:/, '')
+    const wl = cfg.license.whitelistPath ? loadWhitelist(cfg.license.whitelistPath) : []
+    const allowed = ip === '127.0.0.1' || (LIC.ips || []).includes(ip) || wl.includes(ip)
+    if (!allowed) { res.writeHead(403); res.end('IP not authorized'); return }
+  }
+  if (url.pathname === '/api/whitelist' && req.method === 'POST') {
+    if (!fullish(req, params, url)) { res.writeHead(403); res.end('token required'); return }
+    const ip = String(params.ip || '')
+    if (!/^(\d{1,3}\.){3}\d{1,3}$/.test(ip)) { res.writeHead(400); res.end('bad ip'); return }
+    addWhitelist(cfg.license.whitelistPath || './whitelist.json', ip)
+    audit('whitelist', ip, 'added', 'ok')
+    res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ ok: true, ip })); return
   }
   const given = url.searchParams.get('token') || params.token || (req.headers.authorization || '').replace(/^Bearer /, '')
   const full = Boolean(token) && given === token
